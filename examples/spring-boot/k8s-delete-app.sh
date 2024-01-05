@@ -6,8 +6,8 @@
 NAMESPACE="test"
 
 # Resource names
-DEPLOYMENT_NAME="easycontainers-test-app-deployment"
-SERVICE_NAME="easycontainers-test-app-service"
+DEPLOYMENT_NAME="easycontainers-spring-boot-test-app-deployment"
+SERVICE_NAME="easycontainers-spring-boot-test-app-service"
 
 # Delete Deployment
 echo "Deleting Deployment: $DEPLOYMENT_NAME"

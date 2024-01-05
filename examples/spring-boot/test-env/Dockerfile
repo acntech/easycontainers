@@ -1,5 +1,5 @@
 # ---
-# Simple httpdlight container, with a script that logs the time every 2 seconds to std out #
+# Simple lighttpd container, with a script that logs the time every 2 seconds to std out #
 # ---
 
 # Use Alpine Linux as the base image
@@ -23,5 +23,5 @@ RUN chmod +x /usr/local/bin/log-time.sh
 # Expose port 80
 EXPOSE 80
 
-# Start both lighttpd and the time-logging script, capturing their output to stdout
+# Start both lighttpd and the time-logging script, capturing its output to stdout
 CMD sh -c "lighttpd -D -f /etc/lighttpd/lighttpd.conf -D www-data & /usr/local/bin/log-time.sh"

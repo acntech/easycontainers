@@ -15,14 +15,19 @@ else
     fi
 fi
 
+# Create the service account, role and role binding
 kubectl apply -f service-account.yaml
 kubectl apply -f role.yaml
 kubectl apply -f role-binding.yaml
 
+# Start a local registry
 ./run-registry.sh
 
+# Build and push the light-httpd image
 docker build -t localhost:5000/alpine-simple-http:latest .
 docker push localhost:5000/alpine-simple-http:latest
+
+# List the images in the registry
 curl http://localhost:5000/v2/_catalog
 
 

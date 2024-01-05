@@ -21,7 +21,7 @@ class ContainerConfig {
             withExposedPort(80)
             withIsEphemeral(true)
             if(K8sUtils.isRunningOutsideCluster()) {
-                withPortMapping(80, 30080)
+                withPortMapping(80, 31080)
             }
         }.build()
         container.start()
