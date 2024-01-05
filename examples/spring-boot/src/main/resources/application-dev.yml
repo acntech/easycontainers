@@ -1,0 +1,8 @@
+### Logging ###
+logging:
+  stdout-appender-threshold-level: TRACE
+  trace-appender-threshold-level: TRACE
+  level:
+    root: INFO
+    no.acntech: TRACE
+    org.springframework: INFO

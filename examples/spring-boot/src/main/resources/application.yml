@@ -1,0 +1,131 @@
+debug: false
+
+### Application ###
+
+### Spring server ###
+server:
+  port: 8080
+  forward-headers-strategy: framework
+  error:
+    whitelabel:
+      enabled: false
+    include-stacktrace: NEVER
+  tomcat:
+    uri-encoding: "UTF-8"
+    mbeanregistry:
+      enabled: false
+    keep-alive-timeout: "PT120S"
+  http:
+    encoding:
+      charset: "UTF-8"
+      enabled: "UTF-8"
+
+### Spring management ###
+management:
+  server:
+    port: 9999
+
+  health:
+    liveness-state:
+      enabled: true
+    readiness-state:
+      enabled: true
+
+  # Endpoints config
+  endpoints:
+    enabled-by-default: false # Enable each endpoint explicitly
+    web:
+      base-path: /actuator
+      exposure:
+        include: "*"
+      cors:
+        allowed-origins: "*"
+        allowed-methods: "*"
+        allowed-headers: "*"
+        max-age: 3600
+
+
+  # Endpoint config
+  endpoint:
+    auditevents:
+      enabled: false
+    beans:
+      enabled: true
+    caches:
+      enabled: false
+    conditions:
+      enabled: false
+    configprops:
+      enabled: true
+    env:
+      enabled: true
+    flyway:
+      enabled: false
+    health:
+      enabled: true
+      probes:
+        enabled: true
+      defaults:
+        enabled: true
+      show-details: always
+      show-components: always
+      sensitive: false
+    httptrace:
+      enabled: false
+    info:
+      enabled: true
+    integrationgraph:
+      enabled: false
+    loggers:
+      enabled: true
+    liquibase:
+      enabled: false
+    metrics:
+      enabled: true
+      tags:
+        application: "${spring.application.name}"
+    mappings:
+      enabled: true
+    scheduledtasks:
+      enabled: false
+    sessions:
+      enabled: false
+    shutdown:
+      enabled: true
+    threaddump:
+      enabled: true
+    heapdump:
+      enabled: true
+    jolokia:
+      enabled: false
+    logfile:
+      enabled: false
+    prometheus:
+      enabled: false
+
+### Spring ###
+spring:
+
+  # Application
+  application:
+    name: containers-app
+
+  main:
+    web-application-type: SERVLET
+
+  banner:
+    location: "classpath:/banner.txt"
+
+### Logging ###
+LOG_PATH: ./log
+
+logging:
+  # logging.file.path: ${LOG_PATH}
+  stdout-appender-threshold-level: INFO
+  trace-appender-threshold-level: INFO
+  level:
+    root: INFO
+    no.acntech: INFO
+    org.springframework: INFO
+#    org.springframework.web: INFO
+#    org.springframework.boot.actuate: INFO

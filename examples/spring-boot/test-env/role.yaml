@@ -1,0 +1,21 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: test-sa-role
+  namespace: test
+rules:
+- apiGroups: ["", "apps"]
+  resources: [
+    "deployments",
+    "services",
+    "pods",
+    "namespaces",
+    "pods/log",
+    "pods/portforward"]
+  verbs: [
+    "get",
+    "list",
+    "create",
+    "delete",
+    "update",
+    "watch"]

@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration debug="false">
+
+  <appender class="ch.qos.logback.core.ConsoleAppender" name="STDOUT_APPENDER">
+    <encoder>
+      <Pattern>
+        %yellow(%d{yyyy-MM-dd}) | %green(%d{HH:mm:ss.SSS}) | %10.10X{requestId:-N/A} | %10.10X{correlationId:-N/A} | %magenta(%-10.10thread) | %highlight(%5p) | %cyan(%-20.20logger{20}) | %highlight(%m%n)
+      </Pattern>
+    </encoder>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>${stdoutAppenderThresholdLevel}</level>
+    </filter>
+  </appender>
+
+  <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="TRACE_FILE_APPENDER">
+    <append>false</append>
+    <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+      <layout class="ch.qos.logback.classic.PatternLayout">
+        <Pattern>
+          %d{"yyyy.MM.dd HH:mm:ss,SSS"} | %10.10X{requestId:-N/A} | %10.10X{correlationId:-N/A} | [%thread] | [%-5level] | %logger{0} | %msg%n
+        </Pattern>
+      </layout>
+    </encoder>
+    <file>${LOG_PATH}/trace.log</file>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>${traceAppenderThresholdLevel}</level>
+    </filter>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>
+        ${LOG_PATH}/archive/trace_%d{yyyy-MM-dd}_%d{HH_mm_ss,aux}.log.zip
+      </fileNamePattern>
+      <maxHistory>2</maxHistory>
+    </rollingPolicy>
+  </appender>
+
+  <appender class="ch.qos.logback.core.rolling.RollingFileAppender" name="ERROR_FILE_APPENDER">
+    <append>false</append>
+    <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+      <layout class="ch.qos.logback.classic.PatternLayout">
+        <Pattern>
+          %d{"yyyy.MM.dd HH:mm:ss,SSS"} | X{requestId:-N/A} | X{correlationId:-N/A} | [%thread] | [%-5level] | %logger{0} | %msg%n
+        </Pattern>
+      </layout>
+    </encoder>
+    <file>${LOG_PATH}/error.log</file>
+    <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
+      <level>ERROR</level>
+    </filter>
+    <rollingPolicy class="ch.qos.logback.core.rolling.TimeBasedRollingPolicy">
+      <fileNamePattern>
+        ${LOG_PATH}/archive/error_%d{yyyy-MM-dd}_%d{HH_mm_ss,aux}.log.zip
+      </fileNamePattern>
+      <maxHistory>2</maxHistory>
+    </rollingPolicy>
+  </appender>
+
+  <logger name="no.acntech" additivity="false">
+    <appender-ref ref="TRACE_FILE_APPENDER"/>
+    <appender-ref ref="ERROR_FILE_APPENDER"/>
+  </logger>
+
+  <root>
+    <appender-ref ref="TRACE_FILE_APPENDER"/>
+    <appender-ref ref="ERROR_FILE_APPENDER"/>
+  </root>
+
+  <springProfile name="default, dev,local,local-h2,local-postgres">
+
+    <logger name="no.acntech" additivity="false">
+      <appender-ref ref="STDOUT_APPENDER"/>
+      <appender-ref ref="TRACE_FILE_APPENDER"/>
+      <appender-ref ref="ERROR_FILE_APPENDER"/>
+    </logger>
+
+    <root>
+      <appender-ref ref="STDOUT_APPENDER"/>
+      <appender-ref ref="TRACE_FILE_APPENDER"/>
+      <appender-ref ref="ERROR_FILE_APPENDER"/>
+    </root>
+
+  </springProfile>
+
+  <springProperty defaultValue="./log" name="LOG_PATH" scope="context" source="LOG_PATH"/>
+
+  <springProperty defaultValue="INFO" name="stdoutAppenderThresholdLevel"
+    scope="context"
+    source="logging.stdout-appender-threshold-level"/>
+
+  <springProperty defaultValue="INFO" name="traceAppenderThresholdLevel"
+    scope="context"
+    source="logging.trace-appender-threshold-level"/>
+
+</configuration>
