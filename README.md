@@ -10,7 +10,7 @@
 
 ## Introduction
 
-Easycontainers is a Kotlin library that allows you to easily create and manage the lifecycle of (generic) containers in Kubernetes and Docker.
+Easycontainers is a Kotlin library that allows you to easily create and manage (generic) containers in Kubernetes and Docker.
 
 ## Example-applications
 
@@ -21,7 +21,7 @@ See the [examples](examples) folder for examples on how to use the library.
 * Create specific container implementations for well-known services, e.g. Elasticsearch, Kafka, Redis, etc.
 * Add Docker container support
 * Employ Kaniko pod (external k8s job) in order to programmatically build (custom) docker files and push to a registry
-* Use JIB to build and push images to a registry
+* Use JIB to build and push custom images to a registry
 
 ## Contributing
 - Thomas Muller (thomas.muller@accenture.com): main contributor and maintainer

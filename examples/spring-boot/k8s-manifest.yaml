@@ -15,11 +15,15 @@ spec:
     spec:
       serviceAccountName: test-sa
       containers:
-        - name: k8s-containers-test-app
+        - name:  easycontainers-spring-boot-test-app-container
           image: localhost:5000/easycontainers-spring-boot-test-app:latest
           ports:
             - containerPort: 8080
             - containerPort: 9999
+            - containerPort: 5005
+          env:
+            - name: JAVA_TOOL_OPTIONS
+              value: "-agentlib:jdwp=transport=dt_socket,server=y,suspend=n,address=*:5005"
           resources:
             requests:
               memory: "1Gi"

@@ -20,7 +20,7 @@ class ContainerBuilder {
 
     data class ConfigFile(
         val mountPath: String,
-        val content: String
+        val content: String,
     )
 
     companion object {
@@ -73,6 +73,7 @@ class ContainerBuilder {
         this.command = command
         return this
     }
+
     fun withArgs(args: List<String>): ContainerBuilder {
         this.args = args
         return this
@@ -124,13 +125,13 @@ class ContainerBuilder {
     }
 
     fun withConfigFile(name: String, path: String, data: Map<String, String>, keyValSeparator: String = ": ") {
-        require(FileUtils.isCompleteUnixPath(path)) { "Path [$path] is not a complete unix path"}
+        require(FileUtils.isCompleteUnixPath(path)) { "Path [$path] is not a complete unix path" }
         val content = data.entries.joinToString(NEW_LINE) { (key, value) -> "$key$keyValSeparator$value" }
         configFiles[name] = ConfigFile(path, content)
     }
 
     fun withConfigFile(name: String, path: String, content: String) {
-        require(FileUtils.isCompleteUnixPath(path)) { "Path [$path] is not a complete unix path"}
+        require(FileUtils.isCompleteUnixPath(path)) { "Path [$path] is not a complete unix path" }
         configFiles[name] = ConfigFile(path, content)
     }
 

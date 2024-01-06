@@ -21,8 +21,13 @@ class ContainerConfig {
             withImage("localhost:5000/alpine-simple-httpd:latest")
             withExposedPort(80)
             withIsEphemeral(true)
-            withLogLineCallback(Slf4jLineCallback(LoggerFactory.getLogger("no.acntech.alpine-test")))
-            if(K8sUtils.isRunningOutsideCluster()) {
+            withLogLineCallback(
+                Slf4jLineCallback(
+                    logger = LoggerFactory.getLogger("no.acntech.alpine-test"),
+                    prefix = "HTTPD-CONTAINER-OUTPUT: "
+                )
+            )
+            if (K8sUtils.isRunningOutsideCluster()) {
                 withPortMapping(80, 31080)
             }
         }.build()

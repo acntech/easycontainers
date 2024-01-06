@@ -53,16 +53,23 @@ internal class K8sContainer(
     }
 
     private inner class ContainerLogger {
+
         private val executor = Executors.newVirtualThreadPerTaskExecutor()
+
         fun start() {
+            log.info("Starting container logger")
+
             val podLogWatch = client.pods()
                 .inNamespace(getNamespace())
                 .withName(pods.first().first.metadata.name)
                 .watchLog()
 
+            log.debug("Pod log watch created: $podLogWatch")
+
             val reader = LineReader(podLogWatch.output, builder.lineCallback)
 
             executor.execute {
+                log.debug("Starting pod log reader: $reader")
                 reader.read()
             }
         }
