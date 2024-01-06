@@ -1,5 +1,6 @@
 package no.acntech.easycontainers.util.lang
 
+import no.acntech.easycontainers.util.collections.prettyPrint
 import no.acntech.easycontainers.util.text.NEW_LINE
 import java.beans.Introspector
 import kotlin.reflect.full.findAnnotation
@@ -48,7 +49,7 @@ fun Any.toMap(defaultOverrides: Map<String, Any> = emptyMap()): Map<String, Any?
 /**
  * Pretty prints an object to a string, falling back to the provided map for overrides and additional properties.
  */
-fun Any.prettyPrint(fallbackMap: Map<String, Any> = emptyMap()): String {
+fun Any.prettyPrintThis(fallbackMap: Map<String, Any> = emptyMap()): String {
     val defaultToString = "${javaClass.name}@${Integer.toHexString(System.identityHashCode(this))}$NEW_LINE"
     val map: Map<String, Any?> = this.toMap(fallbackMap)
     return defaultToString + map.prettyPrint()

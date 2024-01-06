@@ -64,7 +64,7 @@
     <appender-ref ref="ERROR_FILE_APPENDER"/>
   </root>
 
-  <springProfile name="default, dev,local,local-h2,local-postgres">
+  <springProfile name="default,dev,local">
 
     <logger name="no.acntech" additivity="false">
       <appender-ref ref="STDOUT_APPENDER"/>

@@ -1,7 +1,7 @@
 package no.acntech.easycontainers.spring_boot_example.config
 
+import no.acntech.easycontainers.util.collections.prettyPrint
 import no.acntech.easycontainers.util.collections.toCensoredCopy
-import no.acntech.easycontainers.util.lang.prettyPrint
 import org.slf4j.LoggerFactory
 import org.springframework.boot.context.event.ApplicationReadyEvent
 import org.springframework.context.annotation.Bean

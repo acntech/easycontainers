@@ -15,6 +15,7 @@
     <skipTests>true</skipTests>
     <java.version>21</java.version>
     <kotlin.version>1.9.21</kotlin.version>
+
     <revision>LOCAL</revision>
 
     <!-- Library versions -->
@@ -41,7 +42,7 @@
     <junit.version>5.10.1</junit.version>
 
     <!-- Plugin versions -->
-    <spring-boot-maven-plugin.version>3.2.1</spring-boot-maven-plugin.version>
+    <spring-boot-maven-plugin.version>${spring-boot.version}</spring-boot-maven-plugin.version>
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
     <maven-compiler-plugin.version>3.11.0</maven-compiler-plugin.version>
     <maven-surefire-plugin.version>3.2.1</maven-surefire-plugin.version>
@@ -199,6 +200,30 @@
 
       </plugins>
     </pluginManagement>
-  </build>
 
+    <plugins>
+
+      <!--
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-enforcer-plugin</artifactId>
+        <executions>
+          <execution>
+            <goals>
+              <goal>enforce</goal>
+            </goals>
+            <configuration>
+              <rules>
+                <dependencyConvergence/>
+                <requireUpperBoundDeps/>
+                <requirePluginVersions/>
+              </rules>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+      -->
+
+    </plugins>
+  </build>
 </project>

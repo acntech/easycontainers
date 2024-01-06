@@ -18,14 +18,15 @@ See the [examples](examples) folder for examples on how to use the library.
 
 ## TO-DO
 
-* Add Docker container support (TODO)
-* Employ Kaniko pod (k8s job) in order to build (custom) docker files and push to a registry
 * Create specific container implementations for well-known services, e.g. Elasticsearch, Kafka, Redis, etc.
+* Add Docker container support
+* Employ Kaniko pod (external k8s job) in order to programmatically build (custom) docker files and push to a registry
+* Use JIB to build and push images to a registry
 
 ## Contributing
 - Thomas Muller (thomas.muller@accenture.com): main contributor and maintainer
 
 ## License
-2024, Accenture Inc. All Rights Reserved   
+2024, Accenture Inc. All Rights Reserved
 
-This software is provided "as is" without warranty of any kind, either expressed or implied, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose. In no event shall Accenture Inc or its contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use,(examples/spring-boot/pom.xml) data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising.
+This software is provided "as is" without warranty of any kind, either expressed or implied, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose. In no event shall Accenture Inc or its contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising.

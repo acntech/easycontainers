@@ -1,31 +1,34 @@
+# ---
+# This Dockerfile is used to build an image containing the Spring Boot example application.
+# ---
+
 FROM amazoncorretto:21-alpine
 
-RUN apk update && apk upgrade -U
-RUN apk add --no-cache curl
-RUN apk add --no-cache jq
-RUN apk add --no-cache netcat-openbsd
-RUN apk add --no-cache bash
+# Install necessary packages
+RUN apk add --no-cache curl jq netcat-openbsd bash
 
-# Create directories
-RUN mkdir -p /opt/app/log
+# Create a group and user
+RUN addgroup -S appgroup && adduser -S appuser -G appgroup
 
-# Set permissions
-RUN chgrp -R 0 /opt/app && \
+# Create directories and set permissions
+RUN mkdir -p /opt/app/log && \
+    chgrp -R 0 /opt/app && \
     chmod -R g+rwX /opt/app
 
 WORKDIR /opt/app
 
 # Copy necessary files
-ADD target/*.jar app.jar
-ADD start.sh start.sh
-ADD jvm_options jvm_options
+COPY target/*.jar app.jar
+COPY start.sh start.sh
+COPY jvm_options jvm_options
 
-# Make the start script executable
-RUN chmod +x /opt/app/start.sh
+# Make the start script executable and ensure jvm_options is readable
+RUN chmod +x start.sh && \
+    chgrp 0 jvm_options && \
+    chmod g+r jvm_options && \
+    chown -R appuser:appgroup /opt/app
 
-# Ensure jvm_options is readable by the root group
-RUN chgrp 0 /opt/app/jvm_options && \
-    chmod g+r /opt/app/jvm_options
+# Change to the app user
+USER appuser
 
-ENTRYPOINT ["/bin/sh","/opt/app/start.sh"]
-
+ENTRYPOINT ["/bin/sh", "start.sh"]

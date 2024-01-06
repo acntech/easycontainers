@@ -11,7 +11,7 @@ spec:
   template:
     metadata:
       labels:
-        app: k8s-containers-test-app
+        app: easycontainers-spring-boot-test-app
     spec:
       serviceAccountName: test-sa
       containers:

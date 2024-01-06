@@ -13,14 +13,14 @@ function handleError {
     exit 1
 }
 
-./delete-app.sh
+./k8s-delete-app.sh
 
 # Trap any error, and call handleError function with the line number
 trap 'handleError $LINENO' ERR
 
 # Step 1: Maven Package
-echo "Building..."
-mvn package
+# echo "Building..."
+# mvn package
 
 # Step 2: Build Docker Image
 echo "Building Docker Image..."

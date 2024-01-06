@@ -30,10 +30,11 @@ Install the test environment by running the following command:
 > cd test-env
 > ./test-env/create-env.sh
 ```
-
-Deploy the test application by running the following commands:
+[pom.xml](..%2F..%2Fpom.xml)
+Deploy the test application to your local k8s cluster by running the following commands on the top level folder:
 ```bash
 > mvn clean package
+> mv/examples/spring-boot
 > ./deploy-app.sh
 ```
 

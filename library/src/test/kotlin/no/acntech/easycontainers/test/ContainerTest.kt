@@ -11,7 +11,7 @@ class ContainerTest {
         val container = ContainerFactory.kubernetesContainer {
             withName("alpine-test")
             withNamespace("test")
-            withImage("localhost:5000/alpine-simple-http:latest")
+            withImage("localhost:5000/alpine-simple-httpd:latest")
             withExposedPort(80)
             withPortMapping(80, 30080)
             withIsEphemeral(true)

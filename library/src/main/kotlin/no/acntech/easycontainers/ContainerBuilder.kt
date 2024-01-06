@@ -4,7 +4,6 @@ import no.acntech.easycontainers.docker.DockerContainer
 import no.acntech.easycontainers.k8s.K8sContainer
 import no.acntech.easycontainers.output.LineCallback
 import no.acntech.easycontainers.util.io.FileUtils
-import no.acntech.easycontainers.util.lang.prettyPrint
 import no.acntech.easycontainers.util.text.NEW_LINE
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
@@ -157,7 +156,7 @@ class ContainerBuilder {
             .append("exposedPorts", exposedPorts)
             .append("mappedPorts", portMappings)
             .append("isEphemeral", isEphemeral)
-            .append("configMapVolumes$NEW_LINE", configFiles.prettyPrint())
+            .append("configFiles$NEW_LINE", configFiles)
             .toString()
     }
 }

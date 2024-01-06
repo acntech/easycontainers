@@ -24,8 +24,8 @@ kubectl apply -f role-binding.yaml
 ./run-registry.sh
 
 # Build and push the light-httpd image
-docker build -t localhost:5000/alpine-simple-http:latest .
-docker push localhost:5000/alpine-simple-http:latest
+docker build -t localhost:5000/alpine-simple-httpd:latest .
+docker push localhost:5000/alpine-simple-httpd:latest
 
 # List the images in the registry
 curl http://localhost:5000/v2/_catalog
