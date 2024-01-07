@@ -12,7 +12,7 @@ class ContainerTest {
             withName("alpine-test")
             withNamespace("test")
             withImage("localhost:5000/alpine-simple-httpd:latest")
-            withExposedPort(80)
+            withExposedPort("http", 80)
             withPortMapping(80, 30080)
             withIsEphemeral(true)
             withLogLineCallback { line -> println("HTTPD-OUTPUT: $line") }
@@ -29,28 +29,21 @@ class ContainerTest {
             withName("elasticsearch-test")
             withNamespace("test")
             withImage("docker.elastic.co/elasticsearch/elasticsearch:8.11.3")
-            withExposedPort(9200)
+            withEnv("discovery.type", "single-node")
+            withEnv("xpack.security.enabled", "false")
+            withEnv("xpack.security.http.ssl.enabled", "false")
+            withEnv("xpack.security.transport.ssl.enabled", "false")
+            withEnv("CLUSTER_NAME", "dev-cluster")
+            withEnv("NODE_NAME", "dev-node")
+            withEnv("ELASTIC_PASSWORD", "passwd")
+            withEnv("ES_JAVA_OPTS", "-Xms1024m -Xmx1024m")
+            withEnv("ES_DEV_MODE", "true")
+            withEnv("ES_LOG_LEVEL", "DEBUG")
+            withExposedPort("http", 9200)
+            withExposedPort("transport", 9300)
             withPortMapping(9200, 30200)
-            withIsEphemeral(false)
-            withConfigFile(
-                name = "elasticsearch-config",
-                path = "/usr/share/elasticsearch/config/elasticsearch.yml",
-                content = """
-                    cluster.name: "docker-cluster"
-                    network.host: 0.0.0.0
-                    xpack.security.enabled: false
-                    xpack.security.enrollment.enabled: false
-                    xpack.security.http.ssl:
-                      enabled: false
-                      keystore.path: certs/http.p12                    
-                    xpack.security.transport.ssl:
-                      enabled: false
-                      verification_mode: certificate
-                      keystore.path: certs/transport.p12
-                      truststore.path: certs/transport.p12                    
-                    cluster.initial_master_nodes: ["f659bb5a9817"]
-                    """
-                )
+            withPortMapping(9300, 30300)
+            withIsEphemeral(true)
             withLogLineCallback { line -> println("ELASTIC-OUTPUT: $line") }
         }.build()
         container.start()
@@ -58,6 +51,5 @@ class ContainerTest {
         container.stop()
         container.remove()
     }
-
 
 }

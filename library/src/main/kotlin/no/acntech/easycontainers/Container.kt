@@ -20,6 +20,8 @@ interface Container {
 
     fun getNamespace(): String?
 
+    fun getLabels(): Map<String, String>
+
     // Environment
 
     fun getEnv(): Map<String, String>

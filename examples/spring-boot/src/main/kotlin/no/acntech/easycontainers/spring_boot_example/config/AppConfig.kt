@@ -29,9 +29,7 @@ class AppConfig {
 
     @EventListener
     fun onStartup(event: ApplicationReadyEvent) {
-        log.info(
-            "Spring environment properties {\n{}\n}", appPropertiesMap.toCensoredCopy().prettyPrint()
-        )
+        log.info("Spring environment properties {\n{}\n}", appPropertiesMap.toCensoredCopy().prettyPrint())
     }
 
     @Bean(name = [Qualifiers.SPRING_PROPERTIES])
@@ -46,6 +44,10 @@ class AppConfig {
 
                 propSrc.source.keys.forEach { key ->
                     map[key] = env.getProperty(key)!!
+
+                    if(key == "spring.application.name") {
+                        System.setProperty("spring.application.name", env.getProperty(key)!!)
+                    }
                 }
 
                 appPropertiesMap.putAll(map)

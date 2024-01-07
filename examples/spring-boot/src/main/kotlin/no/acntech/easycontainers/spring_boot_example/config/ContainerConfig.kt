@@ -19,7 +19,7 @@ class ContainerConfig {
             withName("alpine-test")
             withNamespace("test")
             withImage("localhost:5000/alpine-simple-httpd:latest")
-            withExposedPort(80)
+            withExposedPort("http", 80)
             withIsEphemeral(true)
             withLogLineCallback(
                 Slf4jLineCallback(

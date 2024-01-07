@@ -39,6 +39,10 @@ abstract class AbstractContainer(
         return builder.namespace
     }
 
+    override fun getLabels(): Map<String, String> {
+        return builder.labels.toMap()
+    }
+
     override fun getEnv(): Map<String, String> {
         return builder.env.toMap()
     }
@@ -56,7 +60,7 @@ abstract class AbstractContainer(
     }
 
     override fun getExposedPorts(): List<Int> {
-        return builder.exposedPorts.toList()
+        return builder.exposedPorts.values.toList()
     }
 
     override fun getMappedPort(port: Int): Int {

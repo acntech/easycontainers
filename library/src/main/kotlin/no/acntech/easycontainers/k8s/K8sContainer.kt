@@ -7,16 +7,23 @@ import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewB
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.fabric8.kubernetes.client.KubernetesClientBuilder
 import io.fabric8.kubernetes.client.dsl.Resource
+import io.fabric8.kubernetes.client.utils.KubernetesResourceUtil.getNamespace
 import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.AbstractContainer
 import no.acntech.easycontainers.ContainerBuilder
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.k8s.K8sConstants.CORE_API_GROUP
+import no.acntech.easycontainers.k8s.K8sContainer.Companion.DEPLOYMENT_NAME_SUFFIX
+import no.acntech.easycontainers.k8s.K8sContainer.Companion.SERVICE_NAME_SUFFIX
+import no.acntech.easycontainers.k8s.K8sUtils.normalizeLabelValue
 import no.acntech.easycontainers.output.LineReader
 import no.acntech.easycontainers.util.text.NEW_LINE
 import no.acntech.easycontainers.util.text.SPACE
 import org.awaitility.Awaitility.await
 import java.io.File
+import java.time.Instant
+import java.time.ZoneOffset
+import java.time.format.DateTimeFormatter
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -106,6 +113,10 @@ internal class K8sContainer(
 
     private val configMapsBackingField: MutableList<ConfigMap> = mutableListOf()
 
+    private var ourDeploymentName: String?
+
+    private val selectorLabels: Map<String, String> = mapOf(K8sConstants.APP_LABEL to getName())
+
     private val podWatcher = PodWatcher()
 
     private val containerLogger = ContainerLogger()
@@ -113,6 +124,7 @@ internal class K8sContainer(
     init {
         createDeployment()
         createService(isNodePort = K8sUtils.isRunningOutsideCluster())
+        ourDeploymentName = getOurDeploymentName()
     }
 
     @Synchronized
@@ -215,7 +227,7 @@ internal class K8sContainer(
 
         podsBackingField.forEach { (pod, containers) ->
             val refreshedPod = client.pods()
-                .inNamespace(pod.metadata.namespace)
+                .inNamespace(getNamespace())
                 .withName(pod.metadata.name)
                 .get()
 
@@ -248,12 +260,8 @@ internal class K8sContainer(
 
     private fun extractPodsAndContainers() {
 
-        // Get namespace and label selector from the service
-        val namespace = service!!.metadata.namespace
-        val selector = service!!.spec.selector
-
         // List all pods in the namespace that match the service's selector
-        val pods = client.pods().inNamespace(namespace).withLabels(selector).list().items
+        val pods = client.pods().inNamespace(getNamespace()).withLabels(selectorLabels).list().items
 
         // Pair each pod with its list of containers
         pods.forEach { pod ->
@@ -338,12 +346,15 @@ internal class K8sContainer(
             ports = getExposedPorts().map {
                 ContainerPort(it.toLong().toInt(), null, null, null, "TCP")
             }
+
             if (this@K8sContainer.getCommand().isNotBlank()) {
                 command = this@K8sContainer.getCommand().split(SPACE)
             }
+
             if (this@K8sContainer.getArgs().isNotEmpty()) {
                 args = this@K8sContainer.getArgs()
             }
+
             resources = resourceRequirements
         }
     }
@@ -363,6 +374,7 @@ internal class K8sContainer(
                 .withNewMetadata()
                 .withName(name)
                 .withNamespace(getNamespace())
+                .addToLabels(createDefaultLabels())
                 .endMetadata()
                 .addToData(fileName, configFile.content) // fileName as the key
                 .build()
@@ -418,6 +430,32 @@ internal class K8sContainer(
         return Pair(livenessProbe, readinessProbe)
     }
 
+    private fun createDefaultLabels(): Map<String, String> {
+        val defaultLabels: MutableMap<String, String> = mutableMapOf()
+
+        val parentAppName = normalizeLabelValue(
+            System.getProperty("spring.application.name")
+                ?: "${System.getProperty("java.vm.name")}-${ProcessHandle.current().pid()}"
+        )
+
+        defaultLabels["acntech.no/created-by"] = "easycontainers"
+        defaultLabels["easycontainers.acntech.no/parent-application"] = parentAppName
+        defaultLabels["easycontainers.acntech.no/created-at"] = K8sUtils.instantToLabelValue(Instant.now())
+        defaultLabels["easycontainers.acntech.no/is-ephemeral"] = builder.isEphemeral.toString()
+        if (builder.maxLifeTime != null) {
+            defaultLabels["easycontainers.acntech.no/max-life-time"] = builder.maxLifeTime.toString()
+        }
+
+        if (K8sUtils.isRunningInsideCluster()) {
+            defaultLabels["easycontainers.acntech.no/parent-running-inside-cluster"] = "true"
+            defaultLabels["easycontainers.acntech.no/parent-deployment"] = ourDeploymentName!!
+        } else {
+            defaultLabels["easycontainers.acntech.no/parent-running-inside-cluster"] = "false"
+        }
+
+        return defaultLabels.toMap()
+    }
+
     private fun createPodSpec(container: Container, volumes: List<Volume>): PodSpec {
         return PodSpec().apply {
             containers = listOf(container)
@@ -426,10 +464,8 @@ internal class K8sContainer(
     }
 
     private fun createDeploymentFromPodSpec(podSpec: PodSpec) {
-        val labels = mapOf(K8sConstants.APP_LABEL to getName())
-
         val templateMetadata = ObjectMeta().apply {
-            this.labels = labels
+            this.labels = selectorLabels + createDefaultLabels()
             name = this@K8sContainer.getName() + POD_NAME_SUFFIX
         }
 
@@ -441,13 +477,13 @@ internal class K8sContainer(
         val deploymentSpec = DeploymentSpec().apply {
             replicas = 1
             template = podTemplateSpec
-            selector = LabelSelector(null, labels)
+            selector = LabelSelector(null, selectorLabels)
         }
-
 
         val deploymentMetadata = ObjectMeta().apply {
             name = this@K8sContainer.getName() + DEPLOYMENT_NAME_SUFFIX
             namespace = this@K8sContainer.getNamespace()
+            this.labels = this@K8sContainer.getLabels() + createDefaultLabels()
         }
 
         deployment = Deployment().apply {
@@ -467,10 +503,12 @@ internal class K8sContainer(
         val serviceMetadata = ObjectMeta()
         serviceMetadata.name = getName() + SERVICE_NAME_SUFFIX
         serviceMetadata.namespace = getNamespace()
+        serviceMetadata.labels = createDefaultLabels()
 
         // Manually creating the service ports
-        val servicePorts = getExposedPorts().map { internalPort ->
+        val servicePorts = builder.exposedPorts.map { (name, internalPort) ->
             ServicePortBuilder()
+                .withName(name)
                 .withPort(internalPort)
                 .withNewTargetPort(internalPort)
                 .apply {
@@ -485,13 +523,12 @@ internal class K8sContainer(
                         }
                         withNodePort(nodePort)
                     }
-                }
-                .build()
+                }.build()
         }
 
         // Manually creating the service spec
         val serviceSpec = ServiceSpec().apply {
-            this.selector = mapOf(K8sConstants.APP_LABEL to getName())
+            this.selector = selectorLabels
             this.ports = servicePorts
             this.type = if (isNodePort) K8sConstants.NODE_PORT_DIRECTIVE else K8sConstants.CLUSTER_IP_DIRECTIVE
         }
@@ -543,6 +580,32 @@ internal class K8sContainer(
         } else {
             log.trace("Service does not exist: $serviceName")
         }
+    }
+
+    private fun getOurDeploymentName(): String? {
+        if (K8sUtils.isRunningOutsideCluster()) {
+            return null
+        }
+
+        val podName = System.getenv("HOSTNAME")  // Pod name from the HOSTNAME environment variable
+
+        // Get the current pod based on the pod name and namespace
+        val pod = client.pods().inNamespace(getNamespace()).withName(podName).get()
+
+        // Get labels of the current pod
+        val podLabels = pod.metadata.labels
+
+        // Query all deployments in the namespace
+        val deployments = client.apps().deployments().inNamespace(getNamespace()).list().items
+
+        // Find the deployment whose selector matches the pod's labels
+        val myDeployment = deployments.firstOrNull { deployment ->
+            deployment.spec.selector.matchLabels.entries.all {
+                podLabels[it.key] == it.value
+            }
+        }
+
+        return myDeployment?.metadata?.name ?: "unknown"
     }
 
 }

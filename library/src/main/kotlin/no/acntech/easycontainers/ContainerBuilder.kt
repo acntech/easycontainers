@@ -9,7 +9,10 @@ import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.time.Duration
+import java.time.temporal.ChronoUnit
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class ContainerBuilder {
 
@@ -30,11 +33,12 @@ class ContainerBuilder {
     var containerType: ContainerType = ContainerType.KUBERNETES
     var name: String = UUID.randomUUID().toString()
     var namespace: String = "default"
-    var env: MutableMap<String, String> = mutableMapOf()
+    var labels: MutableMap<String, String> = mutableMapOf()
+    val env: MutableMap<String, String> = mutableMapOf()
     var command: String? = null
     var args: List<String> = emptyList()
     var image: String? = null
-    val exposedPorts: MutableList<Int> = mutableListOf()
+    val exposedPorts: MutableMap<String, Int> = mutableMapOf()
     val portMappings: MutableMap<Int, Int> = mutableMapOf()
     val configFiles: MutableMap<String, ConfigFile> = mutableMapOf() // name -> ConfigMapVolume
     var cpuRequest: CPU? = null
@@ -43,6 +47,7 @@ class ContainerBuilder {
     var memoryLimit: Memory? = null
     var isEphemeral: Boolean = true
     var lineCallback: LineCallback = LineCallback { _ -> }
+    var maxLifeTime: Duration? = null
 
     fun withType(type: ContainerType): ContainerBuilder {
         this.containerType = type
@@ -56,6 +61,11 @@ class ContainerBuilder {
 
     fun withNamespace(namespace: String): ContainerBuilder {
         this.namespace = namespace
+        return this
+    }
+
+    fun withLabel(key: String, value: String): ContainerBuilder {
+        labels[key] = value
         return this
     }
 
@@ -84,12 +94,14 @@ class ContainerBuilder {
         return this
     }
 
-    fun withExposedPort(port: Int): ContainerBuilder {
-        exposedPorts.add(port)
+    fun withExposedPort(name: String, port: Int): ContainerBuilder {
+        require(port in 1..65535) { "Port [$port] must be in the range 1..65535" }
+        exposedPorts[name] = port
         return this
     }
 
     fun withPortMapping(port: Int, mappedPort: Int): ContainerBuilder {
+        require(port in exposedPorts.values) { "Port [$port] cannot be mapped if not exposed" }
         portMappings[port] = mappedPort
         return this
     }
@@ -133,6 +145,16 @@ class ContainerBuilder {
     fun withConfigFile(name: String, path: String, content: String) {
         require(FileUtils.isCompleteUnixPath(path)) { "Path [$path] is not a complete unix path" }
         configFiles[name] = ConfigFile(path, content)
+    }
+
+    fun withMaxLifeTime(maxLifeTime: Duration): ContainerBuilder {
+        this.maxLifeTime = maxLifeTime
+        return this
+    }
+
+    fun withMaxLifeTime(value: Long, unit: ChronoUnit): ContainerBuilder {
+        this.maxLifeTime = Duration.of(value, unit)
+        return this
     }
 
     fun build(): Container {
