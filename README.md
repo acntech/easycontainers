@@ -9,8 +9,8 @@
 5. [License](#license)
 
 ## Introduction
-
-Easycontainers is a Kotlin library that allows you to easily create and manage (generic) containers in Kubernetes and Docker.
+ 
+Easycontainers is a Kotlin library that allows you to easily create and manage (generic) containers in Kubernetes and Docker. The inspiration for this library came from the [testcontainers](https://www.testcontainers.org/) library, which is a Java library that allows you to easily create and manage containers for testing purposes. However, the testcontainers library is not suitable for production use, as it is not possible to create containers in Kubernetes. This library aims to provide a similar experience as the testcontainers library, but with the added benefit of being able to create containers in Kubernetes.
 
 ## Example-applications
 

@@ -4,18 +4,12 @@ metadata:
   name: test-sa-role
   namespace: test
 rules:
-- apiGroups: ["", "apps"]
-  resources: [
-    "deployments",
-    "services",
-    "pods",
-    "namespaces",
-    "pods/log",
-    "pods/portforward"]
-  verbs: [
-    "get",
-    "list",
-    "create",
-    "delete",
-    "update",
-    "watch"]
+  - apiGroups: [""]  # Core API group
+    resources: ["services", "pods", "pods/log", "pods/portforward"]
+    verbs: ["get", "list", "create", "delete", "update", "watch"]
+  - apiGroups: ["apps"]  # "apps" API group
+    resources: ["deployments"]
+    verbs: ["get", "list", "create", "delete", "update", "watch"]
+  - apiGroups: ["batch"]  # "batch" API group
+    resources: ["jobs"]
+    verbs: ["get", "list", "create", "delete", "update", "watch"]

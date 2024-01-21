@@ -20,6 +20,7 @@ class ContainerConfig {
             withNamespace("test")
             withImage("localhost:5000/alpine-simple-httpd:latest")
             withExposedPort("http", 80)
+            withVolume("kaniko-data", "/mnt/kaniko-data")
             withIsEphemeral(true)
             withLogLineCallback(
                 Slf4jLineCallback(

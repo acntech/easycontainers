@@ -6,13 +6,13 @@
   <parent>
     <groupId>no.acntech.easycontainers</groupId>
     <artifactId>acn-easycontainers-examples</artifactId>
-    <version>0.1.${revision}</version>
+    <version>${revision}</version>
   </parent>
 
   <name>Easycontainers Spring Boot Example</name>
   <groupId>no.acntech.easycontainers</groupId>
   <artifactId>acn-easycontainers-spring-boot-example</artifactId>
-  <version>0.1.${revision}</version>
+  <version>${revision}</version>
   <packaging>jar</packaging>
 
   <properties>
@@ -40,7 +40,7 @@
     <dependency>
       <groupId>no.acntech.easycontainers</groupId>
       <artifactId>acn-easycontainers-lib</artifactId>
-      <version>0.1.${revision}</version>
+      <version>${revision}</version>
     </dependency>
 
     <!-- Kotin dependencies -->

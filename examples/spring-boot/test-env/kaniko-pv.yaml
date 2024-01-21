@@ -1,0 +1,18 @@
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: kaniko-data-pv
+  labels:
+    type: local
+spec:
+  storageClassName: hostpath
+  capacity:
+    storage: 100Mi
+  accessModes:
+    - ReadWriteMany
+  hostPath:
+    # The following path is specific to Docker Desktop for Windows
+    # See https://dev.to/nsieg/use-k8s-hostpath-volumes-in-docker-desktop-on-wsl2-4dcl
+    # For Docker Desktop on other platforms, or Kind, Minicube, and other Kubernetes clusters, see their respective
+    # documentation on hostpath (or other local storage) volumes
+    path: /run/desktop/mnt/host/wsl/share/kaniko-data

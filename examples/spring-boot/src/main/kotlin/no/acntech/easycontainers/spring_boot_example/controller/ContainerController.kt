@@ -29,5 +29,10 @@ class ContainerController(
         return "Container returned:\n\n$page"
     }
 
+    @GetMapping("/build-image")
+    fun buildImage(): String {
+         val result = containerService.buildImage()
+         return "Image built: $result"
+    }
 
 }

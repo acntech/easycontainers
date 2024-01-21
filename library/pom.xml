@@ -6,14 +6,14 @@
   <parent>
     <groupId>no.acntech.easycontainers</groupId>
     <artifactId>acn-easycontainers</artifactId>
-    <version>0.1.${revision}</version>
+    <version>${revision}</version>
   </parent>
 
   <name>acn-easycontainers-lib</name>
   <description>ACN Easycontainers libary</description>
   <groupId>no.acntech.easycontainers</groupId>
   <artifactId>acn-easycontainers-lib</artifactId>
-  <version>0.1.${revision}</version>
+  <version>${revision}</version>
   <packaging>jar</packaging>
 
   <dependencies>
@@ -26,6 +26,11 @@
     <dependency>
       <groupId>org.jetbrains.kotlin</groupId>
       <artifactId>kotlin-stdlib</artifactId>
+    </dependency>
+
+    <dependency>
+      <groupId>org.danilopianini</groupId>
+      <artifactId>khttp</artifactId>
     </dependency>
 
     <dependency>

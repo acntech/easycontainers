@@ -6,14 +6,14 @@
   <parent>
     <groupId>no.acntech.easycontainers</groupId>
     <artifactId>acn-easycontainers</artifactId>
-    <version>0.1.${revision}</version>
+    <version>${revision}</version>
   </parent>
 
   <packaging>pom</packaging>
 
   <groupId>no.acntech.easycontainers</groupId>
   <artifactId>acn-easycontainers-examples</artifactId>
-  <version>0.1.${revision}</version>
+  <version>${revision}</version>
 
   <modules>
     <module>spring-boot</module>

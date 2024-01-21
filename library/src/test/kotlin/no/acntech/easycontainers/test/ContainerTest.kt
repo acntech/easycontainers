@@ -1,10 +1,17 @@
 package no.acntech.easycontainers.test
 
 import no.acntech.easycontainers.ContainerFactory
+import no.acntech.easycontainers.docker.DockerRegistryUtils
+import no.acntech.easycontainers.k8s.K8sContainerImageBuilder
+import no.acntech.easycontainers.util.net.NetworkUtils
 import org.junit.jupiter.api.Test
+import org.slf4j.LoggerFactory
+import java.time.Instant
 import java.util.concurrent.TimeUnit
 
 class ContainerTest {
+
+    private val log = LoggerFactory.getLogger(ContainerTest::class.java)
 
     @Test
     fun `Test Lighthttpd container`() {
@@ -18,7 +25,7 @@ class ContainerTest {
             withLogLineCallback { line -> println("HTTPD-OUTPUT: $line") }
         }.build()
         container.start()
-        TimeUnit.SECONDS.sleep(120)
+        TimeUnit.SECONDS.sleep(1000)
         container.stop()
         container.remove()
     }
@@ -50,6 +57,29 @@ class ContainerTest {
         TimeUnit.SECONDS.sleep(120)
         container.stop()
         container.remove()
+    }
+
+    /**
+     * This test assumes that the docker file and context to build is under the ../kaniko-data/test directory. On Docker Desktop
+     * for Windows, this directory should be created under /mnt/wsl/share/kaniko-data/test, and a PV and PVC must exist in k8s to
+     * reflect this.
+     */
+    @Test
+    fun `Test Kaniko image build`() {
+        val imageName = "kaniko-alpine-lighttpd"
+        DockerRegistryUtils.deleteImage("http://localhost:5000", imageName)
+
+        val localIpAddress = NetworkUtils.getLocalIpAddresses().first()
+        log.trace("Local IP address: {}", localIpAddress)
+
+        val imageBuilder = K8sContainerImageBuilder()
+            .withName(imageName)
+            .withImageRegistry("$localIpAddress:5000")
+            .withNamespace("test")
+            .withDockerContextDir("test")
+            .withLogLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
+
+        imageBuilder.buildImage()
     }
 
 }

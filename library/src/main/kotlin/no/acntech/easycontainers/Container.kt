@@ -2,64 +2,64 @@ package no.acntech.easycontainers
 
 interface Container {
 
-    enum class State {
-        CREATED,
-        STARTED,
-        RUNNING,
-        FAILED,
-        UNKNOWN,
-        STOPPED,
-        REMOVED
-    }
+   enum class State {
+      CREATED,
+      STARTED,
+      RUNNING,
+      FAILED,
+      UNKNOWN,
+      STOPPED,
+      REMOVED
+   }
 
-    fun getState(): State
+   fun getState(): State
 
-    // Name
+   // Name
 
-    fun getName(): String
+   fun getName(): String
 
-    fun getNamespace(): String?
+   fun getNamespace(): String?
 
-    fun getLabels(): Map<String, String>
+   fun getLabels(): Map<String, String>
 
-    // Environment
+   // Environment
 
-    fun getEnv(): Map<String, String>
+   fun getEnv(): Map<String, String>
 
-    // Command
+   // Command
 
-    fun getCommand(): String // Might be an empty string
+   fun getCommand(): String // Might be an empty string
 
-    fun getArgs(): List<String>
+   fun getArgs(): List<String>
 
-    // Image
+   // Image
 
-    fun getImage(): String
+   fun getImage(): String
 
-    // Ports
+   // Ports
 
-    fun getExposedPorts(): List<Int>
+   fun getExposedPorts(): List<Int>
 
-    fun getMappedPort(port: Int): Int
+   fun getMappedPort(port: Int): Int
 
-    fun getPortMappings(): Map<Int, Int>
+   fun getPortMappings(): Map<Int, Int>
 
-    fun hasPortMapping(port: Int): Boolean {
-        return getPortMappings().containsKey(port)
-    }
+   fun hasPortMapping(port: Int): Boolean {
+      return getPortMappings().containsKey(port)
+   }
 
-    // Ephemerality
-    fun isEphemeral(): Boolean
+   // Ephemerality
+   fun isEphemeral(): Boolean
 
-    // Host
-    fun getHost(): String?
+   // Host
+   fun getHost(): String?
 
-    // Lifecycle
+   // Lifecycle
 
-    fun start()
+   fun start()
 
-    fun stop()
+   fun stop()
 
-    fun remove()
+   fun remove()
 
 }

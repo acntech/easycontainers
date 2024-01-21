@@ -17,6 +17,9 @@ spec:
       containers:
         - name:  easycontainers-spring-boot-test-app-container
           image: localhost:5000/easycontainers-spring-boot-test-app:latest
+          volumeMounts:
+            - name: kaniko-data
+              mountPath: /mnt/kaniko-data
           ports:
             - containerPort: 8080
             - containerPort: 9999
@@ -43,6 +46,10 @@ spec:
               port: 9999
             initialDelaySeconds: 20
             periodSeconds: 10
+      volumes:
+      - name: kaniko-data
+        persistentVolumeClaim:
+          claimName: kaniko-data-pvc
 
 ---
 apiVersion: v1
@@ -54,12 +61,12 @@ spec:
   selector:
     app: easycontainers-spring-boot-test-app
   ports:
-    - name: http-port
+    - name: http
       protocol: TCP
       port: 8080
       targetPort: 8080
       nodePort: 30080
-    - name: actuator-port
+    - name: actuator
       protocol: TCP
       port: 9999
       targetPort: 9999

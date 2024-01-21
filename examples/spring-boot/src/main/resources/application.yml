@@ -1,6 +1,8 @@
 debug: false
 
 ### Application ###
+image-registry:
+  url: http://localhost:5000
 
 ### Spring server ###
 server:

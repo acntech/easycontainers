@@ -12,7 +12,7 @@ Prerequisites:
 - Docker - the simplest way to install it is by using Docker Desktop
 - Kubernetes - the simplest way to install it is by using the K8s distribution offered by Docker Desktop
 
-Makes sure that Docker and Kubernetes are available and running. 
+1. Make sure that Docker and Kubernetes are available and running. 
 
 Docker test:
 ```bash
@@ -20,21 +20,28 @@ Docker test:
 ```
 
 Kubernetes test:
-```
+```bash
 > kubectl get pods
 ```
 
-Install the test environment by running the following command:
+2. Install the test environment by running the following command:
 
 ```bash
 > cd test-env
 > ./test-env/create-env.sh
 ```
-[pom.xml](..%2F..%2Fpom.xml)
-Deploy the test application to your local k8s cluster by running the following commands on the top level folder:
+
+This is a shell script designed to automate the setup process for a Kubernetes test environment.
+* Checks for or creates a Kubernetes namespace named 'test'.
+* Applies Kubernetes resources defined in the YAML files: service-account.yaml, role.yaml, role-binding.yaml, Kaniko-pv.yaml, and kanilo-pvc.yaml.
+* Executes the run-registry.sh script to start a local Docker registry.
+* Builds a Docker image and pushes it to the local Docker registry.
+* Lists all the images in the local Docker registry.
+
+3. Deploy the test application to your local k8s cluster by running the following commands on the top level folder:
 ```bash
 > mvn clean package
-> mv/examples/spring-boot
+> mv examples/spring-boot
 > ./deploy-app.sh
 ```
 
@@ -51,12 +58,18 @@ Also - check the logs from the application using Lens or kubectl:
 > kubectl logs -f <pod-name>
 ```
 
-Delete the test application by running the following command:
+4. Delete the test application by running the following command:
 ```bash
 > ./delete-app.sh
 ```
 
+## Example-application
+
+TODO
+
 ## TO-DO
+
+* Add examples for Docker container management (when the Docker container support is added) 
 
 ## Contributing
 - Thomas Muller (thomas.muller@accenture.com): main contributor and maintainer

@@ -1,6 +1,5 @@
-# ---
-# Simple lighttpd container, with a script that logs the time every 2 seconds to std out #
-# ---
+# Simple lighttpd container, with a script that logs the time every 2 seconds to std out
+
 
 # Use Alpine Linux as the base image
 FROM alpine:latest

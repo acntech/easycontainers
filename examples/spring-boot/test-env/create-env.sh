@@ -19,6 +19,8 @@ fi
 kubectl apply -f service-account.yaml
 kubectl apply -f role.yaml
 kubectl apply -f role-binding.yaml
+kubectl apply -f Kaniko-pv.yaml
+kubectl apply -f kanilo-pvc.yaml
 
 # Start a local registry
 ./run-registry.sh
