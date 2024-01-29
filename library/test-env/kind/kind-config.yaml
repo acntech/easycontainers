@@ -1,0 +1,17 @@
+# Change the IP address to the IP address of your registry
+
+kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+  apiServerAddress: "0.0.0.0"
+nodes:
+- role: control-plane
+  extraMounts:
+    - hostPath: /home/thomas/kind/data/kaniko-data
+      containerPath: /kaniko-data
+containerdConfigPatches:      
+- |-
+  [plugins."io.containerd.grpc.v1.cri".registry.mirrors."REGISTRY_IP_ADDRESS:5000"]
+    endpoint = ["http://REGISTRY_IP_ADDRESS:5000"]
+  [plugins."io.containerd.grpc.v1.cri".registry.configs."REGISTRY_IP_ADDRESS:5000".tls]
+    insecure_skip_verify = true

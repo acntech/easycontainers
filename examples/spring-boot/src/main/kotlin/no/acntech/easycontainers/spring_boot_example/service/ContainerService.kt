@@ -3,6 +3,8 @@ package no.acntech.easycontainers.spring_boot_example.service
 import no.acntech.easycontainers.Container
 import no.acntech.easycontainers.ContainerFactory
 import no.acntech.easycontainers.ContainerType
+import no.acntech.easycontainers.k8s.K8sUtils
+import no.acntech.easycontainers.output.Slf4jLineCallback
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -17,7 +19,7 @@ import java.time.Instant
 @Service
 class ContainerService(
    private val container: Container,
-   @Value("\${registry.url}") private val registryUrl: String,
+   @Value("\${image-registry.url}") private val registryUrl: String,
 ) {
 
    private val log = LoggerFactory.getLogger(javaClass)
@@ -53,7 +55,12 @@ class ContainerService(
       val host: String? = container.getHost().also {
          log.info("Container host: $it")
       }
-      return fetchWebPage("http://$host/index.html")
+
+      return fetchWebPage(
+         if (K8sUtils.isRunningOutsideCluster())
+            "http://localhost:${container.getMappedPort(80)}/index.html"
+         else "http://$host/index.html"
+      )
    }
 
    private fun fetchWebPage(url: String): String {
@@ -86,7 +93,7 @@ class ContainerService(
     * If we're running inside k8s, this folder should be mounted as a volume in /mnt/kaniko-data. The kaniko job will be deployed
     * with a PV and PVC that will mount the same volume in the same location.
     */
-   fun buildImage(): Boolean {
+   fun buildAndDeployImage(): Boolean {
       val tempDir = Files.createTempDirectory("dockercontext-").toString()
       val dockerfile = File(tempDir, "Dockerfile")
       val logTimeScript = File(tempDir, "log_time.sh")
@@ -94,13 +101,34 @@ class ContainerService(
       logTimeScript.writeText(logTimeScriptContent)
 
       val imageBuilder = ContainerFactory.imageBuilder(ContainerType.KUBERNETES)
-         .withName("alpine-test")
+         .withName("alpine-simple-test")
          .withImageRegistry(registryUrl)
          .withNamespace("test")
          .withDockerContextDir(tempDir)
          .withLogLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
 
-      return imageBuilder.buildImage()
+      val buildResult = imageBuilder.buildImage()
+
+      if (buildResult) {
+         val container = ContainerFactory.kubernetesContainer {
+            withName("alpine-simple-test")
+            withNamespace("test")
+            withImage("$registryUrl/alpine-simple-test:latest")
+            withIsEphemeral(true)
+            withLogLineCallback(
+               Slf4jLineCallback(
+                  logger = LoggerFactory.getLogger("no.acntech.alpine-simple-test"),
+                  prefix = "SIMPLE-CONTAINER-OUTPUT: "
+               )
+            )
+            withIsEphemeral(true)
+         }.build()
+
+         container.start()
+
+         log.info("Container created and started successfully: $container")
+      }
+      return buildResult
    }
 
 }

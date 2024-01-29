@@ -19,7 +19,10 @@ abstract class AbstractContainer(
    init {
       if (builder.isEphemeral) {
          Runtime.getRuntime().addShutdownHook(Thread {
-            log.info("ShutdownHook: stopping container [${getName()}]")
+            if (state == Container.State.REMOVED) {
+               return@Thread
+            }
+            log.info("ShutdownHook: stopping and removing container [${getName()}]")
             stop()
             remove()
          })

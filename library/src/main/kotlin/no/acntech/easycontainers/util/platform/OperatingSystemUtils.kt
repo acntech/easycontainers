@@ -2,16 +2,15 @@ package no.acntech.easycontainers.util.platform
 
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import org.slf4j.LoggerFactory
-import java.io.BufferedReader
-import java.io.ByteArrayInputStream
-import java.io.IOException
-import java.io.InputStreamReader
+import java.io.*
 import java.nio.file.Files
 import java.nio.file.Paths
 
 object OperatingSystemUtils {
 
    private const val DEFAULT_DISTRO_INDICATOR = "(Default)"
+
+   private const val WSL_INDICATOR = "Windows Subsystem for Linux Distributions"
 
    private val log = LoggerFactory.getLogger(OperatingSystemUtils::class.java)
 
@@ -27,28 +26,34 @@ object OperatingSystemUtils {
       return System.getProperty("os.name").lowercase().contains("mac")
    }
 
-   @Throws(IOException::class)
    fun getWSLDistroNames(): List<String> {
       if (!isWindows()) {
          throw IllegalStateException("WSL distros can only be listed on a Windows OS")
       }
 
-      // Try to make sure that we can get the output in UTF-8
-      val processBuilder = ProcessBuilder("cmd", "/c", "chcp 65001 && wsl --list")
+      var filteredStream: InputStream? = null
 
-      val process = processBuilder.start()
+      return try {
+         val processBuilder = ProcessBuilder("cmd", "/c", "chcp 65001 && wsl --list")
+         val process = processBuilder.start()
+         val inputStream = process.inputStream
 
-      // Get rid of null bytes
-      val filteredBytes = process.inputStream.readAllBytes().filter { it != 0.toByte() }
+         // Remove null bytes from the input and convert to UTF-8
+         filteredStream = convertInputStreamToUTF8(inputStream)
 
-      val filteredStream = ByteArrayInputStream(filteredBytes.toByteArray())
-
-      return BufferedReader(InputStreamReader(filteredStream, Charsets.UTF_8)).use { reader ->
-         reader.lineSequence()
-            .filter { it.isNotBlank() && !it.startsWith("Windows Subsystem for Linux Distributions") }
-            .toList().also {
-               log.debug("Found WSL distros: $it")
-            }
+         BufferedReader(InputStreamReader(filteredStream)).use { reader ->
+            reader.lineSequence()
+               .filter { it.isNotBlank() && !it.startsWith(WSL_INDICATOR) }
+               .toList().also {
+                  log.debug("Found WSL distros: $it")
+               }
+         }
+      }
+      catch (e: IOException) {
+         log.debug("Error when trying to read WSL distributions", e)
+         emptyList()
+      } finally {
+         filteredStream?.close()
       }
    }
 
@@ -75,6 +80,26 @@ object OperatingSystemUtils {
          log.error("Failed to create directory in WSL volume at: $windowsPath", e)
          null
       }
+   }
+
+   @Throws(IOException::class)
+   private fun convertInputStreamToUTF8(inputStream: InputStream): InputStream {
+      val outputStream = ByteArrayOutputStream()
+      val buf = ByteArray(1024)
+      var length: Int
+
+      // While there are still bytes to read from the input stream
+      while (inputStream.read(buf).also { length = it } != -1) {
+         for (i in 0 until length) {
+            // Filter out null bytes
+            if (buf[i] != 0.toByte()) {
+               outputStream.write(buf[i].toInt())
+            }
+         }
+      }
+
+      // Convert the cleaned output byte stream to an input byte stream with UTF-8 encoding
+      return ByteArrayInputStream(outputStream.toByteArray())
    }
 
 }

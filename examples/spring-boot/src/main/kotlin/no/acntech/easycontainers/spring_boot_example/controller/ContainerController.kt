@@ -31,7 +31,7 @@ class ContainerController(
 
     @GetMapping("/build-image")
     fun buildImage(): String {
-         val result = containerService.buildImage()
+         val result = containerService.buildAndDeployImage()
          return "Image built: $result"
     }
 

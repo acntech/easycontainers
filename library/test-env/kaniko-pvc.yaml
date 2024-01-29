@@ -4,7 +4,7 @@ metadata:
   name: kaniko-data-pvc
   namespace: test
 spec:
-  storageClassName: hostpath
+  storageClassName: standard
   resources:
     requests:
       storage: 100Mi

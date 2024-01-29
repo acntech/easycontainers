@@ -50,9 +50,6 @@ You can check the status of the deployment by using e.g. Lens or kubectl:
 > kubectl get pods
 ```
 
-If  the application runs OK, it should be exposed on port 30080, you should be able to connect with a browser to ```http://localhost:30080/hello```, and  
-```http://localhost:30080/connect``` to get the index page of the httpd server the application has deployed inside k8s.
-
 Also - check the logs from the application using Lens or kubectl:
 ```bash
 > kubectl logs -f <pod-name>
@@ -65,7 +62,8 @@ Also - check the logs from the application using Lens or kubectl:
 
 ## Example-application
 
-TODO
+If  the application runs OK inside your k8s cluster, it should be exposed on port 30080 on the node (normally localhost), and you should be able to connect with a browser to ```http://localhost:30080/hello``` for a 'hello world' response, and  
+```http://localhost:30080/connect``` to get the index page of the (light) httpd server the application has deployed in k8s.
 
 ## TO-DO
 

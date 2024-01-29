@@ -6,11 +6,12 @@ import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.time.Instant
 
 abstract class ContainerImageBuilder {
 
    enum class State {
-      NOT_STARTED,
+      INITIALIZED,
       IN_PROGRESS,
       UNKNOWN,
       COMPLETED,
@@ -19,9 +20,9 @@ abstract class ContainerImageBuilder {
 
    protected val log: Logger = LoggerFactory.getLogger(javaClass)
 
-   private var state: State = State.NOT_STARTED
+   private var state: State = State.INITIALIZED
 
-   protected var registry: String? = null
+   protected var registry: String? = null // The registry address - optional protocol prefix
 
    protected lateinit var dockerContextDir: String
 
@@ -46,6 +47,10 @@ abstract class ContainerImageBuilder {
       return this
    }
 
+   /**
+    * A protocol prefix is optional, if not provided "https://" is most likely used, unless the registry address is
+    * an IP address, then "http://" is used.
+    */
    fun withImageRegistry(registry: String): ContainerImageBuilder {
       this.registry = registry
       return this
@@ -75,6 +80,10 @@ abstract class ContainerImageBuilder {
       this.lineCallback = lineCallback
       return this
    }
+
+   abstract fun getStartTime(): Instant?
+
+   abstract fun getFinishTime(): Instant?
 
    @Throws(ContainerException::class)
    abstract fun buildImage(): Boolean

@@ -16,7 +16,7 @@ class ContainerConfig {
     @Bean
     fun container(): Container {
         val container = ContainerFactory.kubernetesContainer {
-            withName("alpine-test")
+            withName("alpine-httpd-test")
             withNamespace("test")
             withImage("localhost:5000/alpine-simple-httpd:latest")
             withExposedPort("http", 80)
@@ -24,7 +24,7 @@ class ContainerConfig {
             withIsEphemeral(true)
             withLogLineCallback(
                 Slf4jLineCallback(
-                    logger = LoggerFactory.getLogger("no.acntech.alpine-test"),
+                    logger = LoggerFactory.getLogger("no.acntech.alpine-httpd-test"),
                     prefix = "HTTPD-CONTAINER-OUTPUT: "
                 )
             )

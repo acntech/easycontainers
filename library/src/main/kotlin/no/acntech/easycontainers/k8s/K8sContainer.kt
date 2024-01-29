@@ -3,21 +3,18 @@ package no.acntech.easycontainers.k8s
 import io.fabric8.kubernetes.api.model.*
 import io.fabric8.kubernetes.api.model.apps.Deployment
 import io.fabric8.kubernetes.api.model.apps.DeploymentSpec
-import io.fabric8.kubernetes.api.model.authorization.v1.SelfSubjectAccessReviewBuilder
-import io.fabric8.kubernetes.client.KubernetesClient
-import io.fabric8.kubernetes.client.KubernetesClientBuilder
-import io.fabric8.kubernetes.client.Watcher
-import io.fabric8.kubernetes.client.WatcherException
+import io.fabric8.kubernetes.client.*
 import io.fabric8.kubernetes.client.dsl.Resource
 import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.AbstractContainer
 import no.acntech.easycontainers.ContainerBuilder
 import no.acntech.easycontainers.ContainerException
-import no.acntech.easycontainers.k8s.K8sConstants.CORE_API_GROUP
+import no.acntech.easycontainers.k8s.K8sConstants.ENV_HOSTNAME
 import no.acntech.easycontainers.k8s.K8sUtils.normalizeLabelValue
 import no.acntech.easycontainers.util.text.NEW_LINE
 import no.acntech.easycontainers.util.text.SPACE
 import org.awaitility.Awaitility.await
+import org.jvnet.hk2.internal.Utilities.createService
 import java.io.File
 import java.time.Instant
 import java.util.concurrent.Executors
@@ -52,12 +49,14 @@ internal class K8sContainer(
       var scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
    }
 
+
    private var deployment: Deployment? = null
 
    private var service: Service? = null
 
-
    private var client: KubernetesClient = KubernetesClientBuilder().build()
+
+   private val accessChecker = AccessChecker(client)
 
    private val pods: MutableList<Pair<Pod, List<Container>>> = mutableListOf()
 
@@ -78,7 +77,9 @@ internal class K8sContainer(
 
    init {
       createDeployment()
-      createService(isNodePort = K8sUtils.isRunningOutsideCluster())
+      if(builder.exposedPorts.isNotEmpty()) {
+         createService(isNodePort = K8sUtils.isRunningOutsideCluster())
+      }
       ourDeploymentName = getOurDeploymentName()
    }
 
@@ -86,45 +87,73 @@ internal class K8sContainer(
    override fun start() {
       requireState(no.acntech.easycontainers.Container.State.CREATED)
 
-      createNamespaceIfAllowedAndNotExists()
-      deleteServiceIfExists()
-      deleteDeploymentIfExists()
+      try {
+         createNamespaceIfAllowedAndNotExists()
+         deleteServiceIfExists()
+         deleteDeploymentIfExists()
 
-      deployment = client.apps().deployments().inNamespace(getNamespace()).resource(deployment).create().also {
-         log.info("Deployed k8s deployment: $it")
+         deployment = client.apps().deployments().inNamespace(getNamespace()).resource(deployment).create().also {
+            log.info("Deployed k8s deployment: $it")
+         }
+
+         service?.let {
+            service = client.services().inNamespace(getNamespace()).resource(service).create().also {
+               log.info("Deployed k8s service: $it")
+            }
+         }
+
+         extractPodsAndContainers()
+
+         // INVARIANT: podsBackingField/pods is not empty
+
+         builder.maxLifeTime?.let {
+            scheduler.schedule(stopAndRemoveTask, it.toSeconds(), TimeUnit.SECONDS)
+         }
+
+         client.pods().inNamespace(getNamespace()).withLabels(selectorLabels).watch(PodWatcher())
+
+         containerLogStreamer = ContainerLogStreamer(
+            this.pods.first().first.metadata.name,
+            getNamespace()!!,
+            client,
+            builder.lineCallback
+         )
+
+      } catch (e: Exception) {
+         k8sError(e)
       }
 
-      service = client.services().inNamespace(getNamespace()).resource(service).create().also {
-         log.info("Deployed k8s service: $it")
+
+      service?.let {
+         val serviceName = service!!.metadata.name
+         val namespace = service!!.metadata.namespace
+
+         internalHost = "$serviceName.$namespace.svc.cluster.local"
+         log.info("Container (service) host: $internalHost")
       }
-
-      extractPodsAndContainers()
-
-      // INVARIANT: podsBackingField/pods is not empty
-
-      builder.maxLifeTime?.let {
-         scheduler.schedule(stopAndRemoveTask, it.toSeconds(), TimeUnit.SECONDS)
-      }
-
-      client.pods().inNamespace(getNamespace()).withLabels(selectorLabels).watch(PodWatcher())
-
-      containerLogStreamer = ContainerLogStreamer(
-         this.pods.first().first.metadata.name,
-         getNamespace()!!,
-         client,
-         builder.lineCallback
-      )
-
-      val serviceName = service!!.metadata.name
-      val namespace = service!!.metadata.namespace
-
-      internalHost = "$serviceName.$namespace.svc.cluster.local"
-      log.info("Container (service) host: $internalHost")
 
       executorService.execute(containerLogStreamer!!)
 
       // We have officially started the container(s)
       changeState(no.acntech.easycontainers.Container.State.STARTED)
+   }
+
+   @Throws(ContainerException::class)
+   private fun k8sError(e: Exception) {
+      when (e) {
+         is KubernetesClientException,
+         is ResourceNotFoundException,
+         is WatcherException,
+         -> {
+            val message = "Error starting container: ${e.message}"
+            log.error(message, e)
+            throw ContainerException(message, e)
+         }
+         else -> {
+            log.error("Unexpected exception '${e.javaClass.simpleName}:'${e.message}', re-throwing", e)
+            throw e // Rethrow the exception if it's not one of the handled types
+         }
+      }
    }
 
    @Synchronized
@@ -267,34 +296,18 @@ internal class K8sContainer(
    }
 
    private fun createNamespaceIfAllowedAndNotExists() {
-      if (!canListNamespaces()) {
-         log.warn("Not allowed to list namespaces")
+      if (!(accessChecker.canListNamespaces() and accessChecker.canCreateNamespaces())) {
+         log.warn("Not allowed to list or create namespaces")
          return
       }
 
-      val namespace = getNamespace()
-      val namespaceExists = client.namespaces().list().items.any { it.metadata.name == namespace }
+      val namespaceExists = client.namespaces().list().items.any { it.metadata.name == getNamespace() }
       if (!namespaceExists) {
-         val namespaceResource = NamespaceBuilder().withNewMetadata().withName(namespace).endMetadata().build()
+         val namespaceResource = NamespaceBuilder().withNewMetadata().withName(getNamespace()).endMetadata().build()
          client.namespaces().resource(namespaceResource).create().also {
             log.info("Created k8s namespace: $it")
          }
       }
-   }
-
-   private fun canListNamespaces(): Boolean {
-      val review = SelfSubjectAccessReviewBuilder()
-         .withNewSpec()
-         .withNewResourceAttributes()
-         .withGroup(CORE_API_GROUP)
-         .withResource("namespaces")
-         .withVerb("list")
-         .endResourceAttributes()
-         .endSpec()
-         .build()
-
-      val response = client.authorization().v1().selfSubjectAccessReview().create(review)
-      return response.status?.allowed ?: false
    }
 
    private fun createDeployment() {
@@ -304,9 +317,13 @@ internal class K8sContainer(
 
       val containerPort = getExposedPorts().firstOrNull()?.toLong()?.toInt()
 
+      containerPort?.let {
+         log.info("No exposed ports found for container: ${getName()}")
+      }
+
       val (livenessProbe, readinessProbe) = createProbes(containerPort)
-      container.livenessProbe = livenessProbe
-      container.readinessProbe = readinessProbe
+         container.livenessProbe = livenessProbe
+         container.readinessProbe = readinessProbe
 
       val podSpec = createPodSpec(container, volumes)
 
@@ -439,19 +456,28 @@ internal class K8sContainer(
 
    private fun createProbes(port: Int?): Pair<Probe, Probe> {
       val livenessProbe = Probe().apply {
-         tcpSocket = TCPSocketAction(null, IntOrString(port))
+         if (port != null) {
+            tcpSocket = TCPSocketAction(null, IntOrString(port))
+         } else {
+            exec = ExecAction(listOf("echo", "alive"))
+         }
          initialDelaySeconds = 10
          periodSeconds = 5
       }
 
       val readinessProbe = Probe().apply {
-         tcpSocket = TCPSocketAction(null, IntOrString(port))
+         if (port != null) {
+            tcpSocket = TCPSocketAction(null, IntOrString(port))
+         } else {
+            exec = ExecAction(listOf("echo", "ready"))
+         }
          initialDelaySeconds = 5
          periodSeconds = 5
       }
 
       return Pair(livenessProbe, readinessProbe)
    }
+
 
    private fun createDefaultLabels(): Map<String, String> {
       val defaultLabels: MutableMap<String, String> = mutableMapOf()
@@ -588,19 +614,20 @@ internal class K8sContainer(
    private fun deleteServiceIfExists() {
       val namespaceName = getNamespace()
       val serviceName = getName() + SERVICE_NAME_SUFFIX
-      val service = client.services().inNamespace(namespaceName).withName(serviceName).get()
-      if (service != null) {
+
+      client.services().inNamespace(namespaceName).withName(serviceName).get()?.let {
          log.info("Deleting service: $serviceName")
+
          client.services().inNamespace(namespaceName).withName(serviceName).delete()
 
          // Wait for the service to be removed
          await().atMost(30, TimeUnit.SECONDS).until {
             client.services().inNamespace(namespaceName).withName(serviceName).get() == null
          }
-         log.info("Service deleted: $serviceName")
-      } else {
-         log.trace("Service does not exist: $serviceName")
-      }
+
+         log.info("Service successfully deleted: $serviceName")
+
+      } ?: log.trace("Service does not exist - nothing to delete: $serviceName")
    }
 
    private fun getOurDeploymentName(): String? {
@@ -608,7 +635,7 @@ internal class K8sContainer(
          return null
       }
 
-      val podName = System.getenv("HOSTNAME")  // Pod name from the HOSTNAME environment variable
+      val podName = System.getenv(ENV_HOSTNAME)  // Pod name from the HOSTNAME environment variable
 
       // Get the current pod based on the pod name and namespace
       val pod = client.pods().inNamespace(getNamespace()).withName(podName).get()
