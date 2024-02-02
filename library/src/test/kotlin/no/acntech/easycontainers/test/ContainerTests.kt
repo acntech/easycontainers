@@ -1,10 +1,13 @@
 package no.acntech.easycontainers.test
 
 import no.acntech.easycontainers.ContainerFactory
+import no.acntech.easycontainers.ContainerType
+import no.acntech.easycontainers.ImageBuilder
 import no.acntech.easycontainers.docker.DockerRegistryUtils
-import no.acntech.easycontainers.k8s.K8sImageBuilder
 import no.acntech.easycontainers.model.*
 import org.junit.jupiter.api.Test
+import org.junit.jupiter.params.ParameterizedTest
+import org.junit.jupiter.params.provider.ValueSource
 import org.slf4j.LoggerFactory
 import java.io.File
 import java.nio.file.Files
@@ -12,9 +15,9 @@ import java.nio.file.Path
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
-class ContainerTest {
+class ContainerTests {
 
-   private val log = LoggerFactory.getLogger(ContainerTest::class.java)
+   private val log = LoggerFactory.getLogger(ContainerTests::class.java)
 
    companion object {
       private const val REGISTRY = "172.23.75.43:5000"
@@ -104,11 +107,9 @@ class ContainerTest {
       container.remove()
    }
 
-   /**
-    *
-    */
-   @Test
-   fun `Test Kaniko image build`() {
+   @ParameterizedTest
+   @ValueSource(strings = ["DOCKER"/*, "KUBERNETES"*/])
+   fun `Test image build`(containerType: String) {
       val imageName = ImageName.of("simple-alpine")
       val repository = RepositoryName.TEST
 
@@ -124,7 +125,7 @@ class ContainerTest {
       log.debug("Dockerfile created: {}", dockerfile.absolutePath)
       log.debug("log_time.sh created: {}", logTimeScript.absolutePath)
 
-      val imageBuilder = K8sImageBuilder()
+      val imageBuilder = ContainerFactory.imageBuilder(ContainerType.valueOf(containerType))
          .withName(imageName)
          .withImageRegistry(RegistryURL.of(REGISTRY))
          .withInsecureRegistry(true)
@@ -132,24 +133,29 @@ class ContainerTest {
          .withNamespace(Namespace.TEST)
          .withDockerContextDir(Path.of(tempDir))
          .withLogLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
+         .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/home/thomas/kind/data/kaniko-data")
 
-      imageBuilder.buildImage()
+      val result = imageBuilder.buildImage()
 
-      // Test deploying it
-      val container = ContainerFactory.kubernetesContainer {
-         withName(ContainerName.of("simple-alpine-test"))
-         withNamespace(Namespace.TEST)
-         withImage(ImageURL.of("$REGISTRY/$repository/${imageName}:latest"))
-         withIsEphemeral(true)
-         withLogLineCallback { line -> println("SIMPLE-ALPINE-OUTPUT: $line") }
-      }.build()
+      if (result) {
+         val container = ContainerFactory.container {
+            withType(ContainerType.valueOf(containerType))
+            withName(ContainerName.of("simple-alpine-test"))
+            withNamespace(Namespace.TEST)
+            withImage(ImageURL.of("$REGISTRY/$repository/${imageName}:latest"))
+            withIsEphemeral(true)
+            withLogLineCallback { line -> println("SIMPLE-ALPINE-OUTPUT: $line") }
+         }.build()
 
-      container.start()
+         container.start()
 
-      TimeUnit.SECONDS.sleep(120)
+         TimeUnit.SECONDS.sleep(120)
 
-      container.stop()
-      container.remove()
+         container.stop()
+         container.remove()
+      } else {
+         log.error("Image build and push failed")
+      }
    }
 
 }

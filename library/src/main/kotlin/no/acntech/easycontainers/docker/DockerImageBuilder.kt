@@ -1,12 +1,21 @@
 package no.acntech.easycontainers.docker
 
 import com.github.dockerjava.api.DockerClient
+import com.github.dockerjava.api.async.ResultCallback
+import com.github.dockerjava.api.command.BuildImageResultCallback
+import com.github.dockerjava.api.exception.DockerClientException
+import com.github.dockerjava.api.exception.DockerException
+import com.github.dockerjava.api.model.BuildResponseItem
+import com.github.dockerjava.api.model.PushResponseItem
 import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientBuilder
+import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.ImageBuilder
-import no.acntech.easycontainers.docker.DockerConstants.DEFAULT_DOCKER_PORT
 import no.acntech.easycontainers.docker.DockerConstants.ENV_DOCKER_HOST
-import no.acntech.easycontainers.util.text.COLON
+import no.acntech.easycontainers.model.ImageTag
+import no.acntech.easycontainers.util.text.NEW_LINE
+import java.nio.file.Path
+import java.time.Duration
 import java.time.Instant
 
 /**
@@ -22,30 +31,22 @@ internal class DockerImageBuilder : ImageBuilder {
    private var finishTime: Instant? = null
 
    constructor() {
-      var dockerHost = System.getenv(ENV_DOCKER_HOST)
-
       val configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder()
 
+      val dockerHost = System.getenv(ENV_DOCKER_HOST)
       if (dockerHost != null && dockerHost.isNotEmpty()) {
-
-         if (!dockerHost.startsWith("tcp://")) {
-            dockerHost = "tcp://$dockerHost" // Prepend protocol if not present
-         }
-
-         if (!dockerHost.contains(COLON)) {
-            dockerHost = "$dockerHost:$DEFAULT_DOCKER_PORT" // Append default port if not present
-         }
-
-         log.info("Using Docker host: {}", dockerHost)
+         log.info("Using Docker host from environment variable: {}", dockerHost)
 
          configBuilder.withDockerHost(dockerHost)
       }
 
       dockerClient = DockerClientBuilder.getInstance(configBuilder.build()).build()
+      listContainers()
    }
 
    constructor(dockerClient: DockerClient) {
       this.dockerClient = dockerClient
+      listContainers()
    }
 
    override fun getStartTime(): Instant? {
@@ -57,35 +58,129 @@ internal class DockerImageBuilder : ImageBuilder {
    }
 
    override fun buildImage(): Boolean {
-      // TODO: Implement
-//      // Define the path to your Dockerfile and context directory
-//      val dockerfile = File(dockerContextDir, "Dockerfile")
-//      val contextDir = File(dockerContextDir)
-//
-//      // Build the Docker image
-//      val imageTag = "your_registry_hostname/your_repository_name:your_tag"
-//
-//      val buildImageCmd: BuildImageCmd = dockerClient.buildImageCmd()
-//         .withDockerfile(dockerfile)
-//         .withTags(listOf(imageTag))
-//         .withBaseDirectory(contextDir)
-//
-//      buildImageCmd.exec(object : BuildImageResultCallback() {
-//
-//         override fun onNext(item: BuildResponseItem) {
-//            // Process build progress if needed
-//         }
-//
-//      }).awaitImageId()
-//
-//      // Push the Docker image to the private registry
-//      val pushImageCmd: PushImageCmd = dockerClient.pushImageCmd(imageTag)
-//
-//      // If your private registry requires authentication, you can set it here
-//      // pushImageCmd.withAuthConfig(AuthConfig().withUsername("your_username").withPassword("your_password"))
-//
-//      pushImageCmd.exec(PushImageResultCallback()).awaitSuccess()
-      return false
+      // Preparations for image building
+      requireState(State.INITIALIZED)
+
+      if (tags.isEmpty()) {
+         tags.add(ImageTag.LATEST)
+      }
+
+      startTime = Instant.now()
+
+      changeState(State.IN_PROGRESS)
+      log.info("Building Docker image using Docker client: {}", dockerClient)
+      log.info("Using build config:\n $this")
+
+      val dockerfile = dockerContextDir.resolve("Dockerfile")
+      val tags = createImageTags()
+
+      // Building and tagging the Docker image
+      val id = buildAndTagImage(dockerfile, tags)
+
+      log.debug("Built image ID: $id")
+
+      // Pushing the Docker image
+
+      pushImage(tags)
+      if(getState() != State.FAILED) {
+         changeState(State.COMPLETED)
+      }
+
+      finishTime = Instant.now()
+
+      if (getState() == State.COMPLETED) {
+         val duration = Duration.between(startTime, finishTime)
+         log.info(
+            "Image build and push completed successfully in" +
+               " ${duration.toMinutes()} minutes and ${duration.toSecondsPart()} seconds"
+         )
+      } else {
+         log.error("Image build and push failed")
+      }
+
+      return getState() == State.COMPLETED
+   }
+
+   private fun createImageTags(): Set<String> {
+      return tags.map { tag -> "${registry}/$repository/$name:$tag" }.toSet()
+   }
+
+   private fun buildAndTagImage(dockerfile: Path, tags: Set<String>): String? {
+      return try {
+         dockerClient.buildImageCmd()
+            .withNoCache(true)
+            .withDockerfile(dockerfile.toFile())
+            .withBaseDirectory(dockerContextDir.toFile())
+            .withLabels(labels.map { (key, value) ->
+               key.unwrap() to value.unwrap()
+            }.toMap())
+            .withTags(tags)
+            .exec(object : BuildImageResultCallback() {
+
+               override fun onNext(item: BuildResponseItem) {
+                  log.info("Build response item (progress): {}", item.progressDetail)
+
+                  if (item.isErrorIndicated) {
+                     log.error("Error building image: {}", item.errorDetail?.message)
+                     changeState(State.FAILED)
+                  }
+
+                  if (item.isBuildSuccessIndicated) {
+                     log.info("Build success indicated")
+                  }
+               }
+
+            }).awaitImageId()
+      } catch (e: Exception) {
+         when (e) {
+
+            is DockerException, is DockerClientException -> {
+               log.error("A docker error occurred during build: {} - IGNORING", e.message, e)
+            }
+
+            else -> {
+               log.error("An error occurred during docker build, raising ContainerException", e)
+               throw ContainerException(e)
+            }
+         }
+         return null
+      }
+   }
+
+   private fun pushImage(tags: Set<String>) {
+      tags.forEach { tag ->
+         log.info("Pushing image: $tag")
+         dockerClient.pushImageCmd(tag)
+            .exec(object : ResultCallback.Adapter<PushResponseItem>() {
+
+               override fun onNext(item: PushResponseItem) {
+                  log.info("Push response item: {}", item.toString())
+               }
+
+               override fun onComplete() {
+                  super.onComplete()
+                  log.info("Completed pushing image: $tag")
+                  changeState(State.COMPLETED)
+               }
+
+               override fun onError(throwable: Throwable) {
+                  super.onError(throwable)
+                  log.error("Error pushing image: $tag", throwable)
+                  if (getState() != State.COMPLETED)
+                     changeState(State.FAILED)
+               }
+
+            }).awaitCompletion()
+      }
+   }
+
+   private fun listContainers() {
+      val containers = dockerClient.listContainersCmd()
+         .withShowSize(true)
+         .withShowAll(false)
+         .exec()
+
+      log.info("All containers:$NEW_LINE${containers.joinToString(NEW_LINE)}")
    }
 
 }

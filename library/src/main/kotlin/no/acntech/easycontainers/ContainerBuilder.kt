@@ -70,6 +70,8 @@ class ContainerBuilder {
 
    var maxLifeTime: Duration? = null
 
+   var customProperties: MutableMap<String, Any> = mutableMapOf()
+
    fun withType(type: ContainerType): ContainerBuilder {
       this.containerType = type
       return this
@@ -181,6 +183,11 @@ class ContainerBuilder {
 
    fun withMaxLifeTime(value: Long, unit: ChronoUnit): ContainerBuilder {
       this.maxLifeTime = Duration.of(value, unit)
+      return this
+   }
+
+   fun withCustomProperty(key: String, value: Any): ContainerBuilder {
+      customProperties[key] = value
       return this
    }
 

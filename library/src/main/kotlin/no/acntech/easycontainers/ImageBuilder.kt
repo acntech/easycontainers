@@ -11,6 +11,67 @@ import java.nio.file.LinkOption
 import java.nio.file.Path
 import java.time.Instant
 
+/**
+ * An abstract class for building Docker images. The class is designed to be extended by specific implementations.
+ *
+ * <h2>Kubernetes quirks</h2>
+ * In order to build Docker images in a k8s cluster (using Kaniko) from a test environment running outside the cluster, you would
+ * normally use a shared volume between the host and the k8s cluster.
+ * <p>
+ * In order to share a folder between the host and the k8s cluster the following config apply for Docker Desktop on
+ * wsl (Windows Subsystem for Linux):
+ * <ul>
+ *    <li> On the host the shared directory must be under /mnt/wsl/.. </li>
+ *    <li> In the k8s cluster the shared directory must be under /run/desktop/mnt/host/wsl/.. </li>
+ * <code><pre>
+ *    apiVersion: v1
+ * kind: PersistentVolume
+ * metadata:
+ *   name: kaniko-data-pv
+ *   labels:
+ *     type: local
+ * spec:
+ *   storageClassName: hostpath
+ *   capacity:
+ *     storage: 100Mi
+ *   accessModes:
+ *     - ReadWriteMany
+ *   hostPath: /run/desktop/mnt/host/wsl/kaniko-data
+ * </pre></code>
+ * <p>
+ * When creating configuring the ImageBuilder, this path must be used as the local path.
+ * <pre><code>
+ *    val imageBuilder = ContainerFactory.imageBuilder(ContainerType.KUBERNETES)
+ *          .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/mnt/wsl/kaniko-data")
+ *          // other properties
+ * </code></pre>
+ * <p>
+ * For kind this can be anywhere on the host file system, but must be shared with the kind cluster using a custom config applied at cluster startup.
+ * <p>
+ * Example:
+ * <p>
+ * Host (wsl or native linux) path: /home/user/k8s-share/kaniko-data
+ * <p>
+ * Kind cluster config:
+ * <code><pre>
+ *    kind: Cluster
+ * apiVersion: kind.x-k8s.io/v1alpha4
+ * networking:
+ *   apiServerAddress: "0.0.0.0"
+ * nodes:
+ * - role: control-plane
+ *   extraMounts:
+ *     - hostPath: /home/user/k8s-share/kaniko-data
+ *       containerPath: /data
+ * </pre></code>
+ * <p>
+ * When creating and configuring the ImageBuilder, this path must be used as the local path.
+ * <pre><code>
+ *    val imageBuilder = ContainerFactory.imageBuilder(ContainerType.KUBERNETES)
+ *          .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/home/user/k8s-share/kaniko-data")
+ *          // other properties
+ * </code></pre>
+ */
 abstract class ImageBuilder {
 
    enum class State {
@@ -19,6 +80,12 @@ abstract class ImageBuilder {
       UNKNOWN,
       COMPLETED,
       FAILED
+   }
+
+   companion object {
+      private val log: Logger = LoggerFactory.getLogger(ImageBuilder::class.java)
+
+      const val PROP_LOCAL_KANIKO_DATA_PATH = "kaniko-data.local.path"
    }
 
    protected val log: Logger = LoggerFactory.getLogger(javaClass)
@@ -37,9 +104,13 @@ abstract class ImageBuilder {
 
    protected val tags: MutableList<ImageTag> = mutableListOf()
 
+   protected val labels: MutableMap<LabelKey, LabelValue> = mutableMapOf()
+
    protected var namespace: Namespace = Namespace.DEFAULT
 
    protected var verbosity: Verbosity = Verbosity.INFO
+
+   protected var customProperties: MutableMap<String, String> = mutableMapOf()
 
    protected var lineCallback: LineCallback = LineCallback { _ -> }
 
@@ -84,6 +155,11 @@ abstract class ImageBuilder {
       return this
    }
 
+   fun withLabel(key: LabelKey, value: LabelValue): ImageBuilder {
+      labels[key] = value
+      return this
+   }
+
    fun withNamespace(namespace: Namespace): ImageBuilder {
       this.namespace = namespace
       return this
@@ -96,6 +172,11 @@ abstract class ImageBuilder {
 
    fun withLogLineCallback(lineCallback: LineCallback): ImageBuilder {
       this.lineCallback = lineCallback
+      return this
+   }
+
+   fun withCustomProperty(key: String, value: String): ImageBuilder {
+      customProperties[key] = value
       return this
    }
 

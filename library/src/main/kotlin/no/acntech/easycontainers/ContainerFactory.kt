@@ -1,5 +1,6 @@
 package no.acntech.easycontainers
 
+import no.acntech.easycontainers.docker.DockerImageBuilder
 import no.acntech.easycontainers.k8s.K8sImageBuilder
 
 object ContainerFactory {
@@ -26,7 +27,7 @@ object ContainerFactory {
 
    fun imageBuilder(type: ContainerType = ContainerType.KUBERNETES): ImageBuilder {
       return when (type) {
-         ContainerType.DOCKER -> throw UnsupportedOperationException("Docker image builder is not supported")
+         ContainerType.DOCKER -> DockerImageBuilder()
          ContainerType.KUBERNETES -> K8sImageBuilder()
       }
    }

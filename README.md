@@ -10,7 +10,7 @@
 4. [Example applications](#Example-applications)
 5. [TODO](#TO-DO)
 6. [Contributing](#contributing)
-7, [License](#license)
+7. [License](#license)
 
 ## Introduction
  

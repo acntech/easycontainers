@@ -30,4 +30,5 @@ class LoggingWatcher<Any>(
          else -> resource?.toString() ?: "Unknown resource"
       }
    }
+
 }

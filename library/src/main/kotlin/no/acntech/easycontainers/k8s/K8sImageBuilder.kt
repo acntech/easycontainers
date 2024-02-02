@@ -50,44 +50,11 @@ internal class K8sImageBuilder(
       private const val KANIKO_DATA_VOLUME_K8S_MOUNT_PATH = "/mnt/kaniko-data"
       private const val KANIKO_DOCKER_PATH = "/kaniko/.docker"
       private const val KANIKO_CONFIG_FILE = "config.json"
-      private const val TAG_LATEST = "latest"
-
-      private const val KANIKO_DATA_LOCAL_PATH = "/home/thomas/kind/data/kaniko-data"
-      private const val KANIKO_DATA_LOCAL_PATH_WSL_DOCKER_DESKTOP = "mnt/wsl/share/kaniko-data"
-
 
       private const val DOCKERFILE_ARG = "--dockerfile="
       private const val CONTEXT_ARG = "--context="
       private const val VERBOSITY_ARG = "--verbosity="
       private const val DESTINATION_ARG = "--destination="
-
-      private const val HTTP_PROTOCOL_PREFIX = "http://"
-      private const val HTTPS_PROTOCOL_PREFIX = "https://"
-
-      private var kanikoDataLocalPath: String? = null
-
-      init {
-         if (K8sUtils.isRunningOutsideCluster()) {
-            if (OperatingSystemUtils.isWindows() && OperatingSystemUtils.getDefaultWSLDistro() != null) {
-               // Won't fail if the directory already exists
-
-               //            kanikoDataLocalPath = OperatingSystemUtils.createDirectoryInWSL("mnt/wsl/share/kaniko-data") // For Docker Desktop
-
-               // For WSL2 with e.g. Kind or Minikube
-               kanikoDataLocalPath = OperatingSystemUtils.createDirectoryInWSL(KANIKO_DATA_LOCAL_PATH)
-
-            } else if (OperatingSystemUtils.isLinux()) {
-               kanikoDataLocalPath = File(System.getProperty("user.home") + "/kaniko-data").also {
-                  if (!(it.exists() || it.mkdirs())) {
-                     LoggerFactory.getLogger(K8sImageBuilder::class.java).warn("Unable to create directory: $it")
-                  }
-               }.absolutePath
-            }
-
-            LoggerFactory.getLogger(K8sImageBuilder::class.java).info("Kaniko data local path: $kanikoDataLocalPath")
-         }
-      }
-
    }
 
    private val uuid: String = UUID.randomUUID().toString()
@@ -221,18 +188,32 @@ internal class K8sImageBuilder(
    }
 
    private fun processOutsideCluster(): String {
-      return if (kanikoDataLocalPath != null) { // Running on Windows with WSL
-         val kanikoDataLocalPath = kanikoDataLocalPath!!
-         if (dockerContextDir.startsWith(kanikoDataLocalPath)) {
-            log.trace("Docker context dir '$dockerContextDir' is already under the Kaniko data volume")
+      var localKanikoPath = customProperties[PROP_LOCAL_KANIKO_DATA_PATH]
+
+      return if (localKanikoPath != null) {
+         log.debug("Using local Kaniko data path: $localKanikoPath")
+
+         if (OperatingSystemUtils.isWindows() && OperatingSystemUtils.getDefaultWSLDistro() != null) {
+            localKanikoPath = OperatingSystemUtils.createDirectoryInWSL(localKanikoPath)
+
+         } else if (OperatingSystemUtils.isLinux()) {
+            localKanikoPath = File(System.getProperty("user.home") + "/kaniko-data").also {
+               if (!(it.exists() || it.mkdirs())) {
+                  LoggerFactory.getLogger(K8sImageBuilder::class.java).warn("Unable to create directory: $it")
+               }
+            }.absolutePath
+         }
+
+         if (dockerContextDir.startsWith(localKanikoPath)) {
+            log.trace("Docker context dir '$dockerContextDir' is already under the Kaniko data path")
             requireDockerfile()
-            KANIKO_DATA_VOLUME_K8S_MOUNT_PATH + dockerContextDir.absolutePathString().substring(kanikoDataLocalPath.length).also {
+            KANIKO_DATA_VOLUME_K8S_MOUNT_PATH + dockerContextDir.absolutePathString().substring(localKanikoPath!!.length).also {
                log.info("Using '$it' as the Docker context dir (present on local WSL filesystem)")
             }
 
          } else {
             log.trace("Docker context dir '$dockerContextDir' is not under the local Kaniko data volume, preparing to copy it")
-            copyDockerContextDirToUniqueSubDir(kanikoDataLocalPath)
+            copyDockerContextDirToUniqueSubDir(localKanikoPath!!)
             "$KANIKO_DATA_VOLUME_K8S_MOUNT_PATH/${uuid}".also {
                log.info("Using '$it' as the Docker context dir")
             }
@@ -311,7 +292,7 @@ internal class K8sImageBuilder(
          )
       )
 
-      val configVolumeMount = createInsecureRegistryConfigVolumeMount()
+      val configVolumeMount = if (isInsecureRegistry) createInsecureRegistryConfigVolumeMount() else null
 
       configVolumeMount?.let {
          volumeMounts.add(it)
@@ -338,8 +319,6 @@ internal class K8sImageBuilder(
    }
 
    private fun prepareArguments(dockerContextPath: String): MutableList<String> {
-      val registry = registry!!
-
       val args = mutableListOf(
          DOCKERFILE_ARG + "$dockerContextPath/Dockerfile",
          CONTEXT_ARG + "dir://" + dockerContextPath,
@@ -360,15 +339,11 @@ internal class K8sImageBuilder(
    }
 
    private fun createInsecureRegistryConfigVolumeMount(): VolumeMount? {
-      return if (isInsecureRegistry) {
-         val registryVal = registry.unwrap()
-         val host =
-            if (registryVal.contains(COLON)) registryVal.substringBefore(COLON) else registryVal
-         val port =
-            if (registryVal.contains(COLON)) registryVal.substringAfter(COLON).toInt() else 5000
-         createConfigMap(listOf(Pair(host, port)))
-         createVolumeMount(KANIKO_DOCKER_CONFIG_VOLUME_NAME, KANIKO_DOCKER_PATH)
-      } else null
+      val registryVal = registry.unwrap()
+      val host = if (registryVal.contains(COLON)) registryVal.substringBefore(COLON) else registryVal
+      val port = if (registryVal.contains(COLON)) registryVal.substringAfter(COLON).toInt() else 5000
+      createConfigMap(listOf(Pair(host, port)))
+      return createVolumeMount(KANIKO_DOCKER_CONFIG_VOLUME_NAME, KANIKO_DOCKER_PATH)
    }
 
    private fun createVolumeMount(name: String, mountPath: String): VolumeMount {

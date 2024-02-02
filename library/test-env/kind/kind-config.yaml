@@ -1,4 +1,5 @@
-# Change the IP address to the IP address of your registry
+# HOST_PATH is the path to the directory on the host where the Kaniko data will be stored.
+# REGISTRY_IP_ADDRESS is the IP address of the registry.
 
 kind: Cluster
 apiVersion: kind.x-k8s.io/v1alpha4
@@ -7,9 +8,12 @@ networking:
 nodes:
 - role: control-plane
   extraMounts:
-    - hostPath: /home/thomas/kind/data/kaniko-data
+    # NB! Change the hostPath to a directory on your host
+    - hostPath: HOST_PATH
       containerPath: /kaniko-data
-containerdConfigPatches:      
+containerdConfigPatches:
+
+  # Change the IP address to the IP address of your registry
 - |-
   [plugins."io.containerd.grpc.v1.cri".registry.mirrors."REGISTRY_IP_ADDRESS:5000"]
     endpoint = ["http://REGISTRY_IP_ADDRESS:5000"]
