@@ -11,7 +11,6 @@
 
   <name>acn-easycontainers-lib</name>
   <description>ACN Easycontainers libary</description>
-  <groupId>no.acntech.easycontainers</groupId>
   <artifactId>acn-easycontainers-lib</artifactId>
   <version>${revision}</version>
   <packaging>jar</packaging>
@@ -87,7 +86,6 @@
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-jar-plugin</artifactId>
-        <version>${maven-jar-plugin.version}</version>
         <configuration>
           <archive>
             <manifest>
@@ -112,7 +110,6 @@
       <plugin>
         <groupId>org.jetbrains.kotlin</groupId>
         <artifactId>kotlin-maven-plugin</artifactId>
-        <version>${kotlin.version}</version>
 
         <configuration>
           <args>
@@ -158,46 +155,6 @@
 
         </executions>
 
-      </plugin>
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>${maven-compiler-plugin.version}</version>
-      </plugin>
-
-
-      <!--
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-enforcer-plugin</artifactId>
-        <version>3.4.1</version>
-        <executions>
-          <execution>
-            <goals>
-              <goal>enforce</goal>
-            </goals>
-            <configuration>
-              <rules>
-                <dependencyConvergence/>
-                <requireUpperBoundDeps/>
-                <requirePluginVersions/>
-              </rules>
-            </configuration>
-          </execution>
-
-        </executions>
-      </plugin>
-      -->
-
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-dependency-plugin</artifactId>
-      </plugin>
-
-      <plugin>
-        <groupId>org.codehaus.mojo</groupId>
-        <artifactId>versions-maven-plugin</artifactId>
       </plugin>
 
     </plugins>

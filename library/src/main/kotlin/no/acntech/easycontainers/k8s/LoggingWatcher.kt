@@ -11,7 +11,6 @@ class LoggingWatcher<Any>(
 ) : Watcher<Any> {
 
    override fun eventReceived(action: Watcher.Action?, resource: Any?) {
-      val resourceInfo =
       log.debug("LoggingWatcher: received event [${action?.name}] on [${getResourceInfo(resource)}]")
    }
 
@@ -27,6 +26,7 @@ class LoggingWatcher<Any>(
             val metadata = resource.metadata
             "Kind: ${resource.kind}, Name: ${metadata.name}, Namespace: ${metadata.namespace}"
          }
+
          else -> resource?.toString() ?: "Unknown resource"
       }
    }

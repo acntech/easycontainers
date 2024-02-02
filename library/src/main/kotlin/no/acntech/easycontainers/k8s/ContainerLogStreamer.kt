@@ -12,9 +12,9 @@ class ContainerLogStreamer(
    val podName: String,
    val namespace: String = K8sConstants.DEFAULT_NAMESPACE,
    private val client: KubernetesClient = KubernetesClientBuilder().build(),
-   private val lineCallback: LineCallback = LineCallback(::println)
+   private val lineCallback: LineCallback = LineCallback(::println),
 
-): Runnable {
+   ) : Runnable {
 
    private val lineReader: LineReader
 

@@ -1,7 +1,5 @@
 package no.acntech.easycontainers.k8s
 
-import io.fabric8.kubernetes.api.model.apps.Deployment
-import io.fabric8.kubernetes.client.KubernetesClient
 import io.fabric8.kubernetes.client.KubernetesClientBuilder
 import io.fabric8.kubernetes.client.KubernetesClientException
 import no.acntech.easycontainers.k8s.K8sConstants.ENV_KUBERNETES_SERVICE_HOST

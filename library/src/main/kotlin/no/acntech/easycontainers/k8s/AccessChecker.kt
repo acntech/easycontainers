@@ -8,7 +8,6 @@ import no.acntech.easycontainers.PermissionException
 import no.acntech.easycontainers.k8s.K8sConstants.DEFAULT_NAMESPACE
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import org.slf4j.LoggerFactory
-import kotlin.reflect.KFunction
 
 class AccessChecker(private val client: KubernetesClient) {
 
@@ -133,8 +132,10 @@ class AccessChecker(private val client: KubernetesClient) {
       }
 
       if (!allowed && exceptionIfNotPermitted) {
-         throw PermissionException("Access denied for one or more verbs [$verbs] on " +
-            "resource [$resource] in namespace [$namespace] for API group [$group]")
+         throw PermissionException(
+            "Access denied for one or more verbs [$verbs] on " +
+               "resource [$resource] in namespace [$namespace] for API group [$group]"
+         )
       }
 
       return allowed

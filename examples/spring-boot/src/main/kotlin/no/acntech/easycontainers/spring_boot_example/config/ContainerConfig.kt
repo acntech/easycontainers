@@ -1,8 +1,9 @@
 package no.acntech.easycontainers.spring_boot_example.config
 
-import no.acntech.easycontainers.Container
+import no.acntech.easycontainers.model.Container
 import no.acntech.easycontainers.ContainerFactory
 import no.acntech.easycontainers.k8s.K8sUtils
+import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.output.Slf4jLineCallback
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
@@ -16,11 +17,11 @@ class ContainerConfig {
     @Bean
     fun container(): Container {
         val container = ContainerFactory.kubernetesContainer {
-            withName("alpine-httpd-test")
-            withNamespace("test")
-            withImage("localhost:5000/alpine-simple-httpd:latest")
-            withExposedPort("http", 80)
-            withVolume("kaniko-data", "/mnt/kaniko-data")
+            withName(ContainerName.of("alpine-httpd-test"))
+            withNamespace(Namespace.TEST)
+            withImage(ImageURL.of("localhost:5000/test/alpine-simple-httpd:latest"))
+            withExposedPort(PortMappingName.HTTP, NetworkPort.HTTP)
+            withVolume(VolumeName.of("kaniko-data"), UnixDir.of("/mnt/kaniko-data"))
             withIsEphemeral(true)
             withLogLineCallback(
                 Slf4jLineCallback(
@@ -29,7 +30,7 @@ class ContainerConfig {
                 )
             )
             if (K8sUtils.isRunningOutsideCluster()) {
-                withPortMapping(80, 31080)
+                withPortMapping(NetworkPort.HTTP, NetworkPort.of(31080))
             }
         }.build()
         container.start()

@@ -1,8 +1,9 @@
 #!/bin/bash
 
 NAMESPACE="test"
+REPOSITORY="test"
 
-f [ -z "$DOCKER_HOST" ]; then
+if [ -z "$DOCKER_HOST" ]; then
     REGISTRY_IP="localhost"
 else
     DOCKER_HOST=${DOCKER_HOST/tcp:\/\//}
@@ -43,17 +44,17 @@ kubectl apply -f kaniko-pv-docker-wsl.yaml
 kubectl apply -f kaniko-pvc.yaml
 
 # Start a local registry in Docker
-./run-registry.sh
+# ./run-registry.sh
 
 export DOCKER_CLI_AWS_NO_SIGN_REQUEST=1
 
 # Build and push the light-httpd image
-docker build -t "$REGISTRY_HOST"/alpine-simple-httpd:latest .
-docker push "$REGISTRY_HOST"/alpine-simple-httpd:latest
+docker build -t "$REGISTRY_HOST/$REPOSITORY/alpine-simple-httpd:latest" .
+docker push "$REGISTRY_HOST/$REPOSITORY/alpine-simple-httpd:latest"
 
 # List the images in the registry
 echo "Images in the registry:"
-curl http://"$REGISTRY_HOST"/v2/_catalog
+curl "http://$REGISTRY_HOST/v2/_catalog"
 
 
 

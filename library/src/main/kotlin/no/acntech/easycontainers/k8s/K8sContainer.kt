@@ -11,10 +11,10 @@ import no.acntech.easycontainers.ContainerBuilder
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.k8s.K8sConstants.ENV_HOSTNAME
 import no.acntech.easycontainers.k8s.K8sUtils.normalizeLabelValue
+import no.acntech.easycontainers.model.Host
 import no.acntech.easycontainers.util.text.NEW_LINE
 import no.acntech.easycontainers.util.text.SPACE
 import org.awaitility.Awaitility.await
-import org.jvnet.hk2.internal.Utilities.createService
 import java.io.File
 import java.time.Instant
 import java.util.concurrent.Executors
@@ -64,7 +64,7 @@ internal class K8sContainer(
 
    private var ourDeploymentName: String?
 
-   private val selectorLabels: Map<String, String> = mapOf(K8sConstants.APP_LABEL to getName())
+   private val selectorLabels: Map<String, String> = mapOf(K8sConstants.APP_LABEL to getName().unwrap())
 
    private var containerLogStreamer: ContainerLogStreamer? = null
 
@@ -77,7 +77,7 @@ internal class K8sContainer(
 
    init {
       createDeployment()
-      if(builder.exposedPorts.isNotEmpty()) {
+      if (builder.exposedPorts.isNotEmpty()) {
          createService(isNodePort = K8sUtils.isRunningOutsideCluster())
       }
       ourDeploymentName = getOurDeploymentName()
@@ -85,19 +85,23 @@ internal class K8sContainer(
 
    @Synchronized
    override fun start() {
-      requireState(no.acntech.easycontainers.Container.State.CREATED)
+      requireState(no.acntech.easycontainers.model.Container.State.CREATED)
+
+      log.info("Starting container: ${getName()}")
+
+      log.debug("Using container config\n${builder}")
 
       try {
          createNamespaceIfAllowedAndNotExists()
          deleteServiceIfExists()
          deleteDeploymentIfExists()
 
-         deployment = client.apps().deployments().inNamespace(getNamespace()).resource(deployment).create().also {
+         deployment = client.apps().deployments().inNamespace(getNamespace().unwrap()).resource(deployment).create().also {
             log.info("Deployed k8s deployment: $it")
          }
 
          service?.let {
-            service = client.services().inNamespace(getNamespace()).resource(service).create().also {
+            service = client.services().inNamespace(getNamespace().unwrap()).resource(service).create().also {
                log.info("Deployed k8s service: $it")
             }
          }
@@ -110,11 +114,11 @@ internal class K8sContainer(
             scheduler.schedule(stopAndRemoveTask, it.toSeconds(), TimeUnit.SECONDS)
          }
 
-         client.pods().inNamespace(getNamespace()).withLabels(selectorLabels).watch(PodWatcher())
+         client.pods().inNamespace(getNamespace().unwrap()).withLabels(selectorLabels).watch(PodWatcher())
 
          containerLogStreamer = ContainerLogStreamer(
             this.pods.first().first.metadata.name,
-            getNamespace()!!,
+            getNamespace().unwrap(),
             client,
             builder.lineCallback
          )
@@ -128,14 +132,16 @@ internal class K8sContainer(
          val serviceName = service!!.metadata.name
          val namespace = service!!.metadata.namespace
 
-         internalHost = "$serviceName.$namespace.svc.cluster.local"
-         log.info("Container (service) host: $internalHost")
+         internalHost = Host.of("$serviceName.$namespace.svc.cluster.local").also {
+            log.info("Container (service) host: $it")
+         }
+
       }
 
       executorService.execute(containerLogStreamer!!)
 
       // We have officially started the container(s)
-      changeState(no.acntech.easycontainers.Container.State.STARTED)
+      changeState(no.acntech.easycontainers.model.Container.State.STARTED)
    }
 
    @Throws(ContainerException::class)
@@ -149,6 +155,7 @@ internal class K8sContainer(
             log.error(message, e)
             throw ContainerException(message, e)
          }
+
          else -> {
             log.error("Unexpected exception '${e.javaClass.simpleName}:'${e.message}', re-throwing", e)
             throw e // Rethrow the exception if it's not one of the handled types
@@ -159,30 +166,30 @@ internal class K8sContainer(
    @Synchronized
    override fun stop() {
       requireState(
-         no.acntech.easycontainers.Container.State.CREATED,
-         no.acntech.easycontainers.Container.State.STARTED,
-         no.acntech.easycontainers.Container.State.RUNNING,
-         no.acntech.easycontainers.Container.State.UNKNOWN
+         no.acntech.easycontainers.model.Container.State.CREATED,
+         no.acntech.easycontainers.model.Container.State.STARTED,
+         no.acntech.easycontainers.model.Container.State.RUNNING,
+         no.acntech.easycontainers.model.Container.State.UNKNOWN
       )
 
       val exists = client.apps()
          .deployments()
-         .inNamespace(getNamespace())
-         .withName(getName() + DEPLOYMENT_NAME_SUFFIX)
+         .inNamespace(getNamespace().unwrap())
+         .withName(getName().unwrap() + DEPLOYMENT_NAME_SUFFIX)
          .get() != null
 
       if (exists) {
          // Scale only if the deployment is found
          client.apps()
             .deployments()
-            .inNamespace(getNamespace())
-            .withName(getName() + DEPLOYMENT_NAME_SUFFIX)
+            .inNamespace(getNamespace().unwrap())
+            .withName(getName().unwrap() + DEPLOYMENT_NAME_SUFFIX)
             .scale(0)
 
-         changeState(no.acntech.easycontainers.Container.State.STOPPED)
+         changeState(no.acntech.easycontainers.model.Container.State.STOPPED)
       } else {
          // Handle the case where the deployment is not found
-         log.warn("Deployment to stop not found: ${getName() + DEPLOYMENT_NAME_SUFFIX}")
+         log.warn("Deployment to stop not found: ${getName().unwrap() + DEPLOYMENT_NAME_SUFFIX}")
       }
 
       containerLogStreamer?.stop()
@@ -191,15 +198,15 @@ internal class K8sContainer(
    @Synchronized
    override fun remove() {
       requireState(
-         no.acntech.easycontainers.Container.State.STOPPED,
-         no.acntech.easycontainers.Container.State.FAILED
+         no.acntech.easycontainers.model.Container.State.STOPPED,
+         no.acntech.easycontainers.model.Container.State.FAILED
       )
 
       deleteServiceIfExists()
       deleteDeploymentIfExists()
 
       val configMapsExists = client.configMaps()
-         .inNamespace(getNamespace())
+         .inNamespace(getNamespace().unwrap())
          .list()
          .items
          .any { item -> configMaps.any { backItem -> backItem.metadata.name == item.metadata.name } }
@@ -208,7 +215,7 @@ internal class K8sContainer(
          configMaps.forEach { configMap ->
             try {
                client.configMaps()
-                  .inNamespace(getNamespace())
+                  .inNamespace(getNamespace().unwrap())
                   .withName(configMap.metadata.name)
                   .delete()
             } catch (e: Exception) {
@@ -219,7 +226,7 @@ internal class K8sContainer(
 
       executorService.shutdownNow()
 
-      changeState(no.acntech.easycontainers.Container.State.REMOVED)
+      changeState(no.acntech.easycontainers.model.Container.State.REMOVED)
    }
 
    @Synchronized
@@ -230,7 +237,7 @@ internal class K8sContainer(
 
       this.pods.forEach { (pod, containers) ->
          val refreshedPod = client.pods()
-            .inNamespace(getNamespace())
+            .inNamespace(getNamespace().unwrap())
             .withName(pod.metadata.name)
             .get()
 
@@ -238,11 +245,11 @@ internal class K8sContainer(
             log.debug("Pod refreshed: ${refreshedPod.metadata.name} - current phase: ${refreshedPod.status?.phase}")
 
             val newState = when (refreshedPod.status?.phase) {
-               "Running" -> no.acntech.easycontainers.Container.State.RUNNING
-               "Pending" -> no.acntech.easycontainers.Container.State.STARTED
-               "Failed" -> no.acntech.easycontainers.Container.State.FAILED
-               "Succeeded" -> no.acntech.easycontainers.Container.State.STOPPED
-               else -> no.acntech.easycontainers.Container.State.UNKNOWN
+               "Running" -> no.acntech.easycontainers.model.Container.State.RUNNING
+               "Pending" -> no.acntech.easycontainers.model.Container.State.STARTED
+               "Failed" -> no.acntech.easycontainers.model.Container.State.FAILED
+               "Succeeded" -> no.acntech.easycontainers.model.Container.State.STOPPED
+               else -> no.acntech.easycontainers.model.Container.State.UNKNOWN
             }
 
             changeState(newState)
@@ -266,7 +273,7 @@ internal class K8sContainer(
       var pods: List<Pod> = emptyList()
 
       await().atMost(maxWaitTimeSeconds, TimeUnit.SECONDS).until {
-         pods = client.pods().inNamespace(getNamespace()).withLabels(selectorLabels).list().items
+         pods = client.pods().inNamespace(getNamespace().unwrap()).withLabels(selectorLabels).list().items
          pods.isNotEmpty()
       }
 
@@ -280,7 +287,7 @@ internal class K8sContainer(
       // INVARIANT: pods is not empty
 
       // Add a debug/logging watcher for the pods
-      client.pods().inNamespace(getNamespace()).withLabels(selectorLabels).watch(LoggingWatcher())
+      client.pods().inNamespace(getNamespace().unwrap()).withLabels(selectorLabels).watch(LoggingWatcher())
 
       // Pair each pod with its list of containers
       pods.forEach { pod ->
@@ -301,9 +308,9 @@ internal class K8sContainer(
          return
       }
 
-      val namespaceExists = client.namespaces().list().items.any { it.metadata.name == getNamespace() }
+      val namespaceExists = client.namespaces().list().items.any { it.metadata.name == getNamespace().unwrap() }
       if (!namespaceExists) {
-         val namespaceResource = NamespaceBuilder().withNewMetadata().withName(getNamespace()).endMetadata().build()
+         val namespaceResource = NamespaceBuilder().withNewMetadata().withName(getNamespace().unwrap()).endMetadata().build()
          client.namespaces().resource(namespaceResource).create().also {
             log.info("Created k8s namespace: $it")
          }
@@ -315,15 +322,15 @@ internal class K8sContainer(
       val (volumes, volumeMounts) = createVolumes()
       container.volumeMounts = volumeMounts
 
-      val containerPort = getExposedPorts().firstOrNull()?.toLong()?.toInt()
+      val containerPort = getExposedPorts().firstOrNull()?.unwrap()
 
       containerPort?.let {
          log.info("No exposed ports found for container: ${getName()}")
       }
 
       val (livenessProbe, readinessProbe) = createProbes(containerPort)
-         container.livenessProbe = livenessProbe
-         container.readinessProbe = readinessProbe
+      container.livenessProbe = livenessProbe
+      container.readinessProbe = readinessProbe
 
       val podSpec = createPodSpec(container, volumes)
 
@@ -356,21 +363,19 @@ internal class K8sContainer(
       resourceRequirements.limits = limits
 
       return Container().apply {
-         name = this@K8sContainer.getName() + CONTAINER_NAME_SUFFIX
-         image = this@K8sContainer.getImage()
-         env = this@K8sContainer.getEnv().map { EnvVar(it.key, it.value, null) }
-         ports = getExposedPorts().map {
-            ContainerPort(it.toLong().toInt(), null, null, null, "TCP")
+         val k8sContainer = this@K8sContainer
+         name = "${k8sContainer.getName().unwrap()}$CONTAINER_NAME_SUFFIX"
+         image = k8sContainer.getImage().toFQDN()
+         env = k8sContainer.getEnv().map { EnvVar(it.key.unwrap(), it.value.unwrap(), null) }
+         ports = k8sContainer.getExposedPorts().map {
+            ContainerPort(it.unwrap(), null, null, null, "TCP")
          }
-
-         if (this@K8sContainer.getCommand().isNotBlank()) {
-            command = this@K8sContainer.getCommand().split(SPACE)
+         k8sContainer.getCommand()?.let {
+            command = it.unwrap().split(SPACE)
          }
-
-         if (this@K8sContainer.getArgs().isNotEmpty()) {
-            args = this@K8sContainer.getArgs()
+         k8sContainer.getArgs()?.let {
+            args = it.toStringList()
          }
-
          resources = resourceRequirements
       }
    }
@@ -384,20 +389,20 @@ internal class K8sContainer(
          log.trace("Creating name -> config map mapping: $name -> $configFile")
 
          // Extract directory and filename from mountPath, ensuring forward slashes
-         val mountPath = File(configFile.mountPath).parent?.replace("\\", "/") ?: "/"
-         val fileName = File(configFile.mountPath).name
+         val mountPath = File(configFile.mountPath.unwrap()).parent?.replace("\\", "/") ?: "/"
+         val fileName = File(configFile.mountPath.unwrap()).name
 
          // Create a ConfigMap object with a single entry
          val configMap = ConfigMapBuilder()
             .withNewMetadata()
-            .withName(name)
-            .withNamespace(getNamespace())
+            .withName(name.unwrap())
+            .withNamespace(getNamespace().unwrap())
             .addToLabels(createDefaultLabels())
             .endMetadata()
             .addToData(fileName, configFile.content) // fileName as the key
             .build()
 
-         val configMapResource: Resource<ConfigMap> = client.configMaps().inNamespace(getNamespace()).resource(configMap)
+         val configMapResource: Resource<ConfigMap> = client.configMaps().inNamespace(getNamespace().unwrap()).resource(configMap)
          if (configMapResource.get() != null) {
             configMapResource.withTimeout(30, TimeUnit.SECONDS).delete().also {
                log.info("Deleted existing k8s config map: $it")
@@ -413,16 +418,16 @@ internal class K8sContainer(
 
          // Create the corresponding Volume
          val volume = VolumeBuilder()
-            .withName(name)
+            .withName(name.unwrap())
             .withNewConfigMap()
-            .withName(name)
+            .withName(name.unwrap())
             .endConfigMap()
             .build()
          volumes.add(volume)
 
          // Create the corresponding VolumeMount
          val volumeMount = VolumeMountBuilder()
-            .withName(name)
+            .withName(name.unwrap())
             .withMountPath(mountPath)
             .withSubPath(fileName) // Mount only the specific file within the directory
             .build()
@@ -430,13 +435,13 @@ internal class K8sContainer(
       }
 
       // Map existing Persistent Volumes and Claims
-      builder.volumes.values.forEach { volume ->
+      builder.volumes.forEach { volume ->
          // Derive the PVC name from the volume name
          val pvcName = "${volume.name}$PVC_NAME_SUFFIX"
 
          // Create the Volume using the existing PVC
          val k8sVolume = VolumeBuilder()
-            .withName(volume.name)
+            .withName(volume.name.unwrap())
             .withNewPersistentVolumeClaim()
             .withClaimName(pvcName)
             .endPersistentVolumeClaim()
@@ -445,8 +450,8 @@ internal class K8sContainer(
 
          // Create the VolumeMount
          val volumeMount = VolumeMountBuilder()
-            .withName(volume.name)
-            .withMountPath(volume.mountPath)
+            .withName(volume.name.unwrap())
+            .withMountPath(volume.mountPath.unwrap())
             .build()
          volumeMounts.add(volumeMount)
       }
@@ -515,7 +520,7 @@ internal class K8sContainer(
    private fun createDeploymentFromPodSpec(podSpec: PodSpec) {
       val templateMetadata = ObjectMeta().apply {
          this.labels = selectorLabels + createDefaultLabels()
-         name = this@K8sContainer.getName() + POD_NAME_SUFFIX
+         name = this@K8sContainer.getName().unwrap() + POD_NAME_SUFFIX
       }
 
       val podTemplateSpec = PodTemplateSpec().apply {
@@ -530,9 +535,13 @@ internal class K8sContainer(
       }
 
       val deploymentMetadata = ObjectMeta().apply {
-         name = this@K8sContainer.getName() + DEPLOYMENT_NAME_SUFFIX
-         namespace = this@K8sContainer.getNamespace()
-         this.labels = this@K8sContainer.getLabels() + createDefaultLabels()
+         name = this@K8sContainer.getName().unwrap() + DEPLOYMENT_NAME_SUFFIX
+         namespace = this@K8sContainer.getNamespace().unwrap()
+         val stringLabels: Map<String, String> = this@K8sContainer.getLabels().flatMap { (key, value) ->
+            listOf(key.unwrap() to value.unwrap())
+         }.toMap()
+
+         labels = stringLabels + createDefaultLabels()
       }
 
       deployment = Deployment().apply {
@@ -549,19 +558,19 @@ internal class K8sContainer(
    private fun createService(isNodePort: Boolean = false) {
       // Manually creating the service metadata
       val serviceMetadata = ObjectMeta()
-      serviceMetadata.name = getName() + SERVICE_NAME_SUFFIX
-      serviceMetadata.namespace = getNamespace()
+      serviceMetadata.name = getName().unwrap() + SERVICE_NAME_SUFFIX
+      serviceMetadata.namespace = getNamespace().unwrap()
       serviceMetadata.labels = createDefaultLabels()
 
       // Manually creating the service ports
       val servicePorts = builder.exposedPorts.map { (name, internalPort) ->
          ServicePortBuilder()
-            .withName(name)
-            .withPort(internalPort)
-            .withNewTargetPort(internalPort)
+            .withName(name.unwrap())
+            .withPort(internalPort.unwrap())
+            .withNewTargetPort(internalPort.unwrap())
             .apply {
                if (isNodePort && hasPortMapping(internalPort)) {
-                  val nodePort = getMappedPort(internalPort)
+                  val nodePort = getMappedPort(internalPort).unwrap()
                   if (nodePort !in K8sConstants.NODE_PORT_RANGE_START..K8sConstants.NODE_PORT_RANGE_END) {
                      log.warn(
                         "The mapped NodePort $nodePort for internal port $internalPort " +
@@ -594,8 +603,8 @@ internal class K8sContainer(
    }
 
    private fun deleteDeploymentIfExists() {
-      val namespaceName = getNamespace()
-      val deploymentName = getName() + DEPLOYMENT_NAME_SUFFIX
+      val namespaceName = getNamespace().unwrap()
+      val deploymentName = getName().unwrap() + DEPLOYMENT_NAME_SUFFIX
       val deployment = client.apps().deployments().inNamespace(namespaceName).withName(deploymentName).get()
       if (deployment != null) {
          log.info("Deleting deployment: $deploymentName")
@@ -612,8 +621,8 @@ internal class K8sContainer(
    }
 
    private fun deleteServiceIfExists() {
-      val namespaceName = getNamespace()
-      val serviceName = getName() + SERVICE_NAME_SUFFIX
+      val namespaceName = getNamespace().unwrap()
+      val serviceName = getName().unwrap() + SERVICE_NAME_SUFFIX
 
       client.services().inNamespace(namespaceName).withName(serviceName).get()?.let {
          log.info("Deleting service: $serviceName")
@@ -638,13 +647,13 @@ internal class K8sContainer(
       val podName = System.getenv(ENV_HOSTNAME)  // Pod name from the HOSTNAME environment variable
 
       // Get the current pod based on the pod name and namespace
-      val pod = client.pods().inNamespace(getNamespace()).withName(podName).get()
+      val pod = client.pods().inNamespace(getNamespace().unwrap()).withName(podName).get()
 
       // Get labels of the current pod
       val podLabels = pod.metadata.labels
 
       // Query all deployments in the namespace
-      val deployments = client.apps().deployments().inNamespace(getNamespace()).list().items
+      val deployments = client.apps().deployments().inNamespace(getNamespace().unwrap()).list().items
 
       // Find the deployment whose selector matches the pod's labels
       val myDeployment = deployments.firstOrNull { deployment ->

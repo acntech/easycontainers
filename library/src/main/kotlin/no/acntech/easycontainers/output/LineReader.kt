@@ -9,6 +9,7 @@ class LineReader(
 ) {
 
    private val continueFlag: AtomicBoolean = AtomicBoolean(true)
+
    fun read() {
       input.bufferedReader().use { reader ->
          var line: String?

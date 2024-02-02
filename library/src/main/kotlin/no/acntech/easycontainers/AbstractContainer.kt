@@ -1,6 +1,6 @@
 package no.acntech.easycontainers
 
-import no.acntech.easycontainers.util.text.EMPTY_STRING
+import no.acntech.easycontainers.model.*
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
 import org.slf4j.Logger
@@ -14,7 +14,7 @@ abstract class AbstractContainer(
 
    private var state: Container.State = Container.State.CREATED
 
-   protected var internalHost: String? = null
+   protected var internalHost: Host? = null
 
    init {
       if (builder.isEphemeral) {
@@ -34,43 +34,43 @@ abstract class AbstractContainer(
       return state
    }
 
-   override fun getName(): String {
+   override fun getName(): ContainerName {
       return builder.name
    }
 
-   override fun getNamespace(): String? {
+   override fun getNamespace(): Namespace {
       return builder.namespace
    }
 
-   override fun getLabels(): Map<String, String> {
+   override fun getLabels(): Map<LabelKey, LabelValue> {
       return builder.labels.toMap()
    }
 
-   override fun getEnv(): Map<String, String> {
+   override fun getEnv(): Map<EnvVarKey, EnvVarValue> {
       return builder.env.toMap()
    }
 
-   override fun getCommand(): String {
-      return builder.command?.trim() ?: EMPTY_STRING
+   override fun getCommand(): Executable? {
+      return builder.command
    }
 
-   override fun getArgs(): List<String> {
-      return builder.args.toList()
+   override fun getArgs(): Args? {
+      return builder.args
    }
 
-   override fun getImage(): String {
-      return builder.image ?: throw IllegalStateException("Image is not set")
+   override fun getImage(): ImageURL {
+      return builder.image
    }
 
-   override fun getExposedPorts(): List<Int> {
+   override fun getExposedPorts(): List<NetworkPort> {
       return builder.exposedPorts.values.toList()
    }
 
-   override fun getMappedPort(port: Int): Int {
+   override fun getMappedPort(port: NetworkPort): NetworkPort {
       return builder.portMappings[port] ?: throw IllegalArgumentException("Port [$port] is not mapped")
    }
 
-   override fun getPortMappings(): Map<Int, Int> {
+   override fun getPortMappings(): Map<NetworkPort, NetworkPort> {
       return builder.portMappings.toMap()
    }
 
@@ -78,7 +78,7 @@ abstract class AbstractContainer(
       return builder.isEphemeral
    }
 
-   override fun getHost(): String? {
+   override fun getHost(): Host? {
       return internalHost
    }
 
@@ -87,8 +87,10 @@ abstract class AbstractContainer(
          .append("state", state)
          .append("name", getName())
          .append("namespace", getNamespace())
+         .append("labels", getLabels())
          .append("env", getEnv())
          .append("command", getCommand())
+         .append("args", getArgs())
          .append("image", getImage())
          .append("exposedPorts", getExposedPorts())
          .append("mappedPorts", getPortMappings())

@@ -10,7 +10,6 @@
   </parent>
 
   <name>Easycontainers Spring Boot Example</name>
-  <groupId>no.acntech.easycontainers</groupId>
   <artifactId>acn-easycontainers-spring-boot-example</artifactId>
   <version>${revision}</version>
   <packaging>jar</packaging>

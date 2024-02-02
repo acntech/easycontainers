@@ -1,14 +1,17 @@
 package no.acntech.easycontainers
 
-import no.acntech.easycontainers.k8s.K8sConstants.DEFAULT_NAMESPACE
+import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.output.LineCallback
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.nio.file.Files
+import java.nio.file.LinkOption
+import java.nio.file.Path
 import java.time.Instant
 
-abstract class ContainerImageBuilder {
+abstract class ImageBuilder {
 
    enum class State {
       INITIALIZED,
@@ -22,17 +25,21 @@ abstract class ContainerImageBuilder {
 
    private var state: State = State.INITIALIZED
 
-   protected var registry: String? = null // The registry address - optional protocol prefix
+   protected var registry: RegistryURL = RegistryURL.LOCAL
 
-   protected lateinit var dockerContextDir: String
+   protected var repository: RepositoryName = RepositoryName.DEFAULT
 
-   protected var name: String? = null
+   protected var isInsecureRegistry: Boolean = false
 
-   protected val tags: MutableList<String> = mutableListOf()
+   protected var dockerContextDir: Path = Path.of(System.getProperty("user.dir"))
 
-   protected var namespace: String = DEFAULT_NAMESPACE
+   protected var name: ImageName = ImageName.DEFAULT
 
-   protected var verbosity: String = "info"
+   protected val tags: MutableList<ImageTag> = mutableListOf()
+
+   protected var namespace: Namespace = Namespace.DEFAULT
+
+   protected var verbosity: Verbosity = Verbosity.INFO
 
    protected var lineCallback: LineCallback = LineCallback { _ -> }
 
@@ -42,7 +49,8 @@ abstract class ContainerImageBuilder {
     * @param dir the directory to use as the build context, if this exists the Dockerfile and all files in this directory
     * are used to build the image.
     */
-   fun withDockerContextDir(dir: String): ContainerImageBuilder {
+   fun withDockerContextDir(dir: Path): ImageBuilder {
+      require(Files.isDirectory(dir, LinkOption.NOFOLLOW_LINKS)) { "Docker context [$dir] is not a directory" }
       this.dockerContextDir = dir
       return this
    }
@@ -51,32 +59,42 @@ abstract class ContainerImageBuilder {
     * A protocol prefix is optional, if not provided "https://" is most likely used, unless the registry address is
     * an IP address, then "http://" is used.
     */
-   fun withImageRegistry(registry: String): ContainerImageBuilder {
+   fun withImageRegistry(registry: RegistryURL): ImageBuilder {
       this.registry = registry
       return this
    }
 
-   fun withName(name: String): ContainerImageBuilder {
+   fun withInsecureRegistry(insecureRegistry: Boolean): ImageBuilder {
+      this.isInsecureRegistry = insecureRegistry
+      return this
+   }
+
+   fun withRepository(repository: RepositoryName): ImageBuilder {
+      this.repository = repository
+      return this
+   }
+
+   fun withName(name: ImageName): ImageBuilder {
       this.name = name
       return this
    }
 
-   fun withTag(tag: String): ContainerImageBuilder {
+   fun withTag(tag: ImageTag): ImageBuilder {
       tags.add(tag)
       return this
    }
 
-   fun withNamespace(namespace: String): ContainerImageBuilder {
+   fun withNamespace(namespace: Namespace): ImageBuilder {
       this.namespace = namespace
       return this
    }
 
-   fun withVerbosity(verbosity: String): ContainerImageBuilder {
+   fun withVerbosity(verbosity: Verbosity): ImageBuilder {
       this.verbosity = verbosity
       return this
    }
 
-   fun withLogLineCallback(lineCallback: LineCallback): ContainerImageBuilder {
+   fun withLogLineCallback(lineCallback: LineCallback): ImageBuilder {
       this.lineCallback = lineCallback
       return this
    }
@@ -92,6 +110,7 @@ abstract class ContainerImageBuilder {
       return ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
          .append(this::name.name, name)
          .append(this::registry.name, registry)
+         .append(this::repository.name, repository)
          .append(this::dockerContextDir.name, dockerContextDir)
          .append(this::tags.name, tags)
          .append(this::namespace.name, namespace)
@@ -120,7 +139,6 @@ abstract class ContainerImageBuilder {
          throw IllegalStateException("In state [${getState()}], but required state is one of [${states.joinToString()}]")
       }
    }
-
 
 
 }

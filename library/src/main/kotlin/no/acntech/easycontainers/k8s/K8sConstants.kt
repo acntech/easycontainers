@@ -1,7 +1,5 @@
 package no.acntech.easycontainers.k8s
 
-import no.acntech.easycontainers.util.text.EMPTY_STRING
-
 object K8sConstants {
    const val APP_LABEL = "app"
    const val CLUSTER_IP_DIRECTIVE = "ClusterIP"

@@ -10,26 +10,33 @@ import io.fabric8.kubernetes.client.Watcher
 import io.fabric8.kubernetes.client.WatcherException
 import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.ContainerException
-import no.acntech.easycontainers.ContainerImageBuilder
+import no.acntech.easycontainers.ImageBuilder
+import no.acntech.easycontainers.model.ImageTag
 import no.acntech.easycontainers.util.platform.OperatingSystemUtils
+import no.acntech.easycontainers.util.text.COLON
 import no.acntech.easycontainers.util.text.NEW_LINE
 import org.apache.commons.io.FileUtils
 import org.awaitility.Awaitility.await
 import org.slf4j.LoggerFactory
 import java.io.File
+import java.io.IOException
+import java.nio.file.Files
+import java.nio.file.Paths
 import java.time.Instant
 import java.util.*
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.io.path.absolutePathString
+import kotlin.io.path.exists
 
 
 /**
  * K8s builder for building a Docker image using a Kaniko job - see https://github.com/GoogleContainerTools/kaniko
  */
-internal class K8sContainerImageBuilder(
+internal class K8sImageBuilder(
    private val client: KubernetesClient = KubernetesClientBuilder().build(),
-) : ContainerImageBuilder() {
+) : ImageBuilder() {
 
    companion object {
 
@@ -71,15 +78,13 @@ internal class K8sContainerImageBuilder(
 
             } else if (OperatingSystemUtils.isLinux()) {
                kanikoDataLocalPath = File(System.getProperty("user.home") + "/kaniko-data").also {
-                  if (!it.exists()) {
-                     if (!it.mkdirs()) {
-                        LoggerFactory.getLogger(K8sContainerImageBuilder::class.java).warn("Unable to create directory: $it")
-                     }
+                  if (!(it.exists() || it.mkdirs())) {
+                     LoggerFactory.getLogger(K8sImageBuilder::class.java).warn("Unable to create directory: $it")
                   }
                }.absolutePath
             }
 
-            LoggerFactory.getLogger(K8sContainerImageBuilder::class.java).info("Kaniko data local path: $kanikoDataLocalPath")
+            LoggerFactory.getLogger(K8sImageBuilder::class.java).info("Kaniko data local path: $kanikoDataLocalPath")
          }
       }
 
@@ -129,12 +134,12 @@ internal class K8sContainerImageBuilder(
       // INVARIANT: A pod exists for the job
 
       // Log/debug the pod events
-      client.pods().inNamespace(namespace).withName(podName).watch(LoggingWatcher())
+      client.pods().inNamespace(namespace.unwrap()).withName(podName).watch(LoggingWatcher())
 
       // Stream the logs from the pod
       val containerLogStreamer = ContainerLogStreamer(
          podName = podName!!,
-         namespace = namespace,
+         namespace = namespace.unwrap(),
          lineCallback = lineCallback
       )
       Thread.startVirtualThread {
@@ -164,7 +169,7 @@ internal class K8sContainerImageBuilder(
       // Delete the config map if it was created
       kanikoConfigMap?.let {
          log.info("Deleting Kaniko config map '${kanikoConfigMap!!.metadata.name}'")
-         client.configMaps().inNamespace(namespace).resource(kanikoConfigMap).delete()
+         client.configMaps().inNamespace(namespace.unwrap()).resource(kanikoConfigMap).delete()
       }
    }
 
@@ -178,19 +183,20 @@ internal class K8sContainerImageBuilder(
 
    private fun checkPreconditionsAndInitialize() {
       require(getState() == State.INITIALIZED) { "Image build already started: ${getState()}" }
-      require(name != null) { "name must be set" }
-      require(registry != null) { "registry must be set" }
 
       changeState(State.IN_PROGRESS)
 
-      log.info("Building image '$name' in registry '$registry'")
-
       if (tags.isEmpty()) {
-         tags.add(TAG_LATEST)
+         tags.add(ImageTag.LATEST)
       }
 
-      log.info("Using tags: $tags")
       log.info("Using namespace '$namespace'")
+      log.info("Using image name '$name'")
+      log.info("Using Docker context dir: $dockerContextDir")
+      log.info("Using registry '$registry'")
+      log.info("Using repository '$repository'")
+      log.info("Using tags: $tags")
+
    }
 
    private fun createActualDockerContextDir(): String {
@@ -203,7 +209,7 @@ internal class K8sContainerImageBuilder(
 
    private fun handleRunningOutsideCluster(): String {
       log.debug("Running OUTSIDE a k8s cluster")
-      return if (File(dockerContextDir).isDirectory) { // The directory exists on the local filesystem
+      return if (dockerContextDir.exists()) { // The directory exists on the local filesystem
          processOutsideCluster()
       } else {
          // The directory doesn't exist on the local filesystem, assume it's a sub-directory on the (shared)
@@ -220,7 +226,7 @@ internal class K8sContainerImageBuilder(
          if (dockerContextDir.startsWith(kanikoDataLocalPath)) {
             log.trace("Docker context dir '$dockerContextDir' is already under the Kaniko data volume")
             requireDockerfile()
-            KANIKO_DATA_VOLUME_K8S_MOUNT_PATH + dockerContextDir.substring(kanikoDataLocalPath.length).also {
+            KANIKO_DATA_VOLUME_K8S_MOUNT_PATH + dockerContextDir.absolutePathString().substring(kanikoDataLocalPath.length).also {
                log.info("Using '$it' as the Docker context dir (present on local WSL filesystem)")
             }
 
@@ -240,50 +246,57 @@ internal class K8sContainerImageBuilder(
 
    private fun handleRunningInsideCluster(): String {
       log.debug("Running INSIDE a k8s cluster")
-      if (!File(dockerContextDir).isDirectory) {
+      if (Files.exists(dockerContextDir)) {
          throw IllegalStateException("Docker context dir '$dockerContextDir' is not a directory on the local filesystem")
       }
 
-      return if (dockerContextDir.startsWith(KANIKO_DATA_VOLUME_K8S_MOUNT_PATH)) {
+      return if (dockerContextDir.toString().startsWith(KANIKO_DATA_VOLUME_K8S_MOUNT_PATH)) {
          log.trace("Docker context dir '$dockerContextDir' is already under the mounted Kaniko data volume")
          requireDockerfile()
-         dockerContextDir.also { resultContextDir ->
+         dockerContextDir.toString().also { resultContextDir ->
             log.info("Using '$resultContextDir' as the Docker context dir")
          }
-
       } else { // Otherwise copy it to a unique directory under the Kaniko data volume
-         log.trace("Docker context dir '$dockerContextDir' is not under the mounted Kaniko volume, preparing to copy it")
+         log.trace("Docker context dir '$dockerContextDir' is not under the mounted Kaniko data volume, preparing to copy it")
          copyDockerContextDirToUniqueSubDir(KANIKO_DATA_VOLUME_K8S_MOUNT_PATH)
       }
    }
 
    private fun requireDockerfile() {
-      if (!File(dockerContextDir, "Dockerfile").exists()) {
-         throw ContainerException("Dockerfile expected in '$dockerContextDir'")
+      if (!Files.exists(dockerContextDir.resolve("Dockerfile"))) {
+         throw ContainerException("File 'Dockerfile' expected in '$dockerContextDir'")
       }
    }
 
    private fun dockerContextDirBelowMountPath(): String =
-      "$KANIKO_DATA_VOLUME_K8S_MOUNT_PATH/${dockerContextDir.trim('/')}".also { resultContextDir ->
-         log.info("Using '$resultContextDir' as the Docker context dir (not present on local filesystem)")
-      }
+      Paths.get(KANIKO_DATA_VOLUME_K8S_MOUNT_PATH, dockerContextDir.toString().trim('/'))
+         .toString().also { resultContextDir ->
+            log.info("Using '$resultContextDir' as the Docker context dir (not present on local filesystem)")
+         }
 
    private fun copyDockerContextDirToUniqueSubDir(baseDir: String): String {
-      val uniqueContextDir = "$baseDir/${uuid}"
+      val uniqueContextDir = Paths.get(baseDir, uuid.toString())
 
-      if (!File(uniqueContextDir).mkdirs()) {
-         throw IllegalStateException("Unable to create directory '$uniqueContextDir'")
+      try {
+         Files.createDirectories(uniqueContextDir)
+      } catch (e: IOException) {
+         throw ContainerException("Unable to create directory '$uniqueContextDir'")
       }
 
       log.info("Copying Docker context dir '$dockerContextDir' to '$uniqueContextDir'")
-      FileUtils.copyDirectory(File(dockerContextDir), File(uniqueContextDir))
 
-      return uniqueContextDir
+      try {
+         FileUtils.copyDirectory(dockerContextDir.toFile(), uniqueContextDir.toFile())
+      } catch (e: IOException) {
+         throw ContainerException("Error copying Docker context dir '$dockerContextDir' to '$uniqueContextDir'", e)
+      }
+
+      return uniqueContextDir.toString()
    }
 
    private fun createAndDeployKanikoJob(contextDir: String) {
       job = createKanikoJob(contextDir)
-      deployedJob = client.batch().v1().jobs().inNamespace(namespace).resource(job).create().also {
+      deployedJob = client.batch().v1().jobs().inNamespace(namespace.unwrap()).resource(job).create().also {
          log.info("Kaniko job '$it' deployed in namespace '$namespace'")
       }
    }
@@ -333,16 +346,12 @@ internal class K8sContainerImageBuilder(
          VERBOSITY_ARG + verbosity
       )
 
-      if (registry.startsWith(HTTP_PROTOCOL_PREFIX)) {
+      if (isInsecureRegistry) {
          args.add("--insecure")
       }
 
-      val actualRegistry = registry.removePrefix(HTTP_PROTOCOL_PREFIX).removePrefix(HTTPS_PROTOCOL_PREFIX).also {
-         log.debug("Actual registry to push to: {}", it)
-      }
-
       tags.forEach { tag ->
-         args.add(DESTINATION_ARG + "${actualRegistry}/$name:$tag")
+         args.add(DESTINATION_ARG + "${registry}/$repository/$name:$tag")
       }
 
       return args.also {
@@ -351,12 +360,12 @@ internal class K8sContainerImageBuilder(
    }
 
    private fun createInsecureRegistryConfigVolumeMount(): VolumeMount? {
-      return if (registry!!.startsWith(HTTP_PROTOCOL_PREFIX)) {
-         val actualRegistryWithoutProtocol = registry!!.removePrefix(HTTP_PROTOCOL_PREFIX)
+      return if (isInsecureRegistry) {
+         val registryVal = registry.unwrap()
          val host =
-            if (actualRegistryWithoutProtocol.contains(":")) actualRegistryWithoutProtocol.substringBefore(":") else actualRegistryWithoutProtocol
+            if (registryVal.contains(COLON)) registryVal.substringBefore(COLON) else registryVal
          val port =
-            if (actualRegistryWithoutProtocol.contains(":")) actualRegistryWithoutProtocol.substringAfter(":").toInt() else 5000
+            if (registryVal.contains(COLON)) registryVal.substringAfter(COLON).toInt() else 5000
          createConfigMap(listOf(Pair(host, port)))
          createVolumeMount(KANIKO_DOCKER_CONFIG_VOLUME_NAME, KANIKO_DOCKER_PATH)
       } else null
@@ -459,7 +468,7 @@ internal class K8sContainerImageBuilder(
       log.debug("Created Kaniko config map: {}", kanikoConfigMap)
       log.debug("ConfigMap YAML:$NEW_LINE${Serialization.asYaml(kanikoConfigMap)}")
 
-      kanikoConfigMap = client.configMaps().inNamespace(namespace).resource(kanikoConfigMap).create()
+      kanikoConfigMap = client.configMaps().inNamespace(namespace.unwrap()).resource(kanikoConfigMap).create()
    }
 
    private fun getPodNameForJob(maxWaitTimeSeconds: Long = 100L): String? {
@@ -467,7 +476,7 @@ internal class K8sContainerImageBuilder(
 
       try {
          await().atMost(maxWaitTimeSeconds, TimeUnit.SECONDS).until {
-            val pods = client.pods().inNamespace(namespace).withLabel("job-name", jobName).list().items.also {
+            val pods = client.pods().inNamespace(namespace.unwrap()).withLabel("job-name", jobName).list().items.also {
                log.debug("Found pods for job-name '$jobName': ${getPodsInfo(it)}")
             }
             val pod = pods.firstOrNull { it.metadata.labels["job-name"] == jobName }
@@ -521,7 +530,7 @@ internal class K8sContainerImageBuilder(
       }
 
       try {
-         client.batch().v1().jobs().inNamespace(namespace).withName(jobName).watch(jobWatcher)
+         client.batch().v1().jobs().inNamespace(namespace.unwrap()).withName(jobName).watch(jobWatcher)
          latch.await(timeoutValue, timeoutUnit)
       } catch (e: Exception) {
          log.error("Error watching job: ${e.message}", e)

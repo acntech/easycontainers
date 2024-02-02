@@ -1,9 +1,10 @@
 package no.acntech.easycontainers.spring_boot_example.service
 
-import no.acntech.easycontainers.Container
+import no.acntech.easycontainers.model.Container
 import no.acntech.easycontainers.ContainerFactory
 import no.acntech.easycontainers.ContainerType
 import no.acntech.easycontainers.k8s.K8sUtils
+import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.output.Slf4jLineCallback
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
@@ -14,12 +15,13 @@ import java.net.http.HttpClient
 import java.net.http.HttpRequest
 import java.net.http.HttpResponse
 import java.nio.file.Files
+import java.nio.file.Path
 import java.time.Instant
 
 @Service
 class ContainerService(
    private val container: Container,
-   @Value("\${image-registry.url}") private val registryUrl: String,
+   @Value("\${image-registry.url}") private val registryUrlVal: String,
 ) {
 
    private val log = LoggerFactory.getLogger(javaClass)
@@ -52,13 +54,13 @@ class ContainerService(
    }
 
    fun getIndexPage(): String {
-      val host: String? = container.getHost().also {
+      val host: String? = container.getHost()?.unwrap().also {
          log.info("Container host: $it")
       }
 
       return fetchWebPage(
          if (K8sUtils.isRunningOutsideCluster())
-            "http://localhost:${container.getMappedPort(80)}/index.html"
+            "http://localhost:${container.getMappedPort(NetworkPort.HTTP)}/index.html"
          else "http://$host/index.html"
       )
    }
@@ -101,19 +103,19 @@ class ContainerService(
       logTimeScript.writeText(logTimeScriptContent)
 
       val imageBuilder = ContainerFactory.imageBuilder(ContainerType.KUBERNETES)
-         .withName("alpine-simple-test")
-         .withImageRegistry(registryUrl)
-         .withNamespace("test")
-         .withDockerContextDir(tempDir)
+         .withName(ImageName.of("alpine-simple-test"))
+         .withImageRegistry(RegistryURL.of(registryUrlVal))
+         .withNamespace(Namespace.TEST)
+         .withDockerContextDir(Path.of(tempDir))
          .withLogLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
 
       val buildResult = imageBuilder.buildImage()
 
       if (buildResult) {
          val container = ContainerFactory.kubernetesContainer {
-            withName("alpine-simple-test")
-            withNamespace("test")
-            withImage("$registryUrl/alpine-simple-test:latest")
+            withName(ContainerName.of("alpine-simple-test"))
+            withNamespace(Namespace.TEST)
+            withImage(ImageURL.of("$registryUrlVal/test/alpine-simple-test:latest"))
             withIsEphemeral(true)
             withLogLineCallback(
                Slf4jLineCallback(

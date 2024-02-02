@@ -48,8 +48,7 @@ object OperatingSystemUtils {
                   log.debug("Found WSL distros: $it")
                }
          }
-      }
-      catch (e: IOException) {
+      } catch (e: IOException) {
          log.debug("Error when trying to read WSL distributions", e)
          emptyList()
       } finally {

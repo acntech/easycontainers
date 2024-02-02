@@ -5,10 +5,12 @@
 #  nodes:
 #    - role: control-plane
 #      extraMounts:
+#          # Adjust this path according to your platform
 #        - hostPath: /home/[user-name]/kind/data/kaniko-data
 #          containerPath: /kaniko-data
 #
-# Start the cluster with: kind create cluster --config kind-config.yaml
+# Start the cluster with:
+# > kind create cluster --config kind-config.yaml
 
 apiVersion: v1
 kind: PersistentVolume
@@ -25,5 +27,4 @@ spec:
     - ReadWriteMany
   persistentVolumeReclaimPolicy: Retain
   hostPath:
-    # Adjust this path according to your platform
     path: /kaniko-data/
