@@ -126,7 +126,7 @@ class ContainerService(
             withIsEphemeral(true)
          }.build()
 
-         container.start()
+         container.run()
 
          log.info("Container created and started successfully: $container")
       }

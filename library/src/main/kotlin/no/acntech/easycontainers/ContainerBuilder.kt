@@ -116,6 +116,11 @@ class ContainerBuilder {
       return this
    }
 
+   /**
+    * Set the image to use for the container.
+    * Example: `ImageURL.of("docker.elastic.co/elasticsearch/elasticsearch:8.11.3")`
+    *
+    */
    fun withImage(image: ImageURL): ContainerBuilder {
       this.image = image
       return this

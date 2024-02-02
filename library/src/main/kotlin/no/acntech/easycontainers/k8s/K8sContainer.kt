@@ -46,7 +46,7 @@ internal class K8sContainer(
       const val PV_NAME_SUFFIX = "-pv"
       const val PVC_NAME_SUFFIX = "-pvc"
 
-      var scheduler: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
+      var SCHEDULER: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
    }
 
 
@@ -84,7 +84,7 @@ internal class K8sContainer(
    }
 
    @Synchronized
-   override fun start() {
+   override fun run() {
       requireState(no.acntech.easycontainers.model.Container.State.CREATED)
 
       log.info("Starting container: ${getName()}")
@@ -111,7 +111,7 @@ internal class K8sContainer(
          // INVARIANT: podsBackingField/pods is not empty
 
          builder.maxLifeTime?.let {
-            scheduler.schedule(stopAndRemoveTask, it.toSeconds(), TimeUnit.SECONDS)
+            SCHEDULER.schedule(stopAndRemoveTask, it.toSeconds(), TimeUnit.SECONDS)
          }
 
          client.pods().inNamespace(getNamespace().unwrap()).withLabels(selectorLabels).watch(PodWatcher())

@@ -21,38 +21,47 @@ class ContainerTests {
 
    companion object {
       private const val REGISTRY = "172.23.75.43:5000"
-   }
 
-   private val dockerfileContent = """       
+      private val DOCKERFILE_CONTENT = """       
         FROM alpine:latest     
         COPY log_time.sh /usr/local/bin/log_time.sh     
         RUN chmod +x /usr/local/bin/log_time.sh
         CMD sh -c "/usr/local/bin/log_time.sh"
     """.trimIndent()
 
-   private val logTimeScriptContent = """
+      private val LOG_TIME_SCRIPT_CONTENT = """
          #!/bin/sh
          while true; do
                echo "The time is now $(date)"
                sleep 2
          done
       """.trimIndent()
+   }
 
-   @Test
-   fun `Test Lighthttpd container`() {
+
+   @ParameterizedTest
+   @ValueSource(strings = ["DOCKER"/*, "KUBERNETES"*/])
+   fun `Test Lighthttpd container`(containerType: String) {
+      log.info("Testing Lighthttpd container with container type: {}", containerType)
+
       val imageName = "alpine-simple-httpd"
 
-      val container = ContainerFactory.kubernetesContainer {
+      val container = ContainerFactory.container {
+         withType(ContainerType.valueOf(containerType))
          withName(ContainerName.of("$imageName-test"))
          withNamespace(Namespace.TEST)
          withImage(ImageURL.of("$REGISTRY/test/$imageName:latest"))
          withExposedPort(PortMappingName.HTTP, NetworkPort.HTTP)
+
+         // This will work for both Docker and Kubernetes since
+         // NodePort is used for Kubernetes when running this test outside the cluster
          withPortMapping(NetworkPort.HTTP, NetworkPort.of(30080))
+
          withIsEphemeral(true)
          withLogLineCallback { line -> println("HTTPD-OUTPUT: $line") }
       }.build()
 
-      container.start()
+      container.run()
 
       TimeUnit.SECONDS.sleep(1000)
 
@@ -70,7 +79,7 @@ class ContainerTests {
          withLogLineCallback { line -> println("SIMPLE-ALPINE-OUTPUT: $line") }
       }.build()
 
-      container.start()
+      container.run()
 
       TimeUnit.SECONDS.sleep(1000)
 
@@ -101,7 +110,7 @@ class ContainerTests {
          withIsEphemeral(true)
          withLogLineCallback { line -> println("ELASTIC-OUTPUT: $line") }
       }.build()
-      container.start()
+      container.run()
       TimeUnit.SECONDS.sleep(120)
       container.stop()
       container.remove()
@@ -119,8 +128,8 @@ class ContainerTests {
       log.debug("Temp dir for docker-context created: {}", tempDir)
       val dockerfile = File(tempDir, "Dockerfile")
       val logTimeScript = File(tempDir, "log_time.sh")
-      dockerfile.writeText(dockerfileContent)
-      logTimeScript.writeText(logTimeScriptContent)
+      dockerfile.writeText(DOCKERFILE_CONTENT)
+      logTimeScript.writeText(LOG_TIME_SCRIPT_CONTENT)
 
       log.debug("Dockerfile created: {}", dockerfile.absolutePath)
       log.debug("log_time.sh created: {}", logTimeScript.absolutePath)
@@ -147,7 +156,7 @@ class ContainerTests {
             withLogLineCallback { line -> println("SIMPLE-ALPINE-OUTPUT: $line") }
          }.build()
 
-         container.start()
+         container.run()
 
          TimeUnit.SECONDS.sleep(120)
 

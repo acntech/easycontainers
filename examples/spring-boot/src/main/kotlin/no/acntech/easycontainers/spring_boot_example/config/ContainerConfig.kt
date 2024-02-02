@@ -33,7 +33,7 @@ class ContainerConfig {
                 withPortMapping(NetworkPort.HTTP, NetworkPort.of(31080))
             }
         }.build()
-        container.start()
+        container.run()
         return container.also {
             log.info("Container created and started successfully: $it")
         }

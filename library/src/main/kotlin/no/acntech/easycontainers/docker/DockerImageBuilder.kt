@@ -135,6 +135,7 @@ internal class DockerImageBuilder : ImageBuilder {
          when (e) {
 
             is DockerException, is DockerClientException -> {
+               // This happens every time, even when the build is successful, so we must ignore it
                log.error("A docker error occurred during build: {} - IGNORING", e.message, e)
             }
 

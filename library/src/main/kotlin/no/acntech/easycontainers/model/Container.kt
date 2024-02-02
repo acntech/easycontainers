@@ -1,6 +1,6 @@
 package no.acntech.easycontainers.model
 
-interface Container {
+interface Container : Runnable {
 
    enum class State {
       CREATED,
@@ -57,9 +57,11 @@ interface Container {
 
    // Lifecycle
 
-   fun start()
-
    fun stop()
+
+   fun kill() {
+      stop()
+   }
 
    fun remove()
 
