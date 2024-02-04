@@ -18,16 +18,6 @@ import java.util.*
  */
 class ContainerBuilder {
 
-   data class ConfigFile(
-      val mountPath: UnixDir,
-      val content: String,
-   )
-
-   data class Volume(
-      val name: VolumeName,
-      val mountPath: UnixDir,
-   )
-
    companion object {
       private val log: Logger = LoggerFactory.getLogger(ContainerBuilder::class.java)
    }
@@ -48,11 +38,19 @@ class ContainerBuilder {
 
    lateinit var image: ImageURL
 
+   /**
+    * Exposed ports for the container.
+    * Example: `exposedPorts(PortMappingName.HTTP, NetworkPort.HTTP)`
+    */
    val exposedPorts: MutableMap<PortMappingName, NetworkPort> = mutableMapOf()
 
+   /**
+    * Port mappings for the container.
+    * Example: `portMappings(NetworkPort.HTTP, NetworkPort.of(8080))`
+    */
    val portMappings: MutableMap<NetworkPort, NetworkPort> = mutableMapOf()
 
-   val configFiles: MutableMap<ConfigFileKey, ConfigFile> = mutableMapOf() // name -> ConfigMapVolume
+   val containerFiles: MutableMap<ContainerFileName, ContainerFile> = mutableMapOf() // name -> ConfigMapVolume
 
    val volumes: MutableList<Volume> = mutableListOf()
 
@@ -167,17 +165,22 @@ class ContainerBuilder {
       return this
    }
 
-   fun withConfigFile(name: ConfigFileKey, path: UnixDir, data: Map<String, String>, keyValSeparator: String = ": ") {
+   fun withContainerFile(name: ContainerFileName, path: UnixDir, data: Map<String, String>, keyValSeparator: String = ": ") {
       val content = data.entries.joinToString(NEW_LINE) { (key, value) -> "$key$keyValSeparator$value" }
-      configFiles[name] = ConfigFile(path, content)
+      containerFiles[name] = ContainerFile(name, path, content)
    }
 
-   fun withConfigFile(name: ConfigFileKey, path: UnixDir, content: String) {
-      configFiles[name] = ConfigFile(path, content)
+   fun withContainerFile(name: ContainerFileName, path: UnixDir, content: String) {
+      containerFiles[name] = ContainerFile(name, path, content)
    }
 
    fun withVolume(name: VolumeName, mountPath: UnixDir): ContainerBuilder {
       volumes.add(Volume(name, mountPath))
+      return this
+   }
+
+   fun withVolume(volume: Volume): ContainerBuilder {
+      volumes.add(volume)
       return this
    }
 
@@ -224,7 +227,7 @@ class ContainerBuilder {
          .append(this::exposedPorts.name, exposedPorts)
          .append(this::portMappings.name, portMappings)
          .append(this::isEphemeral.name, isEphemeral)
-         .append(this::configFiles.name + NEW_LINE, configFiles)
+         .append(this::containerFiles.name + NEW_LINE, containerFiles)
          .toString()
    }
 }

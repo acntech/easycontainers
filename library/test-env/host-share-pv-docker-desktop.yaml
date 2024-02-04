@@ -14,14 +14,14 @@ spec:
     # The following path is specific to Docker Desktop for Windows
     # See https://dev.to/nsieg/use-k8s-hostpath-volumes-in-docker-desktop-on-wsl2-4dcl
     #
-    # Note that the path is accessible on WSL, on /mnt/wsl/share/kaniko-data - not that only /mnt/wsl exists from before,
-    # the share/kaniko-data sub-folder must be explicitly created, and is lost between Docker restarts.
+    # Note that the path is accessible on WSL, on /mnt/wsl/share/host-share - note that only /mnt/wsl exists from before,
+    # the share/host-share sub-folder must be explicitly created, and is lost between Docker restarts.
     #
-    # To access this folder from Windows, use \\wsl$\[distro]\mnt\wsl\share\kaniko-data - e.g. for an Ubuntu distro,
-    # the path is \\wsl$\Ubuntu\mnt\wsl\share\kaniko-data. In order to list available distros, run wsl -l -v from PowerShell, or
+    # To access this folder from Windows, use \\wsl$\[distro]\mnt\wsl\share\host-share - e.g. for an Ubuntu distro,
+    # the path is \\wsl$\Ubuntu\mnt\wsl\share\host-share. In order to list available distros, run wsl -l -v from PowerShell, or
     # wsl --list from a CMD prompt.
     #
     # For Docker Desktop on other platforms, Kind, Minikube, and other Kubernetes clusters on
     # Windows or other platforms, see their respective documentation on host-path (or other local storage)
     # volumes, and adjust this path accordingly.
-    path: /run/desktop/mnt/host/wsl/share/kaniko-data
+    path: /run/desktop/mnt/host/wsl/share/host-share

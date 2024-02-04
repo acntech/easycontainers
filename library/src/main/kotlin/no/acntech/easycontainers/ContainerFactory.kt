@@ -5,6 +5,8 @@ import no.acntech.easycontainers.k8s.K8sImageBuilder
 
 object ContainerFactory {
 
+   const val PROP_HOST_SHARE_ROOT = "host.share.root"
+
    fun container(block: ContainerBuilder.() -> Unit): ContainerBuilder {
       val builder = ContainerBuilder()
       builder.block()

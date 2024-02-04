@@ -80,7 +80,6 @@ internal class DockerImageBuilder : ImageBuilder {
       log.debug("Built image ID: $id")
 
       // Pushing the Docker image
-
       pushImage(tags)
       if(getState() != State.FAILED) {
          changeState(State.COMPLETED)
@@ -135,7 +134,7 @@ internal class DockerImageBuilder : ImageBuilder {
          when (e) {
 
             is DockerException, is DockerClientException -> {
-               // This happens every time, even when the build is successful, so we must ignore it
+               // This happens every time, even when the build is successful, hence we must ignore it
                log.error("A docker error occurred during build: {} - IGNORING", e.message, e)
             }
 

@@ -142,7 +142,7 @@ class ContainerTests {
          .withNamespace(Namespace.TEST)
          .withDockerContextDir(Path.of(tempDir))
          .withLogLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
-         .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/home/thomas/kind/data/kaniko-data")
+         .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/home/thomas/kind/kaniko-data")
 
       val result = imageBuilder.buildImage()
 

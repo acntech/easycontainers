@@ -9,7 +9,7 @@ import java.math.BigInteger
  * Value object representing kubernetes/docker memory.
  */
 @JvmInline
-value class Memory(private val bytes: BigInteger) : SimpleValueObject<BigInteger> {
+value class Memory(val bytes: BigInteger) : SimpleValueObject<BigInteger> {
 
    companion object {
 
@@ -86,16 +86,20 @@ value class Memory(private val bytes: BigInteger) : SimpleValueObject<BigInteger
       return bytes.divide(Ei)
    }
 
-   override fun toString(): String {
+   fun toFormattedString(): String {
       return when {
-         bytes >= Ei -> "${bytes.divide(Ei)}Ei"
-         bytes >= Pi -> "${bytes.divide(Pi)}Pi"
-         bytes >= Ti -> "${bytes.divide(Ti)}Ti"
-         bytes >= Gi -> "${bytes.divide(Gi)}Gi"
-         bytes >= Mi -> "${bytes.divide(Mi)}Mi"
-         bytes >= Ki -> "${bytes.divide(Ki)}Ki"
-         else -> bytes.toString()
+         bytes >= Ei -> "${bytes.divide(Ei)}EiB"
+         bytes >= Pi -> "${bytes.divide(Pi)}PiB"
+         bytes >= Ti -> "${bytes.divide(Ti)}TiB"
+         bytes >= Gi -> "${bytes.divide(Gi)}GiB"
+         bytes >= Mi -> "${bytes.divide(Mi)}MiB"
+         bytes >= Ki -> "${bytes.divide(Ki)}KiB"
+         else -> "${bytes}B"
       }
+   }
+
+   override fun toString(): String {
+      return toFormattedString()
    }
 
 }

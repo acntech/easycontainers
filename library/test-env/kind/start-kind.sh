@@ -1,4 +1,4 @@
 #!/bin/bash
 
-kind delete cluster
-kind create cluster --name kind --config kind-config.yaml
+kind delete cluster --name test
+kind create cluster --name test --config kind-config.yaml

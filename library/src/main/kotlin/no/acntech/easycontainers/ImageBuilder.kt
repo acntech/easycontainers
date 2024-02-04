@@ -19,10 +19,10 @@ import java.time.Instant
  * normally use a shared volume between the host and the k8s cluster.
  * <p>
  * In order to share a folder between the host and the k8s cluster the following config apply for Docker Desktop on
- * wsl (Windows Subsystem for Linux):
+ * WSL (Windows Subsystem for Linux):
  * <ul>
- *    <li> On the host the shared directory must be under /mnt/wsl/.. </li>
- *    <li> In the k8s cluster the shared directory must be under /run/desktop/mnt/host/wsl/.. </li>
+ *    <li> On the host the shared directory <i>must</i> be under /mnt/wsl/.. </li>
+ *    <li> In the k8s cluster the shared directory <i>must</i> be specified to be under /run/desktop/mnt/host/wsl/.. </li>
  * <code><pre>
  *    apiVersion: v1
  * kind: PersistentVolume
@@ -39,14 +39,15 @@ import java.time.Instant
  *   hostPath: /run/desktop/mnt/host/wsl/kaniko-data
  * </pre></code>
  * <p>
- * When creating configuring the ImageBuilder, this path must be used as the local path.
+ * When creating and configuring the ImageBuilder, this path must be used as the local path.
  * <pre><code>
  *    val imageBuilder = ContainerFactory.imageBuilder(ContainerType.KUBERNETES)
  *          .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/mnt/wsl/kaniko-data")
  *          // other properties
  * </code></pre>
  * <p>
- * For kind this can be anywhere on the host file system, but must be shared with the kind cluster using a custom config applied at cluster startup.
+ * For kind k8s the shared folder can be anywhere on the host file system, but the kind cluster must be configured
+ * using a custom config applied at cluster startup in order for containers to mount the shared folder.
  * <p>
  * Example:
  * <p>
@@ -65,7 +66,7 @@ import java.time.Instant
  *       containerPath: /data
  * </pre></code>
  * <p>
- * When creating and configuring the ImageBuilder, this path must be used as the local path.
+ * When creating and configuring the ImageBuilder (for kubernetes), this path must be used as the local path.
  * <pre><code>
  *    val imageBuilder = ContainerFactory.imageBuilder(ContainerType.KUBERNETES)
  *          .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/home/user/k8s-share/kaniko-data")
@@ -83,8 +84,6 @@ abstract class ImageBuilder {
    }
 
    companion object {
-      private val log: Logger = LoggerFactory.getLogger(ImageBuilder::class.java)
-
       const val PROP_LOCAL_KANIKO_DATA_PATH = "kaniko-data.local.path"
    }
 

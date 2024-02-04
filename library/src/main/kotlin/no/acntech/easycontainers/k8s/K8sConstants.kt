@@ -14,4 +14,6 @@ object K8sConstants {
    const val SERVICE_ACCOUNT_PATH = "/var/run/secrets/kubernetes.io/serviceaccount"
 
    const val DEFAULT_NAMESPACE = "default"
+
+   const val MEDIUM_MEMORY_BACKED = "Memory"
 }

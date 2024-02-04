@@ -9,7 +9,7 @@ import no.acntech.easycontainers.k8s.K8sConstants.DEFAULT_NAMESPACE
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import org.slf4j.LoggerFactory
 
-class AccessChecker(private val client: KubernetesClient) {
+internal class AccessChecker(private val client: KubernetesClient) {
 
    companion object {
       private val log = LoggerFactory.getLogger(AccessChecker::class.java)

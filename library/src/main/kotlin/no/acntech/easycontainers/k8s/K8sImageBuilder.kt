@@ -12,7 +12,7 @@ import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.ImageBuilder
 import no.acntech.easycontainers.model.ImageTag
-import no.acntech.easycontainers.util.platform.OperatingSystemUtils
+import no.acntech.easycontainers.util.platform.PlatformUtils
 import no.acntech.easycontainers.util.text.COLON
 import no.acntech.easycontainers.util.text.NEW_LINE
 import org.apache.commons.io.FileUtils
@@ -127,15 +127,15 @@ internal class K8sImageBuilder(
       // Stop the log streamer
       containerLogStreamer.stop()
 
-      // Delete the context dir if it was created
+      // Delete the context dir if the delete flag is set
       if (deleteContextDir) {
          log.info("Deleting context dir '$contextDir'")
-         //            FileUtils.deleteDirectory(File(contextDir))
+         FileUtils.deleteDirectory(File(contextDir))
       }
 
       // Delete the config map if it was created
       kanikoConfigMap?.let {
-         log.info("Deleting Kaniko config map '${kanikoConfigMap!!.metadata.name}'")
+         log.info("Deleting the Kaniko config map '${it.metadata.name}'")
          client.configMaps().inNamespace(namespace.unwrap()).resource(kanikoConfigMap).delete()
       }
    }
@@ -193,10 +193,10 @@ internal class K8sImageBuilder(
       return if (localKanikoPath != null) {
          log.debug("Using local Kaniko data path: $localKanikoPath")
 
-         if (OperatingSystemUtils.isWindows() && OperatingSystemUtils.getDefaultWSLDistro() != null) {
-            localKanikoPath = OperatingSystemUtils.createDirectoryInWSL(localKanikoPath)
+         if (PlatformUtils.isWindows() && PlatformUtils.getDefaultWslDistro() != null) {
+            localKanikoPath = PlatformUtils.createDirectoryInWsl(localKanikoPath)
 
-         } else if (OperatingSystemUtils.isLinux()) {
+         } else if (PlatformUtils.isLinux()) {
             localKanikoPath = File(System.getProperty("user.home") + "/kaniko-data").also {
                if (!(it.exists() || it.mkdirs())) {
                   LoggerFactory.getLogger(K8sImageBuilder::class.java).warn("Unable to create directory: $it")

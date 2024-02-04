@@ -5,10 +5,10 @@ import no.acntech.easycontainers.model.base.StringValueObjectValidator
 import no.acntech.easycontainers.util.lang.RegexValidator
 
 /**
- * Value object representing a kubernetes namespace.
+ * Value object representing a file name for a file to be added or mapped into a container.
  */
 @JvmInline
-value class ConfigFileKey(val value: String) : SimpleValueObject<String> {
+value class ContainerFileName(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
@@ -20,8 +20,8 @@ value class ConfigFileKey(val value: String) : SimpleValueObject<String> {
          lexicalValidator = RegexValidator(REGEXP)
       )
 
-      fun of(value: String): ConfigFileKey {
-         return ConfigFileKey(value)
+      fun of(value: String): ContainerFileName {
+         return ContainerFileName(value)
       }
    }
 

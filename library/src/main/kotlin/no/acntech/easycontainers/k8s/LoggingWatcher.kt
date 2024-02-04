@@ -6,7 +6,7 @@ import io.fabric8.kubernetes.client.WatcherException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-class LoggingWatcher<Any>(
+internal class LoggingWatcher<Any>(
    val log: Logger = LoggerFactory.getLogger(LoggingWatcher::class.java),
 ) : Watcher<Any> {
 

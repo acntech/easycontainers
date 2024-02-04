@@ -8,7 +8,7 @@ import no.acntech.easycontainers.util.lang.RegexValidator
  * Value object representing a kubernetes namespace.
  */
 @JvmInline
-value class LabelKey(private val value: String) : SimpleValueObject<String> {
+value class LabelKey(val value: String) : SimpleValueObject<String> {
 
    companion object {
 

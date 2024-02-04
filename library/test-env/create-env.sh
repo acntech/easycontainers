@@ -39,9 +39,14 @@ fi
 kubectl apply -f service-account.yaml
 kubectl apply -f role.yaml
 kubectl apply -f role-binding.yaml
-# kubectl apply -f Kaniko-pv-docker-desktop.yaml
+
+# Create the Kaniko persistent volume and persistent volume claim
 kubectl apply -f kaniko-pv-docker-wsl.yaml
 kubectl apply -f kaniko-pvc.yaml
+
+# Create the generic host share persistent volume and persistent volume claim
+kubectl apply -f host-share-pv-docker-wsl.yaml
+kubectl apply -f host-share-pvc.yaml
 
 # Start a local registry in Docker
 # ./run-registry.sh
