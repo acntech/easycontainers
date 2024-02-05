@@ -19,6 +19,7 @@ import java.nio.file.Path
  *  hence avoiding obscuring an existing directory in the container's file system. </li>
  * </ul>
  *
+ * @param containerFileName The name of the file in the container
  * @param mountPath The path in the container where the file will be mounted.
  * @param content Optional content - valid for both Docker and Kubernetes
  * @param hostFile Only valid for Docker - if set, the content parameter will be ignored

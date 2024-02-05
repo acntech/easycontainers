@@ -1,7 +1,11 @@
 package no.acntech.easycontainers.util.lang
 
 /**
- * Thrown to indicate a validation problem.
+ * Exception that is thrown when a validation error occurs.
+ *
+ * @constructor Creates a new ValidationException.
+ * @param message The detail message.
+ * @param cause The cause of the exception.
  */
 class ValidationException : RuntimeException {
 

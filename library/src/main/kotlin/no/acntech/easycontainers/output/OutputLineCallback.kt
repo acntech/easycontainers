@@ -3,7 +3,7 @@ package no.acntech.easycontainers.output
 /**
  * Functional interface for handling output from a container.
  */
-fun interface LineCallback {
+fun interface OutputLineCallback {
 
    /**
     * Callback for each line of output, new line character(s) are not included.

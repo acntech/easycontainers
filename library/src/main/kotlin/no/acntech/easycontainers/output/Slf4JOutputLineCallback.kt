@@ -5,12 +5,20 @@ import org.slf4j.Logger
 import org.slf4j.Marker
 import org.slf4j.event.Level
 
-class Slf4jLineCallback(
+/**
+ * OutputLineCallback implementation that logs output lines to a SLF4J logger.
+ *
+ * @param logger the SLF4J logger to use
+ * @param level the log level to use
+ * @param marker the marker to use
+ * @param prefix the prefix to use for each log line
+ */
+class Slf4JOutputLineCallback(
    private val logger: Logger,
    private val level: Level = Level.INFO,
    private val marker: Marker? = null,
    private val prefix: String = EMPTY_STRING,
-) : LineCallback {
+) : OutputLineCallback {
 
    override fun onLine(line: String?) {
       val logLine = prefix + (line ?: "<EOF>")

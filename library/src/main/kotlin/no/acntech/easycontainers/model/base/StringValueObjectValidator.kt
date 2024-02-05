@@ -3,6 +3,16 @@ package no.acntech.easycontainers.model.base
 import no.acntech.easycontainers.util.lang.ValidationException
 import no.acntech.easycontainers.util.lang.Validator
 
+/**
+ * Validates a String value object based on a given range and additional validators.
+ *
+ * @param range the validation range for the String value object
+ * @param minLength the minimum length of the String value object (optional)
+ * @param maxLength the maximum length of the String value object (optional)
+ * @param lexicalValidator the lexical validator for the String value object (optional)
+ * @param syntaxValidator the syntax validator for the String value object (optional)
+ * @param semanticsValidator the semantics validator for the String value object (optional)
+ */
 class StringValueObjectValidator(
    range: ValidationRange<String> = ValidationRange(),
    private val minLength: Int? = null,

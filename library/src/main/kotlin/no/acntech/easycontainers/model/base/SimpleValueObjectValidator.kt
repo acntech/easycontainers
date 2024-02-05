@@ -4,12 +4,21 @@ import no.acntech.easycontainers.util.lang.ValidationException
 import no.acntech.easycontainers.util.lang.Validator
 
 /**
- * Class for checking that a value object is within a valid range.
+ * Class that validates a SimpleValueObject based on a given range.
+ *
+ * @param P the type of the value in the SimpleValueObject, must implement Comparable
+ * @property range the validation range for the SimpleValueObject
  */
 open class SimpleValueObjectValidator<P : Comparable<P>>(
    private val range: ValidationRange<P>,
 ) : Validator<SimpleValueObject<P>> {
 
+   /**
+    * Validates a SimpleValueObject based on the given range.
+    *
+    * @param t the SimpleValueObject to validate
+    * @throws ValidationException if the SimpleValueObject is not valid
+    */
    override fun validate(t: SimpleValueObject<P>) {
       val value = t.unwrap()
 

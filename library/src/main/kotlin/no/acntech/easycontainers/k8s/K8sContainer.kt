@@ -122,7 +122,7 @@ internal class K8sContainer(
             this.pods.first().first.metadata.name,
             getNamespace().value,
             client,
-            builder.lineCallback
+            builder.outputLineCallback
          )
 
       } catch (e: Exception) {

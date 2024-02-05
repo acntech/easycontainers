@@ -5,7 +5,9 @@ import no.acntech.easycontainers.model.base.StringValueObjectValidator
 import no.acntech.easycontainers.util.lang.RegexValidator
 
 /**
- * Value object representing a kubernetes namespace.
+ * Represents a Unix directory path as a value object.
+ *
+ * @param value The underlying String value representing the directory path.
  */
 @JvmInline
 value class UnixDir(val value: String) : SimpleValueObject<String> {

@@ -5,7 +5,19 @@ import no.acntech.easycontainers.model.base.StringValueObjectValidator
 import no.acntech.easycontainers.util.lang.RegexValidator
 
 /**
- * Value object representing a Docker image name.
+ * Represents a repository name in a software repository system.
+ *
+ * A repository name is a value object that holds a single value of type String. It is used to identify
+ * a specific repository within a registry. The repository name must adhere to certain rules:
+ * - It must consist of lowercase alphanumeric characters, and may contain hyphens, underscores, and periods.
+ * - It must have a minimum length of 2 and a maximum length of 255 characters.
+ *
+ * Example Usage:
+ *
+ * ```
+ * val repoName = RepositoryName.of("myrepo")
+ * val defaultName = RepositoryName.DEFAULT
+ * ```
  */
 @JvmInline
 value class RepositoryName(val value: String) : SimpleValueObject<String> {

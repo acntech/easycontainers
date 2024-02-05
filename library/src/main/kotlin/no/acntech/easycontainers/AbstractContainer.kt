@@ -6,6 +6,11 @@ import org.apache.commons.lang3.builder.ToStringStyle
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+/**
+ * AbstractContainer represents a generic container that implements the Container interface.
+ *
+ * @property builder The ContainerBuilder used to build the container.
+ */
 abstract class AbstractContainer(
    protected val builder: ContainerBuilder,
 ) : Container {

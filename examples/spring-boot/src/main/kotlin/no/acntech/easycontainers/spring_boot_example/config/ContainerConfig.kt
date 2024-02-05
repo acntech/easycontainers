@@ -4,7 +4,7 @@ import no.acntech.easycontainers.model.Container
 import no.acntech.easycontainers.ContainerFactory
 import no.acntech.easycontainers.k8s.K8sUtils
 import no.acntech.easycontainers.model.*
-import no.acntech.easycontainers.output.Slf4jLineCallback
+import no.acntech.easycontainers.output.Slf4JOutputLineCallback
 import org.slf4j.LoggerFactory
 import org.springframework.context.annotation.Bean
 import org.springframework.context.annotation.Configuration
@@ -24,7 +24,7 @@ class ContainerConfig {
             withVolume(VolumeName.of("kaniko-data"), UnixDir.of("/mnt/kaniko-data"))
             withIsEphemeral(true)
             withLogLineCallback(
-                Slf4jLineCallback(
+                Slf4JOutputLineCallback(
                     logger = LoggerFactory.getLogger("no.acntech.alpine-httpd-test"),
                     prefix = "HTTPD-CONTAINER-OUTPUT: "
                 )

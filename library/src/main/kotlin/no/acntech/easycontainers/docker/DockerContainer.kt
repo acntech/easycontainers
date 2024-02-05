@@ -244,7 +244,7 @@ internal class DockerContainer(
             override fun onNext(item: Frame) {
                val line = item.payload.decodeToString()
                log.trace("Container [${builder.name}] output: $line")
-               builder.lineCallback.onLine(line)
+               builder.outputLineCallback.onLine(line)
             }
 
             override fun onError(throwable: Throwable) {

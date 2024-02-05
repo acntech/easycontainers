@@ -1,7 +1,7 @@
 package no.acntech.easycontainers
 
 import no.acntech.easycontainers.model.*
-import no.acntech.easycontainers.output.LineCallback
+import no.acntech.easycontainers.output.OutputLineCallback
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
 import org.slf4j.Logger
@@ -111,13 +111,14 @@ abstract class ImageBuilder {
 
    protected var customProperties: MutableMap<String, String> = mutableMapOf()
 
-   protected var lineCallback: LineCallback = LineCallback { _ -> }
+   protected var outputLineCallback: OutputLineCallback = OutputLineCallback { _ -> }
 
    /**
     * Set the Docker context directory. This directory will be used as the build context when building the Docker image.
     *
     * @param dir the directory to use as the build context, if this exists the Dockerfile and all files in this directory
     * are used to build the image.
+    * @exception IllegalArgumentException if the dir argument is not a directory
     */
    fun withDockerContextDir(dir: Path): ImageBuilder {
       require(Files.isDirectory(dir, LinkOption.NOFOLLOW_LINKS)) { "Docker context [$dir] is not a directory" }
@@ -126,83 +127,179 @@ abstract class ImageBuilder {
    }
 
    /**
-    * A protocol prefix is optional, if not provided "https://" is most likely used, unless the registry address is
-    * an IP address, then "http://" is used.
+    * Sets the image registry for the ImageBuilder.
+    *
+    * @param registry the registry URL to be set
+    * @return the current ImageBuilder instance
     */
    fun withImageRegistry(registry: RegistryURL): ImageBuilder {
       this.registry = registry
       return this
    }
 
+   /**
+    * Sets the insecure registry flag for the image builder.
+    *
+    * @param insecureRegistry true to allow insecure registry, false otherwise
+    * @return the updated image builder instance
+    */
    fun withInsecureRegistry(insecureRegistry: Boolean): ImageBuilder {
       this.isInsecureRegistry = insecureRegistry
       return this
    }
 
+   /**
+    * Sets the (registry) repository for the ImageBuilder.
+    *
+    * @param repository The repository to set for the ImageBuilder.
+    * @return The updated ImageBuilder.
+    */
    fun withRepository(repository: RepositoryName): ImageBuilder {
       this.repository = repository
       return this
    }
 
+   /**
+    * Sets the name of the image.
+    *
+    * @param name The name to set for the image.
+    * @return The instance of the ImageBuilder with the name set.
+    */
    fun withName(name: ImageName): ImageBuilder {
       this.name = name
       return this
    }
 
+   /**
+    * Adds the given image tag to the builder.
+    *
+    * @param tag the image tag to add
+    * @return the updated ImageBuilder instance
+    */
    fun withTag(tag: ImageTag): ImageBuilder {
       tags.add(tag)
       return this
    }
 
+   /**
+    * Adds a label to the ImageBuilder.
+    *
+    * @param key the label key
+    * @param value the label value
+    * @return the modified ImageBuilder instance with the added label
+    */
    fun withLabel(key: LabelKey, value: LabelValue): ImageBuilder {
       labels[key] = value
       return this
    }
 
+   /**
+    * Sets the namespace for the ImageBuilder - this is only relevant for Kubernetes.
+    *
+    * @param namespace the namespace to set for the ImageBuilder
+    * @return the updated ImageBuilder with the specified namespace set
+    */
    fun withNamespace(namespace: Namespace): ImageBuilder {
       this.namespace = namespace
       return this
    }
 
+   /**
+    * Sets the verbosity level for the ImageBuilder.
+    *
+    * @param verbosity the verbosity level to set
+    * @return the ImageBuilder instance
+    */
    fun withVerbosity(verbosity: Verbosity): ImageBuilder {
       this.verbosity = verbosity
       return this
    }
 
-   fun withLogLineCallback(lineCallback: LineCallback): ImageBuilder {
-      this.lineCallback = lineCallback
+   /**
+    * Sets the provided OutputLineCallback for this ImageBuilder instance.
+    *
+    * @param outputLineCallback the LineCallback to be used
+    * @return the modified ImageBuilder instance
+    */
+   fun withOutputLineCallback(outputLineCallback: OutputLineCallback): ImageBuilder {
+      this.outputLineCallback = outputLineCallback
       return this
    }
 
+   /**
+    * Adds a custom property to the image builder.
+    *
+    * @param key   the key of the custom property
+    * @param value the value of the custom property
+    * @return the modified ImageBuilder object
+    */
    fun withCustomProperty(key: String, value: String): ImageBuilder {
       customProperties[key] = value
       return this
    }
 
+   /**
+    * Retrieves the start time of the image build process.
+    *
+    * @return The start time of the image build as an Instant object, or null if the start time is unknown.
+    */
    abstract fun getStartTime(): Instant?
 
+   /**
+    * Retrieves the finish time of the image building process.
+    *
+    * @return The finish time of the image building process as an Instant, or null if the process has not finished yet.
+    */
    abstract fun getFinishTime(): Instant?
 
+   /**
+    * Builds an image.
+    *
+    * This method should be implemented by the subclasses to build an image.
+    *
+    * @return `true` if the image is successfully built, `false` otherwise.
+    * @throws ContainerException if there is any exception encountered during the image build process.
+    */
    @Throws(ContainerException::class)
    abstract fun buildImage(): Boolean
 
+   /**
+    * Returns a string representation of this ImageBuilder.
+    * @return a string representation of this ImageBuilder
+    */
    override fun toString(): String {
       return ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
          .append(this::name.name, name)
+         .append(this::namespace.name, namespace)
+         .append("startTime", getStartTime())
+         .append("finishTime", getFinishTime())
          .append(this::registry.name, registry)
          .append(this::repository.name, repository)
+         .append(this::isInsecureRegistry.name, isInsecureRegistry)
          .append(this::dockerContextDir.name, dockerContextDir)
          .append(this::tags.name, tags)
-         .append(this::namespace.name, namespace)
          .append(this::verbosity.name, verbosity)
+         .append(this::customProperties.name, customProperties)
          .toString()
    }
 
+   /**
+    * Retrieves the current state.
+    *
+    * This method returns the current state of the object.
+    *
+    * @return the current state
+    */
    @Synchronized
    fun getState(): State {
       return state
    }
 
+   /**
+    * Changes the state to the given new state.
+    *
+    * @param newState the new state to change to
+    */
    @Synchronized
    protected fun changeState(newState: State) {
       if (newState == state || state == State.COMPLETED || state == State.FAILED) {
@@ -214,6 +311,13 @@ abstract class ImageBuilder {
       log.info("Changed state from [$oldState] to [$state]")
    }
 
+   /**
+    * Checks if the current state is one of the specified states. If the current state is not one of the specified states,
+    * an IllegalStateException is thrown with a descriptive error message.
+    *
+    * @param states the states to check against
+    * @throws IllegalStateException if the current state is not one of the specified states
+    */
    protected fun requireState(vararg states: State) {
       if (!states.contains(getState())) {
          throw IllegalStateException("In state [${getState()}], but required state is one of [${states.joinToString()}]")

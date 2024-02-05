@@ -5,7 +5,7 @@ import no.acntech.easycontainers.model.base.StringValueObjectValidator
 import no.acntech.easycontainers.util.lang.RegexValidator
 
 /**
- * Value object representing a Docker image name.
+ * Value object representing a Docker (registry) image name.
  */
 @JvmInline
 value class ImageName(val value: String) : SimpleValueObject<String> {

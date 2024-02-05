@@ -107,7 +107,7 @@ internal class K8sImageBuilder(
       val containerLogStreamer = ContainerLogStreamer(
          podName = podName!!,
          namespace = namespace.unwrap(),
-         lineCallback = lineCallback
+         outputLineCallback = outputLineCallback
       )
       Thread.startVirtualThread {
          containerLogStreamer.run()

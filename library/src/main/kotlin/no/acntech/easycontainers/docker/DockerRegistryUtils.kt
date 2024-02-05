@@ -5,10 +5,21 @@ import khttp.get
 import org.json.JSONArray
 import org.slf4j.LoggerFactory
 
+/**
+ * This object provides utility methods for interacting with a Docker registry.
+ */
 object DockerRegistryUtils {
 
    private val log = LoggerFactory.getLogger(DockerRegistryUtils::class.java)
 
+   /**
+    * Retrieves the digest of a Docker image from a specified registry using the provided image name and tag.
+    *
+    * @param registryUrl The URL of the Docker registry.
+    * @param imageName The name of the Docker image.
+    * @param tag The tag of the Docker image.
+    * @return The digest of the Docker image, or null if the operation fails or the digest is missing.
+    */
    fun getImageDigest(registryUrl: String, imageName: String, tag: String): String? {
       val response = get(
          url = "$registryUrl/v2/$imageName/manifests/$tag",
@@ -37,7 +48,12 @@ object DockerRegistryUtils {
    }
 
    /**
-    * Delete an image from a registry. If no digest and no tags are provided, all tags will be deleted.
+    * Deletes an image from a registry.
+    *
+    * @param registryUrl The URL of the registry.
+    * @param imageName The name of the image.
+    * @param digest The digest of the image (optional). If provided, the image with the specified digest will be deleted.
+    * @param tags The list of tags associated with the image (optional). If no digest is provided, all images with the specified tags will be deleted.
     */
    fun deleteImage(registryUrl: String, imageName: String, digest: String? = null, tags: List<String> = emptyList()) {
       var actualTags: List<String> = tags
@@ -55,7 +71,11 @@ object DockerRegistryUtils {
    }
 
    /**
-    * List all tags for a given image.
+    * Retrieves all image tags for a given registry URL and image name.
+    *
+    * @param registryUrl The URL of the registry.
+    * @param imageName The name of the image.
+    * @return The list of image tags as strings.
     */
    fun getAllImageTags(registryUrl: String, imageName: String): List<String> {
       val response = get("$registryUrl/v2/$imageName/tags/list")

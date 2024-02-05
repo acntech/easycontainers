@@ -1,5 +1,8 @@
 package no.acntech.easycontainers.model
 
+/**
+ * Value object representing a list of kubernetes/docker command arguments.
+ */
 data class Args(val args: List<Arg>) {
 
    companion object {

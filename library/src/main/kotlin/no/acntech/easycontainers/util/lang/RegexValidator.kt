@@ -1,5 +1,10 @@
 package no.acntech.easycontainers.util.lang
 
+/**
+ * A validator that uses regular expressions to validate strings.
+ *
+ * @property pattern The regular expression pattern used for validation.
+ */
 class RegexValidator(val pattern: Regex) : Validator<String> {
 
    override fun validate(t: String) {

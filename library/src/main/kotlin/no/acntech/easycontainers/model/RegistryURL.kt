@@ -5,7 +5,9 @@ import no.acntech.easycontainers.model.base.StringValueObjectValidator
 import no.acntech.easycontainers.util.lang.RegexValidator
 
 /**
- * Value object representing a docker registry URL.
+ * Represents a URL of a registry.
+ *
+ * @param value the value of the registry URL
  */
 @JvmInline
 value class RegistryURL(val value: String) : SimpleValueObject<String> {

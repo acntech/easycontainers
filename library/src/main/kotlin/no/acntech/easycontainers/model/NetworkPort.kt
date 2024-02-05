@@ -5,7 +5,7 @@ import no.acntech.easycontainers.model.base.SimpleValueObjectValidator
 import no.acntech.easycontainers.model.base.ValidationRange
 
 /**
- * Value object representing a kubernetes/docker cpu request or limit.
+ * Value object representing a network port - range 1-65535.
  */
 @JvmInline
 value class NetworkPort(val value: Int) : SimpleValueObject<Int> {

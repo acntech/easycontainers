@@ -5,7 +5,7 @@ import no.acntech.easycontainers.model.base.StringValueObjectValidator
 import no.acntech.easycontainers.util.lang.RegexValidator
 
 /**
- * Value object representing an environment variable key.
+ * Value object representing an environment variable value.
  */
 @JvmInline
 value class EnvVarValue(val value: String) : SimpleValueObject<String> {

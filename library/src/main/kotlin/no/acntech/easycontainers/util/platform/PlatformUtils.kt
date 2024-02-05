@@ -8,6 +8,9 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 
+/**
+ * Utility class for platform-specific operations and checks.
+ */
 object PlatformUtils {
 
    private const val DEFAULT_DISTRO_INDICATOR = "(Default)"
@@ -16,18 +19,37 @@ object PlatformUtils {
 
    private val log = LoggerFactory.getLogger(PlatformUtils::class.java)
 
+   /**
+    * Checks if the current operating system is Linux.
+    *
+    * @return true if the current operating system is Linux, false otherwise.
+    */
    fun isLinux(): Boolean {
       return System.getProperty("os.name").lowercase().contains("linux")
    }
 
+   /**
+    * Checks if the current operating system is Windows.
+    * @return true if the current operating system is Windows, false otherwise.
+    */
    fun isWindows(): Boolean {
       return System.getProperty("os.name").lowercase().contains("windows")
    }
 
+   /**
+    * Checks if the current operating system is macOS.
+    *
+    * @return true if the operating system is macOS, false otherwise.
+    */
    fun isMac(): Boolean {
       return System.getProperty("os.name").lowercase().contains("mac")
    }
 
+   /**
+    * Checks if Windows Subsystem for Linux (WSL) is installed on the system.
+    *
+    * @return `true` if WSL is installed, `false` otherwise.
+    */
    fun isWslInstalled(): Boolean {
       if (!isWindows()) {
          return false
@@ -43,6 +65,13 @@ object PlatformUtils {
       }
    }
 
+   /**
+    * Retrieves the names of all Windows Subsystem for Linux (WSL) distributions installed on the system.
+    *
+    * @return A list of strings representing the names of the WSL distributions.
+    *         If the operating system is not Windows, an empty list is returned.
+    *         If an error occurs while retrieving the distribution names, an empty list is returned.
+    */
    fun getWslDistroNames(): List<String> {
       if (!isWindows()) {
          return emptyList()
@@ -73,6 +102,11 @@ object PlatformUtils {
       }
    }
 
+   /**
+    * Retrieves the default WSL (Windows Subsystem for Linux) distribution name.
+    *
+    * @return the default WSL distribution name, or null if the current operating system is not Windows
+    */
    fun getDefaultWslDistro(): String? {
       if(!isWindows()) {
          return null
@@ -90,6 +124,10 @@ object PlatformUtils {
          }
    }
 
+   /**
+    * Creates a directory in the WSL (Windows Subsystem for Linux) volume.
+    *
+    * @param linuxPath The path to the directory in Linux format (e.g.*/
    fun createDirectoryInWsl(linuxPath: String, distroName: String? = getDefaultWslDistro()): String? {
       require(isWindows()) { "WSL is a Windows OS technology only" }
 
@@ -104,6 +142,11 @@ object PlatformUtils {
       }
    }
 
+   /**
+    * Checks if Docker Desktop is running on a Windows operating system.
+    *
+    * @return true if Docker Desktop is running on Windows, false otherwise
+    */
    fun isDockerDesktopOnWindows(): Boolean {
       if (!isWindows()) {
          return false
@@ -127,7 +170,16 @@ object PlatformUtils {
       }
    }
 
+   /**
+    * Retrieves the IP address of the Windows Subsystem for Linux (WSL).
+    *
+    * @return The IP address of the WSL instance as an InetAddress, or null if not found or an error occurs.
+    */
    fun getWslIpAddress(): InetAddress? {
+      if (!isWindows() || !isWslInstalled()) {
+         return null
+      }
+
       try {
          // Run the command and capture the output
          val process = ProcessBuilder("wsl", "hostname", "-I").start()
@@ -151,6 +203,12 @@ object PlatformUtils {
       return null
    }
 
+   /**
+    * Converts the given {@link Path} to a Docker-compatible path depending on the operating system.
+    *
+    * @param path The path to be converted.
+    * @return The converted Docker-compatible path.
+    */
    fun convertToDockerPath(path: Path): String {
       // For Linux or Mac, return the absolute path
       if (isLinux() || isMac()) {

@@ -5,7 +5,7 @@ import no.acntech.easycontainers.model.base.StringValueObjectValidator
 import no.acntech.easycontainers.util.lang.RegexValidator
 
 /**
- * Value object representing a kubernetes namespace.
+ * Value object representing a host.
  */
 @JvmInline
 value class Host(val value: String) : SimpleValueObject<String> {

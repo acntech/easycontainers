@@ -5,7 +5,7 @@ import no.acntech.easycontainers.model.base.StringValueObjectValidator
 import no.acntech.easycontainers.util.lang.RegexValidator
 
 /**
- * Value object representing a kubernetes namespace.
+ * Value object representing a docker/kubernetes label key.
  */
 @JvmInline
 value class LabelKey(val value: String) : SimpleValueObject<String> {

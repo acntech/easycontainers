@@ -5,7 +5,7 @@ import no.acntech.easycontainers.ContainerFactory
 import no.acntech.easycontainers.ContainerType
 import no.acntech.easycontainers.k8s.K8sUtils
 import no.acntech.easycontainers.model.*
-import no.acntech.easycontainers.output.Slf4jLineCallback
+import no.acntech.easycontainers.output.Slf4JOutputLineCallback
 import org.slf4j.LoggerFactory
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Service
@@ -107,7 +107,7 @@ class ContainerService(
          .withImageRegistry(RegistryURL.of(registryUrlVal))
          .withNamespace(Namespace.TEST)
          .withDockerContextDir(Path.of(tempDir))
-         .withLogLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
+         .withOutputLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
 
       val buildResult = imageBuilder.buildImage()
 
@@ -118,7 +118,7 @@ class ContainerService(
             withImage(ImageURL.of("$registryUrlVal/test/alpine-simple-test:latest"))
             withIsEphemeral(true)
             withLogLineCallback(
-               Slf4jLineCallback(
+               Slf4JOutputLineCallback(
                   logger = LoggerFactory.getLogger("no.acntech.alpine-simple-test"),
                   prefix = "SIMPLE-CONTAINER-OUTPUT: "
                )

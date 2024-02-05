@@ -19,8 +19,11 @@ import java.time.Duration
 import java.time.Instant
 
 /**
- * An implementation of [ImageBuilder] that builds a Docker image using an external and accessible Docker daemon either
+ * An implementation of [ImageBuilder] that builds and pushes a Docker image using an accessible Docker daemon either
  * locally or remotely.
+ * <p>
+ * The presence of the environment variable `DOCKER_HOST` will be used to determine the Docker host to use. If not set,
+ * a local daemon is assumed.
  */
 internal class DockerImageBuilder : ImageBuilder {
 
