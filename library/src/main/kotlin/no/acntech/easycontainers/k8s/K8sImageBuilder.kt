@@ -35,7 +35,7 @@ import kotlin.io.path.exists
  * K8s builder for building a Docker image using a Kaniko job - see https://github.com/GoogleContainerTools/kaniko
  */
 internal class K8sImageBuilder(
-   private val client: KubernetesClient = KubernetesClientBuilder().build(),
+   private val client: KubernetesClient = K8sClientFactory.createDefaultClient()
 ) : ImageBuilder() {
 
    companion object {

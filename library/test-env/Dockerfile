@@ -1,25 +1,29 @@
-# Simple lighttpd container, with a script that logs the time every 2 seconds to std out
-
 # Use Alpine Linux as the base image
 FROM alpine:latest
 
-# Install lighttpd
-RUN apk update && apk add lighttpd
+# Install curl, httpie, openssh, Python, and other necessary dependencies
+RUN apk add --no-cache curl netcat-openbsd openssh
 
-# Create a directory for the web content
-RUN mkdir -p /var/www/localhost/htdocs
+# Additional setup SSH
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && echo "root:root" | chpasswd \
+    && ssh-keygen -A
 
-# Create an index.html file with the message
-RUN echo "<html><body><h1>Hello from httpdlight</h1></body></html>" > /var/www/localhost/htdocs/index.html
-
-# Copy the log_time.sh script to the container
+# Copy the log-time.sh script to the container
 COPY log-time.sh /usr/local/bin/log-time.sh
 
-# Make the script executable
+# Make the log-time.sh script executable
 RUN chmod +x /usr/local/bin/log-time.sh
 
-# Expose port 80
-EXPOSE 80
+# Create a startup script directly in the Dockerfile
+RUN echo '#!/bin/sh' > /start.sh \
+    && echo '/usr/local/bin/log-time.sh &' >> /start.sh \
+    && echo '/usr/sbin/sshd -D' >> /start.sh \
+    && chmod +x /start.sh
 
-# Start both lighttpd and the time-logging script, capturing its output to stdout
-CMD sh -c "lighttpd -D -f /etc/lighttpd/lighttpd.conf -D www-data & /usr/local/bin/log-time.sh"
+# Expose necessary ports (e.g., SSH port)
+EXPOSE 22
+
+# Define your container's default behavior
+CMD ["/start.sh"]

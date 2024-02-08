@@ -1,10 +1,12 @@
-package no.acntech.easycontainers.test
+package test.acntech.easycontainers
 
 import no.acntech.easycontainers.ContainerFactory
 import no.acntech.easycontainers.ContainerType
 import no.acntech.easycontainers.ImageBuilder
+import no.acntech.easycontainers.docker.DockerConstants
 import no.acntech.easycontainers.docker.DockerRegistryUtils
 import no.acntech.easycontainers.model.*
+import no.acntech.easycontainers.util.platform.PlatformUtils
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
@@ -17,25 +19,61 @@ import java.util.concurrent.TimeUnit
 
 class ContainerTests {
 
-   private val log = LoggerFactory.getLogger(ContainerTests::class.java)
-
    companion object {
-      private const val REGISTRY = "172.23.75.43:5000"
+
+      private val log = LoggerFactory.getLogger(ContainerTests::class.java)
+
+      // NOTE: Only valid for an Windows/WSL2 environment
+      private val registryIp = PlatformUtils.getWslIpAddress() ?: "localhost"
+
+      private val registry = "${registryIp}:5000"
 
       private val DOCKERFILE_CONTENT = """       
-        FROM alpine:latest     
-        COPY log_time.sh /usr/local/bin/log_time.sh     
-        RUN chmod +x /usr/local/bin/log_time.sh
-        CMD sh -c "/usr/local/bin/log_time.sh"
+         # Use Alpine Linux as the base image
+         FROM alpine:latest
+
+         # Install curl, httpie, openssh, Python, and other necessary dependencies
+         RUN apk add --no-cache curl netcat-openbsd openssh
+
+         # Additional setup SSH
+         RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+             && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+             && echo "root:root" | chpasswd \
+             && ssh-keygen -A
+         
+         # Copy the log-time.sh script to the container
+         COPY log-time.sh /usr/local/bin/log-time.sh
+         
+         # Make the log-time.sh script executable
+         RUN chmod +x /usr/local/bin/log-time.sh
+         
+         # Create a startup script directly in the Dockerfile
+         RUN echo '#!/bin/sh' > /start.sh \
+             && echo '/usr/local/bin/log-time.sh &' >> /start.sh \
+             && echo '/usr/sbin/sshd -D' >> /start.sh \
+             && chmod +x /start.sh
+         
+         # Expose necessary ports (the SSH port)
+         EXPOSE 22
+         
+         # Define the container's default behavior
+         CMD ["/start.sh"]
+
     """.trimIndent()
 
       private val LOG_TIME_SCRIPT_CONTENT = """
-         #!/bin/sh
-         while true; do
-               echo "The time is now $(date)"
-               sleep 2
+         count=1
+         while true
+         do
+           echo "${'$'}{count}: ${'$'}(date)"
+           count=${'$'}((count+1))
+           sleep 2
          done
       """.trimIndent()
+
+      init {
+         System.setProperty(DockerConstants.PROP_DOCKER_HOST, "tcp://$registryIp:2375")
+      }
    }
 
 
@@ -50,7 +88,7 @@ class ContainerTests {
          withType(ContainerType.valueOf(containerType))
          withName(ContainerName.of("$imageName-test"))
          withNamespace(Namespace.TEST)
-         withImage(ImageURL.of("$REGISTRY/test/$imageName:latest"))
+         withImage(ImageURL.of("$registry/test/$imageName:latest"))
          withExposedPort(PortMappingName.HTTP, NetworkPort.HTTP)
 
          // This will work for both Docker and Kubernetes since
@@ -74,7 +112,7 @@ class ContainerTests {
       val container = ContainerFactory.kubernetesContainer {
          withName(ContainerName.of("alpine-test"))
          withNamespace(Namespace.TEST)
-         withImage(ImageURL.of("$REGISTRY/test/alpine-test:latest"))
+         withImage(ImageURL.of("$registry/test/alpine-test:latest"))
          withIsEphemeral(true)
          withLogLineCallback { line -> println("SIMPLE-ALPINE-OUTPUT: $line") }
       }.build()
@@ -119,29 +157,29 @@ class ContainerTests {
    @ParameterizedTest
    @ValueSource(strings = ["DOCKER"/*, "KUBERNETES"*/])
    fun `Test image build`(containerType: String) {
-      val imageName = ImageName.of("simple-alpine")
+      val imageName = ImageName.of("alpine-test-ssh")
       val repository = RepositoryName.TEST
 
-      DockerRegistryUtils.deleteImage("http://$REGISTRY", imageName.unwrap())
+      DockerRegistryUtils.deleteImage("http://$registry", imageName.unwrap())
 
       val tempDir = Files.createTempDirectory("dockercontext-").toString()
       log.debug("Temp dir for docker-context created: {}", tempDir)
       val dockerfile = File(tempDir, "Dockerfile")
-      val logTimeScript = File(tempDir, "log_time.sh")
+      val logTimeScript = File(tempDir, "log-time.sh")
       dockerfile.writeText(DOCKERFILE_CONTENT)
       logTimeScript.writeText(LOG_TIME_SCRIPT_CONTENT)
 
       log.debug("Dockerfile created: {}", dockerfile.absolutePath)
-      log.debug("log_time.sh created: {}", logTimeScript.absolutePath)
+      log.debug("log-time.sh created: {}", logTimeScript.absolutePath)
 
       val imageBuilder = ContainerFactory.imageBuilder(ContainerType.valueOf(containerType))
          .withName(imageName)
-         .withImageRegistry(RegistryURL.of(REGISTRY))
+         .withImageRegistry(RegistryURL.of(registry))
          .withInsecureRegistry(true)
          .withRepository(RepositoryName.TEST)
          .withNamespace(Namespace.TEST)
          .withDockerContextDir(Path.of(tempDir))
-         .withOutputLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
+         .withOutputLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") } // Will only work for Kubernetes
          .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/home/thomas/kind/kaniko-data")
 
       val result = imageBuilder.buildImage()
@@ -149,16 +187,18 @@ class ContainerTests {
       if (result) {
          val container = ContainerFactory.container {
             withType(ContainerType.valueOf(containerType))
-            withName(ContainerName.of("simple-alpine-test"))
+            withName(ContainerName.of("alpine-ssh-test"))
             withNamespace(Namespace.TEST)
-            withImage(ImageURL.of("$REGISTRY/$repository/${imageName}:latest"))
+            withImage(ImageURL.of("$registry/$repository/${imageName}:latest"))
+            withExposedPort(PortMappingName.of("SSH"), NetworkPort.SSH)
+            withPortMapping(NetworkPort.SSH, NetworkPort.of(30022))
             withIsEphemeral(true)
-            withLogLineCallback { line -> println("SIMPLE-ALPINE-OUTPUT: $line") }
+            withLogLineCallback { line -> println("ALPINE-SSH-OUTPUT: $line") }
          }.build()
 
          container.run()
 
-         TimeUnit.SECONDS.sleep(120)
+         TimeUnit.SECONDS.sleep(1000)
 
          container.stop()
          container.remove()

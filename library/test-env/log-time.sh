@@ -1,8 +1,9 @@
 #!/bin/sh
 
-# Loop forever and print the date every 2 seconds
+count=1
 while true
 do
-  date
+  echo "${count}: $(date"
+  count=$((count+1))
   sleep 2
 done

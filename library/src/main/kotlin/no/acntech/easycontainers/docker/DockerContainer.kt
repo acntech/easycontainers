@@ -6,8 +6,6 @@ import com.github.dockerjava.api.command.PullImageResultCallback
 import com.github.dockerjava.api.exception.DockerClientException
 import com.github.dockerjava.api.exception.DockerException
 import com.github.dockerjava.api.model.*
-import com.github.dockerjava.core.DefaultDockerClientConfig
-import com.github.dockerjava.core.DockerClientBuilder
 import no.acntech.easycontainers.AbstractContainer
 import no.acntech.easycontainers.ContainerBuilder
 import no.acntech.easycontainers.ContainerException
@@ -19,20 +17,9 @@ internal class DockerContainer(
    containerBuilder: ContainerBuilder,
 ) : AbstractContainer(containerBuilder) {
 
-   private val dockerClient: DockerClient
+   private val dockerClient: DockerClient = DockerClientFactory.createDefaultClient()
 
    private var containerId: String? = null
-
-   init {
-      val configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder()
-
-      val dockerHost = System.getenv(DockerConstants.ENV_DOCKER_HOST)
-      if (dockerHost != null && dockerHost.isNotEmpty()) {
-         log.info("Using Docker host from environment variable: {}", dockerHost)
-         configBuilder.withDockerHost(dockerHost)
-      }
-      dockerClient = DockerClientBuilder.getInstance(configBuilder.build()).build()
-   }
 
    override fun run() {
       changeState(Container.State.STARTED)
@@ -98,7 +85,16 @@ internal class DockerContainer(
    private fun startContainer() {
       try {
          val image = builder.image.toFQDN()
+
          val hostConfig = HostConfig.newHostConfig()
+
+            // Auto-remove
+            .apply {
+               if (builder.isEphemeral) {
+                  log.info("Setting autoRemove to true")
+                  withAutoRemove(true)
+               }
+            }
 
          containerId = dockerClient.createContainerCmd(image)
             // Name of the container
@@ -206,17 +202,15 @@ internal class DockerContainer(
 
    private fun configureHostConfigVolumes(hostConfig: HostConfig, binds: List<Bind>, tmpfsMounts: List<Mount>): HostConfig {
       return hostConfig
+
+         // Volume ninds
          .withBinds(*binds.toTypedArray())
+
+         // Tmpfs mounts
          .apply {
             if (tmpfsMounts.isNotEmpty()) {
                log.info("Setting tmpfs mounts: $tmpfsMounts")
                withMounts(tmpfsMounts)
-            }
-         }
-         .apply {
-            if (builder.isEphemeral) {
-               log.info("Setting autoRemove to true")
-               withAutoRemove(true)
             }
          }
    }

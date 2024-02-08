@@ -28,8 +28,8 @@ value class NetworkPort(val value: Int) : SimpleValueObject<Int> {
       )
 
       val HTTP = NetworkPort(80)
-
       val HTTPS = NetworkPort(443)
+      val SSH = NetworkPort(22)
 
    }
 

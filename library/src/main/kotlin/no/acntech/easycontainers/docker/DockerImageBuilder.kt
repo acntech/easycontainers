@@ -7,11 +7,8 @@ import com.github.dockerjava.api.exception.DockerClientException
 import com.github.dockerjava.api.exception.DockerException
 import com.github.dockerjava.api.model.BuildResponseItem
 import com.github.dockerjava.api.model.PushResponseItem
-import com.github.dockerjava.core.DefaultDockerClientConfig
-import com.github.dockerjava.core.DockerClientBuilder
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.ImageBuilder
-import no.acntech.easycontainers.docker.DockerConstants.ENV_DOCKER_HOST
 import no.acntech.easycontainers.model.ImageTag
 import no.acntech.easycontainers.util.text.NEW_LINE
 import java.nio.file.Path
@@ -25,32 +22,13 @@ import java.time.Instant
  * The presence of the environment variable `DOCKER_HOST` will be used to determine the Docker host to use. If not set,
  * a local daemon is assumed.
  */
-internal class DockerImageBuilder : ImageBuilder {
-
-   private val dockerClient: DockerClient
+internal class DockerImageBuilder(
+   private val dockerClient: DockerClient = DockerClientFactory.createDefaultClient()
+) : ImageBuilder() {
 
    private var startTime: Instant? = null
 
    private var finishTime: Instant? = null
-
-   constructor() {
-      val configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder()
-
-      val dockerHost = System.getenv(ENV_DOCKER_HOST)
-      if (dockerHost != null && dockerHost.isNotEmpty()) {
-         log.info("Using Docker host from environment variable: {}", dockerHost)
-
-         configBuilder.withDockerHost(dockerHost)
-      }
-
-      dockerClient = DockerClientBuilder.getInstance(configBuilder.build()).build()
-      listContainers()
-   }
-
-   constructor(dockerClient: DockerClient) {
-      this.dockerClient = dockerClient
-      listContainers()
-   }
 
    override fun getStartTime(): Instant? {
       return startTime

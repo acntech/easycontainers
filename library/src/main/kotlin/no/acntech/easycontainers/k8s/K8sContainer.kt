@@ -56,7 +56,7 @@ internal class K8sContainer(
 
    private var service: Service? = null
 
-   private var client: KubernetesClient = KubernetesClientBuilder().build()
+   private var client: KubernetesClient = K8sClientFactory.createDefaultClient()
 
    private val accessChecker = AccessChecker(client)
 
