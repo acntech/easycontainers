@@ -19,8 +19,6 @@ abstract class AbstractContainer(
 
    private var state: Container.State = Container.State.CREATED
 
-   protected var internalHost: Host? = null
-
    init {
       if (builder.isEphemeral) {
          Runtime.getRuntime().addShutdownHook(Thread {
@@ -83,10 +81,6 @@ abstract class AbstractContainer(
       return builder.isEphemeral
    }
 
-   override fun getHost(): Host? {
-      return internalHost
-   }
-
    override fun toString(): String {
       return ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
          .append("state", state)
@@ -101,6 +95,7 @@ abstract class AbstractContainer(
          .append("mappedPorts", getPortMappings())
          .append("isEphemeral", isEphemeral())
          .append("host", getHost())
+         .append("ipAddress", getIpAddress())
          .toString()
    }
 

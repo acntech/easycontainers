@@ -9,8 +9,11 @@ import com.github.dockerjava.api.model.*
 import no.acntech.easycontainers.AbstractContainer
 import no.acntech.easycontainers.ContainerBuilder
 import no.acntech.easycontainers.ContainerException
+import no.acntech.easycontainers.docker.DockerConstants.DEFAULT_BRIDGE_NETWORK
 import no.acntech.easycontainers.model.Container
+import no.acntech.easycontainers.model.Host
 import no.acntech.easycontainers.util.platform.PlatformUtils.convertToDockerPath
+import java.net.InetAddress
 import java.nio.file.Path
 
 internal class DockerContainer(
@@ -20,6 +23,10 @@ internal class DockerContainer(
    private val dockerClient: DockerClient = DockerClientFactory.createDefaultClient()
 
    private var containerId: String? = null
+
+   private var ipAddress: InetAddress? = null
+
+   private var host: Host? = null
 
    override fun run() {
       changeState(Container.State.STARTED)
@@ -61,6 +68,14 @@ internal class DockerContainer(
       } catch (e: Exception) {
          handleError(e)
       }
+   }
+
+   override fun getIpAddress(): InetAddress? {
+      return ipAddress
+   }
+
+   override fun getHost(): Host? {
+      return host
    }
 
    private fun pullImage() {
@@ -151,7 +166,24 @@ internal class DockerContainer(
          dockerClient.startContainerCmd(containerId!!).exec().also {
             log.info("Starting container: $containerId")
          }
-         changeState(Container.State.RUNNING)
+
+         // Get the IP address
+         val containerInfo = dockerClient.inspectContainerCmd(containerId!!).exec()
+
+         val ipAddressVal = containerInfo.networkSettings.networks[DEFAULT_BRIDGE_NETWORK]?.ipAddress
+
+         // Convert the IP address string to an InetAddress object. If ipAddressString is null, this will be null.
+         val ipAddress = if (ipAddressVal != null) InetAddress.getByName(ipAddressVal) else null
+
+         containerInfo.config.hostName?.let {
+            host = Host.of(it)
+         }
+
+         // We're running on the host
+         changeState(Container.State.RUNNING).also {
+            log.info("Container started: $containerId with IP address: $ipAddress and host: $host")
+         }
+
       } catch (e: Exception) {
          handleError(e)
       }

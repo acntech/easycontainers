@@ -1,5 +1,7 @@
 package no.acntech.easycontainers.model
 
+import java.net.InetAddress
+
 /**
  * Represents a container.
  *
@@ -106,7 +108,6 @@ interface Container : Runnable {
     * @return true if the port has a mapping, false otherwise
     */
    fun hasPortMapping(port: NetworkPort): Boolean {
-
       return getPortMappings().containsKey(port)
    }
 
@@ -115,7 +116,7 @@ interface Container : Runnable {
     *
     * @return true if the container is ephemeral, false otherwise
     */
-// Ephemerality
+
    fun isEphemeral(): Boolean
 
    /**
@@ -123,8 +124,10 @@ interface Container : Runnable {
     *
     * @return the host of the container as a [Host] object, or null if the host is not set
     */
-// Host
+
    fun getHost(): Host?
+
+   fun getIpAddress(): InetAddress?
 
    // Lifecycle
 

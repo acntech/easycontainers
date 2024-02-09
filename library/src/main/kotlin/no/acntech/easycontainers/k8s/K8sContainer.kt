@@ -17,10 +17,13 @@ import no.acntech.easycontainers.util.text.NEW_LINE
 import no.acntech.easycontainers.util.text.SPACE
 import org.awaitility.Awaitility.await
 import java.io.File
+import java.net.InetAddress
 import java.time.Instant
+import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 
 internal class K8sContainer(
@@ -51,7 +54,6 @@ internal class K8sContainer(
       var SCHEDULER: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
    }
 
-
    private var deployment: Deployment? = null
 
    private var service: Service? = null
@@ -60,7 +62,7 @@ internal class K8sContainer(
 
    private val accessChecker = AccessChecker(client)
 
-   private val pods: MutableList<Pair<Pod, List<Container>>> = mutableListOf()
+   private val pods: MutableList<Pair<Pod, List<Container>>> = CopyOnWriteArrayList()
 
    private val configMaps: MutableList<ConfigMap> = mutableListOf()
 
@@ -69,6 +71,10 @@ internal class K8sContainer(
    private val selectorLabels: Map<String, String> = mapOf(K8sConstants.APP_LABEL to getName().value)
 
    private var containerLogStreamer: ContainerLogStreamer? = null
+
+   private var host: Host? = null
+
+   private val ipAddress: AtomicReference<InetAddress> = AtomicReference()
 
    private val stopAndRemoveTask = Runnable {
       stop()
@@ -90,7 +96,6 @@ internal class K8sContainer(
       requireState(no.acntech.easycontainers.model.Container.State.CREATED)
 
       log.info("Starting container: ${getName()}")
-
       log.debug("Using container config\n${builder}")
 
       try {
@@ -129,40 +134,18 @@ internal class K8sContainer(
          k8sError(e)
       }
 
-
       service?.let {
          val serviceName = service!!.metadata.name
          val namespace = service!!.metadata.namespace
-
-         internalHost = Host.of("$serviceName.$namespace.svc.cluster.local").also {
+         host = Host.of("$serviceName.$namespace.svc.cluster.local").also {
             log.info("Container (service) host: $it")
          }
-
       }
 
       executorService.execute(containerLogStreamer!!)
 
       // We have officially started the container(s)
       changeState(no.acntech.easycontainers.model.Container.State.STARTED)
-   }
-
-   @Throws(ContainerException::class)
-   private fun k8sError(e: Exception) {
-      when (e) {
-         is KubernetesClientException,
-         is ResourceNotFoundException,
-         is WatcherException,
-         -> {
-            val message = "Error starting container: ${e.message}"
-            log.error(message, e)
-            throw ContainerException(message, e)
-         }
-
-         else -> {
-            log.error("Unexpected exception '${e.javaClass.simpleName}:'${e.message}', re-throwing", e)
-            throw e // Rethrow the exception if it's not one of the handled types
-         }
-      }
    }
 
    @Synchronized
@@ -231,13 +214,40 @@ internal class K8sContainer(
       changeState(no.acntech.easycontainers.model.Container.State.REMOVED)
    }
 
+   override fun getHost(): Host? {
+      return host
+   }
+
+   override fun getIpAddress(): InetAddress? {
+      return ipAddress.get()
+   }
+
+   @Throws(ContainerException::class)
+   private fun k8sError(e: Exception) {
+      when (e) {
+         is KubernetesClientException,
+         is ResourceNotFoundException,
+         is WatcherException,
+         -> {
+            val message = "Error starting container: ${e.message}"
+            log.error(message, e)
+            throw ContainerException(message, e)
+         }
+
+         else -> {
+            log.error("Unexpected exception '${e.javaClass.simpleName}:'${e.message}', re-throwing", e)
+            throw e // Rethrow the exception if it's not one of the handled types
+         }
+      }
+   }
+
    @Synchronized
    private fun refreshPodsAndCheckStatus() {
       log.trace("Refreshing pods and checking status")
 
       val refreshedPods = mutableListOf<Pair<Pod, List<Container>>>()
 
-      this.pods.forEach { (pod, containers) ->
+      pods.forEach { (pod, containers) ->
          val refreshedPod = client.pods()
             .inNamespace(getNamespace().value)
             .withName(pod.metadata.name)
@@ -260,15 +270,18 @@ internal class K8sContainer(
          }
       }
 
-      // Remove the existing pairs from podsBackingField
-      this.pods.removeIf { (pod, _) ->
-         refreshedPods.any { (refreshedPod, _) -> refreshedPod.metadata.name == pod.metadata.name }
+      pods.clear()
+      pods.addAll(refreshedPods)
+
+      // Extract the IP address of the first pod in the list (most likely the only one)
+      ipAddress.set(InetAddress.getByName(pods.first().first.status.podIP))
+
+      // Make a succinct string representation of the pods list
+      val stringVal = this.pods.joinToString(", ") { (pod, container) ->
+         pod.metadata.name + " -> " + container.joinToString { it.name }
       }
 
-      // Add the refreshed pairs to podsBackingField
-      this.pods.addAll(refreshedPods)
-
-      log.trace("Pods and containers refreshed: ${this.pods}")
+      log.trace("Pods and containers refreshed: $stringVal")
    }
 
    private fun extractPodsAndContainers(maxWaitTimeSeconds: Long = 30L) {
@@ -287,6 +300,12 @@ internal class K8sContainer(
       }
 
       // INVARIANT: pods is not empty
+      if (pods.size > 1) {
+         log.warn("Multiple pods found for service: ${service!!.metadata.name}")
+      }
+
+      // Get the IP address of the first pod in the list (most likely the only one)
+      ipAddress.set(InetAddress.getByName(pods.first().status.podIP))
 
       // Add a debug/logging watcher for the pods
       client.pods().inNamespace(getNamespace().value).withLabels(selectorLabels).watch(LoggingWatcher())

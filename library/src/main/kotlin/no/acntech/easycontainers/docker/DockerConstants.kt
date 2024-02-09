@@ -10,4 +10,6 @@ object DockerConstants {
 
    const val DEFAULT_DOCKER_TCP_PORT = 2375
 
+   const val DEFAULT_BRIDGE_NETWORK = "bridge"
+
 }
