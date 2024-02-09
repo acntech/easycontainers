@@ -12,13 +12,21 @@ import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.docker.DockerConstants.DEFAULT_BRIDGE_NETWORK
 import no.acntech.easycontainers.model.Container
 import no.acntech.easycontainers.model.Host
+import no.acntech.easycontainers.model.NetworkName
 import no.acntech.easycontainers.util.platform.PlatformUtils.convertToDockerPath
 import java.net.InetAddress
 import java.nio.file.Path
+import java.util.concurrent.Executors
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.TimeUnit
 
 internal class DockerContainer(
    containerBuilder: ContainerBuilder,
 ) : AbstractContainer(containerBuilder) {
+
+   companion object {
+      var SCHEDULER: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
+   }
 
    private val dockerClient: DockerClient = DockerClientFactory.createDefaultClient()
 
@@ -27,6 +35,8 @@ internal class DockerContainer(
    private var ipAddress: InetAddress? = null
 
    private var host: Host? = null
+
+   private var networkName : NetworkName? = null
 
    override fun run() {
       changeState(Container.State.STARTED)
@@ -63,8 +73,10 @@ internal class DockerContainer(
             .withForce(true)
             .exec()
          log.info("Container successfully removed: $containerId")
-         changeState(Container.State.REMOVED)
 
+         cleanUpResources()
+
+         changeState(Container.State.REMOVED)
       } catch (e: Exception) {
          handleError(e)
       }
@@ -110,6 +122,8 @@ internal class DockerContainer(
                   withAutoRemove(true)
                }
             }
+
+         configureNetwork(hostConfig)
 
          containerId = dockerClient.createContainerCmd(image)
             // Name of the container
@@ -179,6 +193,10 @@ internal class DockerContainer(
             host = Host.of(it)
          }
 
+         builder.maxLifeTime?.let {
+            SCHEDULER.schedule(KillTask(), it.toSeconds(), TimeUnit.SECONDS)
+         }
+
          // We're running on the host
          changeState(Container.State.RUNNING).also {
             log.info("Container started: $containerId with IP address: $ipAddress and host: $host")
@@ -186,6 +204,48 @@ internal class DockerContainer(
 
       } catch (e: Exception) {
          handleError(e)
+      }
+   }
+
+   private fun configureNetwork(hostConfig: HostConfig) {
+      builder.networkName?.let { networkName ->
+         val networkMode = networkName.value.also {
+            log.info("Using network-mode: $it")
+         }
+
+         // check networkMode is one of "bridge", "host", "none", "container:<name>", or a custom network name
+         when (networkMode) {
+            "bridge", "host", "none" -> {
+               hostConfig.withNetworkMode(networkMode)
+            }
+
+            else -> {
+               if (networkMode.startsWith("container:")) {
+                  val containerName = networkMode.substringAfter("container:")
+                  val container = dockerClient.listContainersCmd().withNameFilter(listOf(containerName)).exec().firstOrNull()
+                  val containerId = container?.id ?: throw ContainerException("Container '$containerName' not found")
+                  hostConfig.withNetworkMode("container:$containerId")
+
+               } else {
+                  // Custom network name (create if it doesn't exist
+                  val networkList = dockerClient.listNetworksCmd().withNameFilter(networkMode).exec()
+                  val networkId = if (networkList.isEmpty()) {
+                     this.networkName = networkName // Must be removed if the container is ephimeral
+                     // Network doesn't exist, so create it
+                     dockerClient.createNetworkCmd()
+                        .withName(networkMode)
+                        .withDriver("bridge")
+                        .exec().id.also {
+                           log.info("Created network '$networkMode' with ID '$it'")
+                        }
+                  } else {
+                     // Network already exists
+                     networkList[0].id
+                  }
+                  hostConfig.withNetworkMode(networkId)
+               }
+            }
+         }
       }
    }
 
@@ -287,6 +347,17 @@ internal class DockerContainer(
    private fun getExistingVolumeNames(): Set<String> {
       val volumesResponse = dockerClient.listVolumesCmd().exec()
       return volumesResponse.volumes.map { it.name }.toSet()
+   }
+
+   private fun cleanUpResources() {
+      networkName?.let {
+         log.info("Removing network '${it.value}'")
+         try {
+            dockerClient.removeNetworkCmd(it.value).exec()
+         } catch (e: Exception) {
+            log.error("Failed to remove network '${it.value}'", e)
+         }
+      }
    }
 
    private fun handleError(e: Exception) {

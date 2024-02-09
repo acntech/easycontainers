@@ -15,6 +15,17 @@ abstract class AbstractContainer(
    protected val builder: ContainerBuilder,
 ) : Container {
 
+   protected open inner class KillTask : Runnable {
+      override fun run() {
+         try {
+            stop()
+            remove()
+         } catch (e: Exception) {
+            log.warn("Error '${e.message}' in automatic task for stopping and removing the container '${getName()}'", e)
+         }
+      }
+   }
+
    protected val log: Logger = LoggerFactory.getLogger(javaClass)
 
    private var state: Container.State = Container.State.CREATED

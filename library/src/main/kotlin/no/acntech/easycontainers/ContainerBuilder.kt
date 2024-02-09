@@ -62,6 +62,8 @@ class ContainerBuilder {
 
    var memoryLimit: Memory? = null
 
+   var networkName: NetworkName? = null
+
    var isEphemeral: Boolean = true
 
    var outputLineCallback: OutputLineCallback = OutputLineCallback { _ -> }
@@ -206,6 +208,18 @@ class ContainerBuilder {
    fun withPortMapping(port: NetworkPort, mappedPort: NetworkPort): ContainerBuilder {
       require(port in exposedPorts.values) { "Port '$port' cannot be mapped if not exposed" }
       portMappings[port] = mappedPort
+      return this
+   }
+
+   /**
+    * Sets the network name for the container. Only applicable for Docker containers - will create a bridge network with the
+    * given name allowing containers on the same network to communicate with each other.
+    *
+    * @param networkName The network name to set for the container.
+    * @return The updated ContainerBuilder instance.
+    */
+   fun withNetworkName(networkName: NetworkName): ContainerBuilder {
+      this.networkName = networkName
       return this
    }
 

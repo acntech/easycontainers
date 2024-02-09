@@ -76,11 +76,6 @@ internal class K8sContainer(
 
    private val ipAddress: AtomicReference<InetAddress> = AtomicReference()
 
-   private val stopAndRemoveTask = Runnable {
-      stop()
-      remove()
-   }
-
    private val executorService = Executors.newVirtualThreadPerTaskExecutor()
 
    init {
@@ -118,7 +113,7 @@ internal class K8sContainer(
          // INVARIANT: podsBackingField/pods is not empty
 
          builder.maxLifeTime?.let {
-            SCHEDULER.schedule(stopAndRemoveTask, it.toSeconds(), TimeUnit.SECONDS)
+            SCHEDULER.schedule(KillTask(), it.toSeconds(), TimeUnit.SECONDS)
          }
 
          client.pods().inNamespace(getNamespace().value).withLabels(selectorLabels).watch(PodWatcher())
