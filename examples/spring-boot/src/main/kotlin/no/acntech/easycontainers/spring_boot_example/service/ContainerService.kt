@@ -117,7 +117,7 @@ class ContainerService(
             withNamespace(Namespace.TEST)
             withImage(ImageURL.of("$registryUrlVal/test/alpine-simple-test:latest"))
             withIsEphemeral(true)
-            withLogLineCallback(
+            withOutputLineCallback(
                Slf4JOutputLineCallback(
                   logger = LoggerFactory.getLogger("no.acntech.alpine-simple-test"),
                   prefix = "SIMPLE-CONTAINER-OUTPUT: "

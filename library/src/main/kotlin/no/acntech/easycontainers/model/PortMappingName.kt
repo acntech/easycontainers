@@ -23,6 +23,7 @@ value class PortMappingName(val value: String) : SimpleValueObject<String> {
       val HTTP = PortMappingName("http")
       val HTTPS = PortMappingName("https")
       val TRANSPORT = PortMappingName("transport")
+      val SSH = PortMappingName("ssh")
 
       fun of(value: String): PortMappingName {
          return PortMappingName(value)

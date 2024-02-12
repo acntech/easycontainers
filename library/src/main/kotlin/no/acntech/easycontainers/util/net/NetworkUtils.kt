@@ -1,12 +1,18 @@
 package no.acntech.easycontainers.util.net
 
+import org.slf4j.LoggerFactory
+import java.io.IOException
 import java.net.NetworkInterface
+import java.net.ServerSocket
+import java.net.Socket
 import java.net.SocketException
 
 /**
  * The NetworkUtils class provides utility methods related to network operations.
  */
 object NetworkUtils {
+
+   private val log = LoggerFactory.getLogger(NetworkUtils::class.java);
 
    private val IP4_ADDRESS_REGEX = Regex("^\\d{1,3}(\\.\\d{1,3}){3}$")
 
@@ -51,6 +57,22 @@ object NetworkUtils {
          println("Unable to determine local IP addresses")
       }
       return ipAddresses
+   }
+
+   fun isPortOpen(host: String, port: Int, timeoutMillis: Int = 5000): Boolean {
+      return try {
+         Socket().use { socket ->
+            // Connects this socket to the server with a specified timeout value.
+            socket.connect(java.net.InetSocketAddress(host, port), timeoutMillis)
+            true.also {
+               log.debug("Port $port is OPEN on $host")
+            } // The connection was successful, port is open
+         }
+      } catch (e: IOException) {
+         false.also {
+            log.debug("Port $port is CLOSED or NOT REACHABLE on $host")
+         }
+      }
    }
 
 }

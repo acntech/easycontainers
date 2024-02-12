@@ -54,8 +54,8 @@ kubectl apply -f host-share-pvc.yaml
 export DOCKER_CLI_AWS_NO_SIGN_REQUEST=1
 
 # Build and push the light-httpd image
-docker build -t "$REGISTRY_HOST/$REPOSITORY/alpine-simple-httpd:latest" .
-docker push "$REGISTRY_HOST/$REPOSITORY/alpine-simple-httpd:latest"
+#docker build -t "$REGISTRY_HOST/$REPOSITORY/alpine-simple-ssh:latest" .
+#docker push "$REGISTRY_HOST/$REPOSITORY/alpine-simple-ssh:latest"
 
 # List the images in the registry
 echo "Images in the registry:"

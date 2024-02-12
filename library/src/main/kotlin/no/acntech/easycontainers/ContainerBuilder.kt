@@ -284,7 +284,7 @@ class ContainerBuilder {
     * @param outputLineCallback The line callback to be used for logging.
     * @return The instance of ContainerBuilder with the line callback set.
     */
-   fun withLogLineCallback(outputLineCallback: OutputLineCallback): ContainerBuilder {
+   fun withOutputLineCallback(outputLineCallback: OutputLineCallback): ContainerBuilder {
       this.outputLineCallback = outputLineCallback
       return this
    }

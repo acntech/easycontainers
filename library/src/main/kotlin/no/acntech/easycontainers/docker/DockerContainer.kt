@@ -2,7 +2,10 @@ package no.acntech.easycontainers.docker
 
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.async.ResultCallback
+import com.github.dockerjava.api.command.CreateContainerCmd
+import com.github.dockerjava.api.command.InspectContainerResponse
 import com.github.dockerjava.api.command.PullImageResultCallback
+import com.github.dockerjava.api.command.WaitContainerResultCallback
 import com.github.dockerjava.api.exception.DockerClientException
 import com.github.dockerjava.api.exception.DockerException
 import com.github.dockerjava.api.model.*
@@ -16,6 +19,7 @@ import no.acntech.easycontainers.model.NetworkName
 import no.acntech.easycontainers.util.platform.PlatformUtils.convertToDockerPath
 import java.net.InetAddress
 import java.nio.file.Path
+import java.time.Duration
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
@@ -23,6 +27,38 @@ import java.util.concurrent.TimeUnit
 internal class DockerContainer(
    containerBuilder: ContainerBuilder,
 ) : AbstractContainer(containerBuilder) {
+
+   private inner class LogWatcher : Runnable {
+      override fun run() {
+         logOutputToCompletion()
+      }
+
+      private fun logOutputToCompletion() {
+         dockerClient.logContainerCmd(containerId!!)
+            .withStdOut(true)
+            .withStdErr(true)
+            .withFollowStream(true)
+            .withTailAll()
+            .exec(object : ResultCallback.Adapter<Frame>() {
+
+               override fun onNext(item: Frame) {
+                  val line = item.payload.decodeToString()
+                  log.trace("Container [${getName()}] output: $line")
+                  builder.outputLineCallback.onLine(line)
+               }
+
+               override fun onError(throwable: Throwable) {
+                  log.warn("Container [${getName()}] output error", throwable)
+               }
+
+               override fun onComplete() {
+                  log.info("Container [${getName()}] output complete")
+               }
+
+            }).awaitCompletion()
+      }
+
+   }
 
    companion object {
       var SCHEDULER: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
@@ -36,49 +72,111 @@ internal class DockerContainer(
 
    private var host: Host? = null
 
-   private var networkName : NetworkName? = null
+   private var networkName: NetworkName? = null
+
+   private val loggingExecutorService = Executors.newVirtualThreadPerTaskExecutor()
 
    override fun run() {
       changeState(Container.State.STARTED)
       pullImage()
       startContainer()
-      logOutputToCompletion() // Blocking
+      loggingExecutorService.submit(LogWatcher())
    }
 
    override fun stop() {
+      requireState(Container.State.RUNNING)
+
+      val callback = object : WaitContainerResultCallback() {
+
+         override fun onComplete() {
+            super.onComplete()
+            log.debug("Callback: Container '${getName()} ($containerId)' has stopped.")
+         }
+      }
+
       try {
          dockerClient.stopContainerCmd(containerId!!).exec()
-         log.info("Container successfully stopped: $containerId")
+         dockerClient.waitContainerCmd(containerId!!).exec(callback).awaitCompletion().also {
+            log.info("Container successfully stopped: $containerId")
+         }
+
          changeState(Container.State.STOPPED)
 
       } catch (e: Exception) {
-         handleError(e)
+         log.warn("Failed to stop container: $containerId", e)
+//         handleError(e)
       }
    }
 
    override fun kill() {
+      requireState(Container.State.RUNNING)
+
+      val callback = object : WaitContainerResultCallback() {
+
+         override fun onComplete() {
+            super.onComplete()
+            log.debug("Callback: Container '${getName()} ($containerId)' has been terminated.")
+         }
+      }
+
       try {
          dockerClient.killContainerCmd(containerId!!).exec()
-         log.info("Container successfully killed: $containerId")
+         dockerClient.waitContainerCmd(containerId!!).exec(callback).awaitCompletion().also {
+            log.info("Container successfully terminated: ${getName()} ($containerId)")
+         }
+
          changeState(Container.State.STOPPED)
 
-      } catch (e: Exception) {
-         handleError(e)
+      } catch (e: Exception) { // Swallow exception
+         log.warn("Failed to kill container: $containerId", e)
+//         handleError(e)
       }
    }
 
    override fun remove() {
-      try {
-         dockerClient.removeContainerCmd(containerId!!)
-            .withForce(true)
-            .exec()
-         log.info("Container successfully removed: $containerId")
+      if (getState() == Container.State.RUNNING) {
+         kill()
+      }
 
+      if (isEphemeral()) {
+         log.debug("Container is ephemeral - already removed")
          cleanUpResources()
-
          changeState(Container.State.REMOVED)
-      } catch (e: Exception) {
-         handleError(e)
+
+      } else {
+         val callback = object : WaitContainerResultCallback() {
+
+            override fun onComplete() {
+               super.onComplete()
+               log.debug("Callback: Container '${getName()} ($containerId)' has been removed.")
+            }
+         }
+
+         try {
+            dockerClient.removeContainerCmd(containerId!!)
+               .withForce(true)
+               .exec()
+
+            dockerClient.waitContainerCmd(containerId!!).exec(callback).awaitCompletion().also {
+               log.info("Container successfully removed: ${getName()} ($containerId)")
+            }
+
+         } catch (e: Exception) {
+            log.debug("Failed to remove container: $containerId", e)
+
+            when (e) {
+               is DockerException, is DockerClientException -> {
+                  changeState(Container.State.REMOVED)
+               }
+
+               else -> {
+                  log.error("An error '{}' occurred removing container '${getName()}', re-throwing", e.message, e)
+                  throw e;
+               }
+            }
+         } finally {
+            cleanUpResources()
+         }
       }
    }
 
@@ -112,99 +210,104 @@ internal class DockerContainer(
    private fun startContainer() {
       try {
          val image = builder.image.toFQDN()
-
-         val hostConfig = HostConfig.newHostConfig()
-
-            // Auto-remove
-            .apply {
-               if (builder.isEphemeral) {
-                  log.info("Setting autoRemove to true")
-                  withAutoRemove(true)
-               }
-            }
-
+         val hostConfig = prepareHostConfig()
          configureNetwork(hostConfig)
+         val containerCmd = createContainerCommand(image, hostConfig)
+         containerId = containerCmd.exec().id
 
-         containerId = dockerClient.createContainerCmd(image)
-            // Name of the container
-            .withName(builder.name.unwrap())
+         startContainer(containerId!!)
 
-            // Environment variables
-            .withEnv(builder.env.toMap().map { "${it.key.unwrap()}=${it.value.unwrap()}" })
+         val containerInfo = inspectContainer(containerId!!)
+         val ipAddress = getContainerIpAddress(containerInfo)
 
-            // Labels
-            .withLabels(builder.labels.map { (key, value) -> key.unwrap() to value.unwrap() }.toMap())
+         setContainerHostName(containerInfo)
+         scheduleContainerKillTask(builder.maxLifeTime)
 
-            // Port bindings
-            .apply {
-               if (builder.portMappings.isEmpty()) {
-                  log.info("No ports to bind")
-               } else {
-                  val portBindings = this@DockerContainer.getPortBindings()
-                  hostConfig.withPortBindings(portBindings)
-               }
-            }
+         changeState(Container.State.RUNNING)
 
-            // Exposed ports (from the container)
-            .withExposedPorts(builder.exposedPorts.values.map { ExposedPort.tcp(it.value) })
-
-            // Volumes
-            .apply {
-               if (builder.volumes.isEmpty()) {
-                  log.info("No volumes to bind")
-               } else {
-                  val volumes = createDockerVolumes(hostConfig)
-                  withVolumes(*volumes.toTypedArray())
-               }
-            }
-
-            // Apply the hostConfig
-            .withHostConfig(hostConfig)
-
-            // Command and arguments
-            .apply {
-               val commandParts = mutableListOf<String>()
-               builder.command?.let { commandParts.addAll(it.value.split("\\s".toRegex())) }
-               builder.args?.let { commandParts.addAll(it.toStringList()) }
-               withCmd(commandParts).also {
-                  log.info("Running container using command: $commandParts")
-               }
-            }
-
-            // Create the container
-            .exec()
-
-            // Get the container ID
-            .id
-
-         dockerClient.startContainerCmd(containerId!!).exec().also {
-            log.info("Starting container: $containerId")
-         }
-
-         // Get the IP address
-         val containerInfo = dockerClient.inspectContainerCmd(containerId!!).exec()
-
-         val ipAddressVal = containerInfo.networkSettings.networks[DEFAULT_BRIDGE_NETWORK]?.ipAddress
-
-         // Convert the IP address string to an InetAddress object. If ipAddressString is null, this will be null.
-         val ipAddress = if (ipAddressVal != null) InetAddress.getByName(ipAddressVal) else null
-
-         containerInfo.config.hostName?.let {
-            host = Host.of(it)
-         }
-
-         builder.maxLifeTime?.let {
-            SCHEDULER.schedule(KillTask(), it.toSeconds(), TimeUnit.SECONDS)
-         }
-
-         // We're running on the host
-         changeState(Container.State.RUNNING).also {
-            log.info("Container started: $containerId with IP address: $ipAddress and host: $host")
-         }
+         log.info("Container '${getName()}' ('$containerId') with IP-address '$ipAddress' and hostname '$host'")
 
       } catch (e: Exception) {
          handleError(e)
       }
+   }
+
+   private fun prepareHostConfig(): HostConfig {
+      return HostConfig.newHostConfig().apply {
+         if (builder.isEphemeral) {
+            log.info("Setting autoRemove to true")
+            withAutoRemove(true)
+         }
+      }
+   }
+
+   private fun createContainerCommand(image: String, hostConfig: HostConfig): CreateContainerCmd {
+      return dockerClient.createContainerCmd(image).apply {
+         withName(builder.name.unwrap())
+         withEnv(builder.env.toMap().entries.map { "${it.key.unwrap()}=${it.value.unwrap()}" })
+         withLabels(builder.labels.map { (key, value) -> key.unwrap() to value.unwrap() }.toMap())
+         withExposedPorts(builder.exposedPorts.values.map { ExposedPort.tcp(it.value) })
+         configurePortBindings(this, hostConfig)
+         configureVolumes(this, hostConfig)
+         configureCommandAndArgs(this)
+         withHostConfig(hostConfig)
+      }
+   }
+
+   private fun configurePortBindings(cmd: CreateContainerCmd, hostConfig: HostConfig) {
+      if (builder.portMappings.isNotEmpty()) {
+         val portBindings = getPortBindings()
+         hostConfig.withPortBindings(portBindings)
+      } else {
+         log.info("No ports to bind")
+      }
+   }
+
+   private fun configureVolumes(cmd: CreateContainerCmd, hostConfig: HostConfig) {
+      if (builder.volumes.isNotEmpty()) {
+         val volumes = createDockerVolumes(hostConfig)
+         cmd.withVolumes(*volumes.toTypedArray())
+      } else {
+         log.info("No volumes to bind")
+      }
+   }
+
+   private fun configureCommandAndArgs(cmd: CreateContainerCmd) {
+      val commandParts = mutableListOf<String>().apply {
+         builder.command?.let { addAll(it.value.split("\\s".toRegex())) }
+         builder.args?.let { addAll(it.toStringList()) }
+      }
+      cmd.withCmd(commandParts)
+      log.info("Running container using command: $commandParts")
+   }
+
+   private fun startContainer(containerId: String) {
+      log.info("Starting container: ${getName()} ($containerId)")
+      dockerClient.startContainerCmd(containerId).exec()
+   }
+
+   private fun inspectContainer(containerId: String): InspectContainerResponse =
+      dockerClient.inspectContainerCmd(containerId).exec()
+
+   private fun getContainerIpAddress(containerInfo: InspectContainerResponse): InetAddress? {
+      val ipAddressVal = containerInfo.networkSettings.networks[DEFAULT_BRIDGE_NETWORK]?.ipAddress
+      return ipAddressVal?.let { InetAddress.getByName(it) }
+   }
+
+   private fun setContainerHostName(containerInfo: InspectContainerResponse) {
+      containerInfo.config.hostName?.let {
+         host = Host.of(it)
+      }
+   }
+
+   private fun scheduleContainerKillTask(maxLifeTime: Duration?) {
+      maxLifeTime?.let {
+         SCHEDULER.schedule(KillTask(), it.toSeconds(), TimeUnit.SECONDS)
+      }
+   }
+
+   private fun logContainerRunningInfo(containerId: String?, ipAddress: InetAddress?, host: Host?) {
+      log.info("Container started: $containerId with IP address: $ipAddress and host: $host")
    }
 
    private fun configureNetwork(hostConfig: HostConfig) {
@@ -319,31 +422,6 @@ internal class DockerContainer(
       }
    }
 
-   private fun logOutputToCompletion() {
-      dockerClient.logContainerCmd(containerId!!)
-         .withStdOut(true)
-         .withStdErr(true)
-         .withFollowStream(true)
-         .withTailAll()
-         .exec(object : ResultCallback.Adapter<Frame>() {
-
-            override fun onNext(item: Frame) {
-               val line = item.payload.decodeToString()
-               log.trace("Container [${builder.name}] output: $line")
-               builder.outputLineCallback.onLine(line)
-            }
-
-            override fun onError(throwable: Throwable) {
-               log.warn("Container [${builder.name}] output error", throwable)
-            }
-
-            override fun onComplete() {
-               log.info("Container [${builder.name}] output complete")
-            }
-
-         }).awaitCompletion()
-   }
-
    private fun getExistingVolumeNames(): Set<String> {
       val volumesResponse = dockerClient.listVolumesCmd().exec()
       return volumesResponse.volumes.map { it.name }.toSet()
@@ -360,7 +438,7 @@ internal class DockerContainer(
       }
    }
 
-   private fun handleError(e: Exception) {
+   private fun handleError(e: Exception, swallow: Boolean = false) {
       when (e) {
          is DockerException, is DockerClientException -> {
             log.error("A Docker error '{}' occurred in container '${builder.name}', raising ContainerException", e.message, e)

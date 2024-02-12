@@ -28,6 +28,7 @@ import java.util.concurrent.atomic.AtomicReference
 
 internal class K8sContainer(
    builder: ContainerBuilder,
+   private val client: KubernetesClient = K8sClientFactory.createDefaultClient()
 ) : AbstractContainer(builder) {
 
    private inner class PodWatcher : Watcher<Pod> {
@@ -58,8 +59,6 @@ internal class K8sContainer(
 
    private var service: Service? = null
 
-   private var client: KubernetesClient = K8sClientFactory.createDefaultClient()
-
    private val accessChecker = AccessChecker(client)
 
    private val pods: MutableList<Pair<Pod, List<Container>>> = CopyOnWriteArrayList()
@@ -76,7 +75,7 @@ internal class K8sContainer(
 
    private val ipAddress: AtomicReference<InetAddress> = AtomicReference()
 
-   private val executorService = Executors.newVirtualThreadPerTaskExecutor()
+   private val loggingExecutorService = Executors.newVirtualThreadPerTaskExecutor()
 
    init {
       createDeployment()
@@ -137,7 +136,7 @@ internal class K8sContainer(
          }
       }
 
-      executorService.execute(containerLogStreamer!!)
+      loggingExecutorService.execute(containerLogStreamer!!)
 
       // We have officially started the container(s)
       changeState(no.acntech.easycontainers.model.Container.State.STARTED)
@@ -204,7 +203,7 @@ internal class K8sContainer(
          }
       }
 
-      executorService.shutdownNow()
+      loggingExecutorService.shutdownNow()
 
       changeState(no.acntech.easycontainers.model.Container.State.REMOVED)
    }
@@ -341,7 +340,7 @@ internal class K8sContainer(
       val containerPort = getExposedPorts().firstOrNull()?.value
 
       containerPort?.let {
-         log.info("No exposed ports found for container: ${getName()}")
+         log.info("Exposed port found for container '${getName()}':$it - creating probes for liveness and readiness")
       }
 
       val (livenessProbe, readinessProbe) = createProbes(containerPort)
@@ -528,6 +527,8 @@ internal class K8sContainer(
          }
          initialDelaySeconds = 10
          periodSeconds = 5
+      }.also {
+         log.info("Liveness probe created: $it")
       }
 
       val readinessProbe = Probe().apply {
@@ -538,6 +539,8 @@ internal class K8sContainer(
          }
          initialDelaySeconds = 5
          periodSeconds = 5
+      }.also {
+         log.info("Readiness probe created: $it")
       }
 
       return Pair(livenessProbe, readinessProbe)

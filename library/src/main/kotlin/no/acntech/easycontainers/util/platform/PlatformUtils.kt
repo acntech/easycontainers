@@ -4,6 +4,7 @@ import no.acntech.easycontainers.util.platform.PlatformUtils.isDockerDesktopOnWi
 import no.acntech.easycontainers.util.platform.PlatformUtils.isMac
 import no.acntech.easycontainers.util.platform.PlatformUtils.isWslInstalled
 import no.acntech.easycontainers.util.text.EMPTY_STRING
+import no.acntech.easycontainers.util.text.NEW_LINE
 import org.apache.commons.exec.CommandLine
 import org.apache.commons.exec.DefaultExecutor
 import org.apache.commons.exec.PumpStreamHandler
@@ -13,6 +14,7 @@ import java.net.InetAddress
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
+import kotlin.io.path.absolutePathString
 
 /**
  * Utility class for platform-specific operations and checks.
@@ -67,7 +69,7 @@ object PlatformUtils {
          val executor = DefaultExecutor.builder().get()
          executor.execute(cmd) == 0
       } catch (e: IOException) {
-         log.debug("WSL not installed", e)
+         log.debug("WSL not installed ($e)")
          false
       }
    }
@@ -96,7 +98,7 @@ object PlatformUtils {
                }
          }
       } catch (e: IOException) {
-         log.debug("Error when trying to read WSL distributions", e)
+         log.warn("Error '${e.message}' 'when trying to read WSL distributions")
          emptyList()
       }
    }
@@ -172,7 +174,7 @@ object PlatformUtils {
 
          val outputWithoutErrors = output.lines()
             .filterNot { it.startsWith("<3>WSL") }
-            .joinToString("\n")
+            .joinToString(NEW_LINE)
 
          if (outputWithoutErrors.isNotBlank()) {
 
@@ -191,6 +193,17 @@ object PlatformUtils {
 
    @Throws(IOException::class)
    fun createDirectoryInWsl(linuxPath: String, distroName: String? = getDefaultWslDistro()): String? {
+      val wslPath = getWslPath(linuxPath, distroName)
+
+      // Create directory and parent directories if they do not exist
+      Files.createDirectories(Path.of(wslPath)).also {
+         log.trace("Directory '$linuxPath'created in WSL volume at '$wslPath' in distro '$distroName'")
+      }
+
+      return wslPath
+   }
+
+   fun getWslPath(linuxPath: String, distroName: String? = getDefaultWslDistro()): String {
       require(isWindows()) { "WSL is a Windows OS technology only" }
       require(isWslInstalled()) { "WSL is not installed" }
       require(linuxPath.isNotBlank()) { "Linux path cannot be blank" }
@@ -200,12 +213,7 @@ object PlatformUtils {
       }
 
       // Convert Linux-style path to WSL share path (e.g. \\wsl$\Ubuntu\home\path)
-      val wslPath = Paths.get("\\\\wsl$\\${distroName ?: getDefaultWslDistro()}$linuxPath")
-
-      // Create directory and parent directories if they do not exist
-      Files.createDirectories(wslPath)
-      log.trace("Directory created in WSL volume at: $linuxPath in distro $distroName")
-      return linuxPath
+      return Paths.get("\\\\wsl\$\\${distroName ?: getDefaultWslDistro()}$linuxPath").absolutePathString()
    }
 
    fun convertToDockerPath(path: Path): String {
@@ -236,7 +244,7 @@ object PlatformUtils {
    }
 
    private fun stripNullBytes(input: String): String {
-      return input.replace("\u0000", "")
+      return input.replace("\u0000", EMPTY_STRING)
    }
 
    @Throws(IOException::class)

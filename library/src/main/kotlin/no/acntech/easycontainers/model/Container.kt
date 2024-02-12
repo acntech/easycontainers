@@ -5,7 +5,8 @@ import java.net.InetAddress
 /**
  * Represents a container.
  *
- * This interface extends the [Runnable] interface, allowing the container to be executed as a separate thread.
+ * This interface extends the [Runnable] interface, allowing the container to be executed as a separate thread, but note that
+ * in general, the run() command doesnt wait for the container's completion.
  */
 interface Container : Runnable {
 
@@ -34,7 +35,6 @@ interface Container : Runnable {
     * Returns the namespace of the container.
     */
    fun getNamespace(): Namespace
-
 
    /**
     * Retrieves the labels associated with the container.

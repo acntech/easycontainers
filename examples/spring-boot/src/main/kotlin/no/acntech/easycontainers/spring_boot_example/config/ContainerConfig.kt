@@ -23,7 +23,7 @@ class ContainerConfig {
             withExposedPort(PortMappingName.HTTP, NetworkPort.HTTP)
             withVolume(VolumeName.of("kaniko-data"), UnixDir.of("/mnt/kaniko-data"))
             withIsEphemeral(true)
-            withLogLineCallback(
+            withOutputLineCallback(
                 Slf4JOutputLineCallback(
                     logger = LoggerFactory.getLogger("no.acntech.alpine-httpd-test"),
                     prefix = "HTTPD-CONTAINER-OUTPUT: "

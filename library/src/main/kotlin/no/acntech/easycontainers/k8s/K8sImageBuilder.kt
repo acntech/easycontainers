@@ -5,7 +5,6 @@ import io.fabric8.kubernetes.api.model.batch.v1.Job
 import io.fabric8.kubernetes.api.model.batch.v1.JobBuilder
 import io.fabric8.kubernetes.api.model.batch.v1.JobCondition
 import io.fabric8.kubernetes.client.KubernetesClient
-import io.fabric8.kubernetes.client.KubernetesClientBuilder
 import io.fabric8.kubernetes.client.Watcher
 import io.fabric8.kubernetes.client.WatcherException
 import io.fabric8.kubernetes.client.utils.Serialization
@@ -14,10 +13,10 @@ import no.acntech.easycontainers.ImageBuilder
 import no.acntech.easycontainers.model.ImageTag
 import no.acntech.easycontainers.util.platform.PlatformUtils
 import no.acntech.easycontainers.util.text.COLON
+import no.acntech.easycontainers.util.text.FORWARD_SLASH
 import no.acntech.easycontainers.util.text.NEW_LINE
 import org.apache.commons.io.FileUtils
 import org.awaitility.Awaitility.await
-import org.slf4j.LoggerFactory
 import java.io.File
 import java.io.IOException
 import java.nio.file.Files
@@ -35,7 +34,7 @@ import kotlin.io.path.exists
  * K8s builder for building a Docker image using a Kaniko job - see https://github.com/GoogleContainerTools/kaniko
  */
 internal class K8sImageBuilder(
-   private val client: KubernetesClient = K8sClientFactory.createDefaultClient()
+   private val client: KubernetesClient = K8sClientFactory.createDefaultClient(),
 ) : ImageBuilder() {
 
    companion object {
@@ -63,8 +62,6 @@ internal class K8sImageBuilder(
 
    private var job: Job? = null
 
-   private var deployedJob: Job? = null
-
    private var deleteContextDir = false
 
    private val startTime: AtomicReference<Instant> = AtomicReference<Instant>(null)
@@ -85,12 +82,14 @@ internal class K8sImageBuilder(
          log.info("Using '$it' as the actual Docker context dir")
       }
 
+      Thread.sleep(1000) // Sleep for 1 second to allow the context dir to be created and visible to the pod
+
       createAndDeployKanikoJob(contextDir)
 
       changeState(State.IN_PROGRESS)
 
       val podName = getPodNameForJob().also {
-         log.info("Pod name for job '$jobName': $it")
+         log.info("Pod name for Kaniko job '$jobName': $it")
          if (it == null) {
             log.error("Unable to retrieve pod name for job '$jobName'")
             changeState(State.FAILED)
@@ -109,6 +108,7 @@ internal class K8sImageBuilder(
          namespace = namespace.unwrap(),
          outputLineCallback = outputLineCallback
       )
+      // Start the log streamer in a separate (virtual) thread
       Thread.startVirtualThread {
          containerLogStreamer.run()
       }
@@ -188,18 +188,26 @@ internal class K8sImageBuilder(
    }
 
    private fun processOutsideCluster(): String {
-      var localKanikoPath = customProperties[PROP_LOCAL_KANIKO_DATA_PATH]
+      var localKanikoPath = customProperties[PROP_LOCAL_KANIKO_DATA_PATH].also {
+         log.debug("localKanikoPath: $it")
+      }
 
       return if (localKanikoPath != null) {
          log.debug("Using local Kaniko data path: $localKanikoPath")
 
          if (PlatformUtils.isWindows() && PlatformUtils.getDefaultWslDistro() != null) {
-            localKanikoPath = PlatformUtils.createDirectoryInWsl(localKanikoPath)
+            if (localKanikoPath.startsWith(FORWARD_SLASH)) { // Unix-dir, i.e. inside WSL
+               // Return the directory as the $WSL share
+               localKanikoPath = PlatformUtils.createDirectoryInWsl(localKanikoPath)
+            } else if(! localKanikoPath.startsWith("\\\\wsl\$")) {
+               // Otherwise it needs to be in the \\wsl$ share
+               throw ContainerException("Invalid local Kaniko path: $localKanikoPath")
+            }
 
-         } else if (PlatformUtils.isLinux()) {
-            localKanikoPath = File(System.getProperty("user.home") + "/kaniko-data").also {
+         } else if (PlatformUtils.isLinux() || PlatformUtils.isMac()) {
+            localKanikoPath = File(localKanikoPath).also {
                if (!(it.exists() || it.mkdirs())) {
-                  LoggerFactory.getLogger(K8sImageBuilder::class.java).warn("Unable to create directory: $it")
+                  log.warn("Unable to create/non-existing local Kaniko-data directory: $it")
                }
             }.absolutePath
          }
@@ -219,8 +227,9 @@ internal class K8sImageBuilder(
             }
          }
 
-      } else { // Running on Linux or Mac - or Windows without WSL2
-         // We have to assume that the Dockerfile and the context is already present in the shared Kaniko data volume
+      } else {
+         // Running on Linux or Mac - or Windows without WSL2 - we just have to assume that the Dockerfile and the context is
+         // already present in the shared Kaniko data volume
          dockerContextDirBelowMountPath()
       }
    }
@@ -259,7 +268,9 @@ internal class K8sImageBuilder(
       val uniqueContextDir = Paths.get(baseDir, uuid.toString())
 
       try {
-         Files.createDirectories(uniqueContextDir)
+         Files.createDirectories(uniqueContextDir).also {
+            log.debug("Created directory '$uniqueContextDir'")
+         }
       } catch (e: IOException) {
          throw ContainerException("Unable to create directory '$uniqueContextDir'")
       }
@@ -267,7 +278,9 @@ internal class K8sImageBuilder(
       log.info("Copying Docker context dir '$dockerContextDir' to '$uniqueContextDir'")
 
       try {
-         FileUtils.copyDirectory(dockerContextDir.toFile(), uniqueContextDir.toFile())
+         FileUtils.copyDirectory(dockerContextDir.toFile(), uniqueContextDir.toFile()).also {
+            log.debug("Dockerfile and context copied OK to '$uniqueContextDir'")
+         }
       } catch (e: IOException) {
          throw ContainerException("Error copying Docker context dir '$dockerContextDir' to '$uniqueContextDir'", e)
       }
@@ -277,7 +290,7 @@ internal class K8sImageBuilder(
 
    private fun createAndDeployKanikoJob(contextDir: String) {
       job = createKanikoJob(contextDir)
-      deployedJob = client.batch().v1().jobs().inNamespace(namespace.unwrap()).resource(job).create().also {
+      job = client.batch().v1().jobs().inNamespace(namespace.unwrap()).resource(job).create().also {
          log.info("Kaniko job '$it' deployed in namespace '$namespace'")
       }
    }
@@ -310,12 +323,11 @@ internal class K8sImageBuilder(
       }
 
       // Now we have the container and the volume(s) - create the job
-      val job = createJob(container, volumes)
+      return createJob(container, volumes).also {
+         log.debug("Created Kaniko job: {}", it.metadata.name)
+         log.info("${NEW_LINE}Kaniko job YAML:$NEW_LINE${Serialization.asYaml(it)}")
+      }
 
-      log.debug("Created Kaniko job: {}", job.metadata.name)
-      log.info("${NEW_LINE}Kaniko job YAML:$NEW_LINE${Serialization.asYaml(job)}")
-
-      return job
    }
 
    private fun prepareArguments(dockerContextPath: String): MutableList<String> {

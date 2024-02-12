@@ -10,6 +10,7 @@ import com.github.dockerjava.api.model.PushResponseItem
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.ImageBuilder
 import no.acntech.easycontainers.model.ImageTag
+import no.acntech.easycontainers.util.lang.toMap
 import no.acntech.easycontainers.util.text.NEW_LINE
 import java.nio.file.Path
 import java.time.Duration
@@ -33,7 +34,6 @@ internal class DockerImageBuilder(
    override fun getStartTime(): Instant? {
       return startTime
    }
-
    override fun getFinishTime(): Instant? {
       return finishTime
    }
@@ -93,12 +93,15 @@ internal class DockerImageBuilder(
             .withBaseDirectory(dockerContextDir.toFile())
             .withLabels(labels.map { (key, value) ->
                key.unwrap() to value.unwrap()
-            }.toMap())
+            }.toMap() as Map<String, String>)
             .withTags(tags)
             .exec(object : BuildImageResultCallback() {
 
                override fun onNext(item: BuildResponseItem) {
                   log.info("Build response item (progress): {}", item.progressDetail)
+
+                  // Stringify the BuildResponseItem with all its properties
+                  log.info("BuildResponseItem: " + item.toMap().toString())
 
                   if (item.isErrorIndicated) {
                      log.error("Error building image: {}", item.errorDetail?.message)
