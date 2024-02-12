@@ -24,6 +24,8 @@ class ContainerBuilder {
 
    var containerType: ContainerType = ContainerType.KUBERNETES
 
+   var executionMode = ExecutionMode.SERVICE
+
    var name: ContainerName = ContainerName.of(UUID.randomUUID().toString())
 
    var namespace: Namespace = Namespace.DEFAULT
@@ -80,6 +82,14 @@ class ContainerBuilder {
     */
    fun withType(type: ContainerType): ContainerBuilder {
       this.containerType = type
+      return this
+   }
+
+   /**
+    * Sets the execution mode for the container.
+    */
+   fun withExecutionMode(executionMode: ExecutionMode): ContainerBuilder {
+      this.executionMode = executionMode
       return this
    }
 
@@ -404,6 +414,7 @@ class ContainerBuilder {
    override fun toString(): String {
       return ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
          .append(this::containerType.name, containerType)
+         .append(this::executionMode.name, executionMode)
          .append(this::name.name, name)
          .append(this::image.name, image)
          .append(this::namespace.name, namespace)

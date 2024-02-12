@@ -17,12 +17,17 @@ import no.acntech.easycontainers.model.Container
 import no.acntech.easycontainers.model.Host
 import no.acntech.easycontainers.model.NetworkName
 import no.acntech.easycontainers.util.platform.PlatformUtils.convertToDockerPath
+import no.acntech.easycontainers.util.time.DurationFormatter
 import java.net.InetAddress
 import java.nio.file.Path
 import java.time.Duration
+import java.time.Instant
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
+
 
 internal class DockerContainer(
    containerBuilder: ContainerBuilder,
@@ -34,7 +39,7 @@ internal class DockerContainer(
       }
 
       private fun logOutputToCompletion() {
-         dockerClient.logContainerCmd(containerId!!)
+         dockerClient.logContainerCmd(containerId.get())
             .withStdOut(true)
             .withStdErr(true)
             .withFollowStream(true)
@@ -66,7 +71,9 @@ internal class DockerContainer(
 
    private val dockerClient: DockerClient = DockerClientFactory.createDefaultClient()
 
-   private var containerId: String? = null
+   private val containerId: AtomicReference<String> = AtomicReference()
+
+   private val exitCode: AtomicInteger = AtomicInteger()
 
    private var ipAddress: InetAddress? = null
 
@@ -74,13 +81,30 @@ internal class DockerContainer(
 
    private var networkName: NetworkName? = null
 
-   private val loggingExecutorService = Executors.newVirtualThreadPerTaskExecutor()
+   private var startedAt: Instant? = null
+
+   private var finishedAt: Instant? = null
+
+   private val executorService = Executors.newVirtualThreadPerTaskExecutor()
 
    override fun run() {
       changeState(Container.State.STARTED)
       pullImage()
       startContainer()
-      loggingExecutorService.submit(LogWatcher())
+      executorService.submit(LogWatcher())
+      extractStartTime()
+   }
+
+   override fun waitForCompletion(timeoutValue: Long, timeoutUnit: TimeUnit): Int {
+      log.info("Waiting for container to complete: '${getName()}' ($containerId)")
+      val callback = dockerClient.waitContainerCmd(containerId.get()).exec(WaitContainerResultCallback())
+      val statusCode = callback.awaitStatusCode(timeoutValue, timeoutUnit)
+      exitCode.set(statusCode)
+      log.info(
+         "Container '${getName()}' ($containerId) has completed in " +
+            "${DurationFormatter.formatAsMinutesAndSecondsLong(getDuration()!!)} with status code $statusCode"
+      )
+      return statusCode
    }
 
    override fun stop() {
@@ -95,8 +119,8 @@ internal class DockerContainer(
       }
 
       try {
-         dockerClient.stopContainerCmd(containerId!!).exec()
-         dockerClient.waitContainerCmd(containerId!!).exec(callback).awaitCompletion().also {
+         dockerClient.stopContainerCmd(containerId.get()).exec()
+         dockerClient.waitContainerCmd(containerId.get()).exec(callback).awaitCompletion().also {
             log.info("Container successfully stopped: $containerId")
          }
 
@@ -120,8 +144,8 @@ internal class DockerContainer(
       }
 
       try {
-         dockerClient.killContainerCmd(containerId!!).exec()
-         dockerClient.waitContainerCmd(containerId!!).exec(callback).awaitCompletion().also {
+         dockerClient.killContainerCmd(containerId.get()).exec()
+         dockerClient.waitContainerCmd(containerId.get()).exec(callback).awaitCompletion().also {
             log.info("Container successfully terminated: ${getName()} ($containerId)")
          }
 
@@ -153,11 +177,11 @@ internal class DockerContainer(
          }
 
          try {
-            dockerClient.removeContainerCmd(containerId!!)
+            dockerClient.removeContainerCmd(containerId.get())
                .withForce(true)
                .exec()
 
-            dockerClient.waitContainerCmd(containerId!!).exec(callback).awaitCompletion().also {
+            dockerClient.waitContainerCmd(containerId.get()).exec(callback).awaitCompletion().also {
                log.info("Container successfully removed: ${getName()} ($containerId)")
             }
 
@@ -188,6 +212,16 @@ internal class DockerContainer(
       return host
    }
 
+   override fun getDuration(): Duration? {
+      return startedAt?.let { start ->
+         if (finishedAt == null) {
+            extractFinishTime()
+         }
+         val end = finishedAt ?: Instant.now()
+         Duration.between(start, end)
+      }
+   }
+
    private fun pullImage() {
       try {
          dockerClient.pullImageCmd(builder.image.toFQDN())
@@ -213,11 +247,11 @@ internal class DockerContainer(
          val hostConfig = prepareHostConfig()
          configureNetwork(hostConfig)
          val containerCmd = createContainerCommand(image, hostConfig)
-         containerId = containerCmd.exec().id
+         containerId.set(containerCmd.exec().id)
 
-         startContainer(containerId!!)
+         startContainer(containerId.get())
 
-         val containerInfo = inspectContainer(containerId!!)
+         val containerInfo = inspectContainer(containerId.get())
          val ipAddress = getContainerIpAddress(containerInfo)
 
          setContainerHostName(containerInfo)
@@ -225,7 +259,7 @@ internal class DockerContainer(
 
          changeState(Container.State.RUNNING)
 
-         log.info("Container '${getName()}' ('$containerId') with IP-address '$ipAddress' and hostname '$host'")
+         log.info("Container '${getName()}' ('$containerId') is RUNNING with IP-address '$ipAddress' and hostname '$host'")
 
       } catch (e: Exception) {
          handleError(e)
@@ -425,6 +459,20 @@ internal class DockerContainer(
    private fun getExistingVolumeNames(): Set<String> {
       val volumesResponse = dockerClient.listVolumesCmd().exec()
       return volumesResponse.volumes.map { it.name }.toSet()
+   }
+
+   private fun extractStartTime() {
+      val response = dockerClient.inspectContainerCmd(containerId.get()).exec()
+      response.state.startedAt?.let {
+         startedAt = Instant.parse(it)
+      }
+   }
+
+   private fun extractFinishTime() {
+      val response = dockerClient.inspectContainerCmd(containerId.get()).exec()
+      response.state.finishedAt.let {
+         finishedAt = Instant.parse(it)
+      }
    }
 
    private fun cleanUpResources() {

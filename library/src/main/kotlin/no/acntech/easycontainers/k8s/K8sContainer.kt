@@ -18,6 +18,7 @@ import no.acntech.easycontainers.util.text.SPACE
 import org.awaitility.Awaitility.await
 import java.io.File
 import java.net.InetAddress
+import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
 import java.util.concurrent.Executors
@@ -142,6 +143,10 @@ internal class K8sContainer(
       changeState(no.acntech.easycontainers.model.Container.State.STARTED)
    }
 
+   override fun waitForCompletion(timeoutValue: Long, timeoutUnit: TimeUnit): Int {
+      TODO("Not yet implemented")
+   }
+
    @Synchronized
    override fun stop() {
       requireState(
@@ -214,6 +219,10 @@ internal class K8sContainer(
 
    override fun getIpAddress(): InetAddress? {
       return ipAddress.get()
+   }
+
+   override fun getDuration(): Duration? {
+      return null
    }
 
    @Throws(ContainerException::class)

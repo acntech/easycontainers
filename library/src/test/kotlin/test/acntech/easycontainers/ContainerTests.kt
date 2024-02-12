@@ -2,6 +2,7 @@ package test.acntech.easycontainers
 
 import no.acntech.easycontainers.ContainerFactory
 import no.acntech.easycontainers.ContainerType
+import no.acntech.easycontainers.ExecutionMode
 import no.acntech.easycontainers.ImageBuilder
 import no.acntech.easycontainers.docker.DockerConstants
 import no.acntech.easycontainers.docker.DockerRegistryUtils
@@ -63,10 +64,10 @@ class ContainerTests {
          
          # Create a startup script directly in the Dockerfile
          RUN echo '#!/bin/sh' > /start.sh \
-             && echo '/usr/local/bin/log-time.sh &' >> /start.sh \
-             && echo '/usr/sbin/sshd -D' >> /start.sh \
-             && chmod +x /start.sh
-         
+            && echo '/usr/sbin/sshd &' >> /start.sh \
+            && echo '/usr/local/bin/log-time.sh' >> /start.sh \
+            && chmod +x /start.sh
+
          # Expose necessary ports (the SSH port)
          EXPOSE 22
          
@@ -83,6 +84,17 @@ class ContainerTests {
            count=${'$'}((count+1))
            sleep 2
          done
+      """.trimIndent()
+
+      private val LOG_TIME_WITH_EXIT_SCRIPT_CONTENT = """
+         count=1
+         while [ ${'$'}count -le 3 ]
+         do
+           echo "${'$'}{count}: ${'$'}(date)"
+           count=${'$'}((count+1))
+           sleep 2
+         done
+         exit 1
       """.trimIndent()
 
       init {
@@ -241,7 +253,70 @@ class ContainerTests {
       // Remove and check state
       container.remove()
       assertEquals(Container.State.REMOVED, container.getState(), "Container is not removed")
+   }
 
+   @ParameterizedTest
+   @CsvSource(
+      "DOCKER, 30021",
+//      "KUBERNETES, 30022"
+   )
+   fun `Test task build and run`(containerType: String, sshPort: Int) {
+      log.info("Testing Alpine SSH container with container type: {}", containerType)
+
+      val imageName = ImageName.of("test-job2")
+      val repository = RepositoryName.TEST
+
+      DockerRegistryUtils.deleteImage("http://$registry", imageName.unwrap())
+
+      val tempDir = Files.createTempDirectory("dockercontext-").toString()
+      log.debug("Temp dir for docker-context created: {}", tempDir)
+      val dockerfile = File(tempDir, "Dockerfile")
+      val logTimeScript = File(tempDir, "log-time.sh")
+      dockerfile.writeText(DOCKERFILE_CONTENT)
+      logTimeScript.writeText(LOG_TIME_WITH_EXIT_SCRIPT_CONTENT)
+
+      log.debug("Dockerfile created: {}", dockerfile.absolutePath)
+      log.debug("log-time.sh created: {}", logTimeScript.absolutePath)
+
+      val imageBuilder = ContainerFactory.imageBuilder(ContainerType.valueOf(containerType))
+         .withName(imageName)
+         .withVerbosity(Verbosity.DEBUG)
+         .withImageRegistry(RegistryURL.of(registry))
+         .withInsecureRegistry(true)
+         .withRepository(RepositoryName.TEST)
+         .withNamespace(Namespace.TEST)
+         .withDockerContextDir(Path.of(tempDir))
+         .withOutputLineCallback { line -> println("JOB-OUTPUT: ${Instant.now()} $line") } // Will only work for Kubernetes
+         .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, localKanikoPath)
+
+      val result = imageBuilder.buildImage()
+      assertTrue(result, "Image build failed")
+
+      val container = ContainerFactory.container {
+         withType(ContainerType.valueOf(containerType))
+         withExecutionMode(ExecutionMode.TASK)
+         withName(ContainerName.of("alpine-ssh-test-job"))
+         withNamespace(Namespace.TEST)
+         withImage(ImageURL.of("$registry/$repository/${imageName}:latest"))
+         withExposedPort(PortMappingName.SSH, NetworkPort.SSH)
+         withPortMapping(NetworkPort.SSH, NetworkPort.of(sshPort))
+         withIsEphemeral(true)
+         withMaxLifeTime(Duration.of(10 * 60, ChronoUnit.SECONDS))
+         withOutputLineCallback { line -> println("ALPINE-SSH-EXIT-OUTPUT: $line") }
+      }.build()
+
+      // Run the container
+      container.run()
+
+      container.getState().let {
+         assertTrue(
+            it == Container.State.RUNNING || it == Container.State.STARTED,
+            "Container is not started or running"
+         )
+      }
+
+      val exitVal = container.waitForCompletion(20, TimeUnit.SECONDS)
+      assertEquals(1, exitVal, "Container did not exit with code 1")
    }
 
 }

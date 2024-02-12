@@ -1,12 +1,14 @@
 package no.acntech.easycontainers.model
 
 import java.net.InetAddress
+import java.time.Duration
+import java.util.concurrent.TimeUnit
 
 /**
  * Represents a container.
  *
  * This interface extends the [Runnable] interface, allowing the container to be executed as a separate thread, but note that
- * in general, the run() command doesnt wait for the container's completion.
+ * in general, the run() command doesn't wait for the container's completion.
  */
 interface Container : Runnable {
 
@@ -129,7 +131,14 @@ interface Container : Runnable {
 
    fun getIpAddress(): InetAddress?
 
+   /**
+    * Retrieves the duration of the container execution (RUNNING state).
+    */
+   fun getDuration(): Duration?
+
    // Lifecycle
+
+   fun waitForCompletion(timeoutValue: Long = Long.MAX_VALUE, timeoutUnit: TimeUnit = TimeUnit.DAYS) : Int
 
    /**
     * Stops the container.

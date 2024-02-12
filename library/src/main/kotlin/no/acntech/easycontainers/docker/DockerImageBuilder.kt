@@ -91,9 +91,9 @@ internal class DockerImageBuilder(
             .withNoCache(true)
             .withDockerfile(dockerfile.toFile())
             .withBaseDirectory(dockerContextDir.toFile())
-            .withLabels(labels.map { (key, value) ->
+            .withLabels(labels.entries.associate { (key, value) ->
                key.unwrap() to value.unwrap()
-            }.toMap() as Map<String, String>)
+            })
             .withTags(tags)
             .exec(object : BuildImageResultCallback() {
 
