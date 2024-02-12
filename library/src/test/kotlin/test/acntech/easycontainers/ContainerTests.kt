@@ -36,6 +36,8 @@ class ContainerTests {
 
       private val nodeHostIpAddress = registryIpAddress
 
+      private val dockerHostAddress = registryIpAddress
+
       private val registry = "${registryIpAddress}:5000"
 
       private val localKanikoPath = getWslPath("/home/thomas/kind/kaniko-data")
@@ -44,7 +46,7 @@ class ContainerTests {
          # Use Alpine Linux as the base image
          FROM alpine:latest
 
-         # Install curl, httpie, openssh, Python, and other necessary dependencies
+         # Install dependencies
          RUN apk add --no-cache curl netcat-openbsd openssh
 
          # Additional setup SSH
@@ -84,10 +86,9 @@ class ContainerTests {
       """.trimIndent()
 
       init {
-         System.setProperty(DockerConstants.PROP_DOCKER_HOST, "tcp://$registryIpAddress:2375")
+         System.setProperty(DockerConstants.PROP_DOCKER_HOST, "tcp://$dockerHostAddress:2375")
       }
    }
-
 
    @ParameterizedTest
    @ValueSource(strings = ["DOCKER"/*, "KUBERNETES"*/])
@@ -233,9 +234,11 @@ class ContainerTests {
       // Check that the SSH port is open
       assertTrue(NetworkUtils.isPortOpen(nodeHostIpAddress, sshPort), "$nodeHostIpAddress:$sshPort is not open")
 
+      // Stop and check state
       container.stop()
       assertEquals(Container.State.STOPPED, container.getState(), "Container is not stopped")
 
+      // Remove and check state
       container.remove()
       assertEquals(Container.State.REMOVED, container.getState(), "Container is not removed")
 
