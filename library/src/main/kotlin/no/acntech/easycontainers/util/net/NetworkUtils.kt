@@ -3,7 +3,6 @@ package no.acntech.easycontainers.util.net
 import org.slf4j.LoggerFactory
 import java.io.IOException
 import java.net.NetworkInterface
-import java.net.ServerSocket
 import java.net.Socket
 import java.net.SocketException
 

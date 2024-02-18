@@ -1,8 +1,5 @@
 package no.acntech.easycontainers.util.platform
 
-import no.acntech.easycontainers.util.platform.PlatformUtils.isDockerDesktopOnWindows
-import no.acntech.easycontainers.util.platform.PlatformUtils.isMac
-import no.acntech.easycontainers.util.platform.PlatformUtils.isWslInstalled
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import no.acntech.easycontainers.util.text.NEW_LINE
 import org.apache.commons.exec.CommandLine
@@ -10,14 +7,13 @@ import org.apache.commons.exec.DefaultExecutor
 import org.apache.commons.exec.PumpStreamHandler
 import org.slf4j.LoggerFactory
 import java.io.*
-import java.net.InetAddress
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.Paths
 import kotlin.io.path.absolutePathString
 
 /**
- * Utility class for platform-specific operations and checks.
+ * Utility class for platform-specific operations.
  */
 object PlatformUtils {
 
@@ -74,6 +70,12 @@ object PlatformUtils {
       }
    }
 
+   /**
+    * Retrieves the names of the Windows Subsystem for Linux (WSL) distributions installed on the system.
+    * Returns an empty list if the current operating system is not Windows.
+    *
+    * @return a list of strings containing the names of the WSL distributions.
+    */
    fun getWslDistroNames(): List<String> {
       if (!isWindows()) {
          return emptyList()
@@ -193,7 +195,7 @@ object PlatformUtils {
 
    @Throws(IOException::class)
    fun createDirectoryInWsl(linuxPath: String, distroName: String? = getDefaultWslDistro()): String? {
-      val wslPath = getWslPath(linuxPath, distroName)
+      val wslPath = convertLinuxPathToWindowsWslPath(linuxPath, distroName)
 
       // Create directory and parent directories if they do not exist
       Files.createDirectories(Path.of(wslPath)).also {
@@ -203,7 +205,37 @@ object PlatformUtils {
       return wslPath
    }
 
-   fun getWslPath(linuxPath: String, distroName: String? = getDefaultWslDistro()): String {
+   /**
+    * Converts a Windows-style path to a Linux-style path for use in WSL.
+    * Example: "C:\Users\path" -> "/mnt/c/Users/path"
+    */
+   fun convertWindowsPathToLinuxWslPath(windowsPath: String, distroName: String? = getDefaultWslDistro()): String {
+      require(isWindows()) { "WSL is a Windows OS technology only" }
+      require(isWslInstalled()) { "WSL is not installed" }
+      require(windowsPath.isNotBlank()) { "Windows path cannot be blank" }
+      // Require that distroName is an element in the list of WSL distros
+      require(distroName == null || getWslDistroNames().contains(distroName)) {
+         "Distro name '$distroName' is not a valid WSL distro"
+      }
+
+      // If starts with \\wsl$\, then it's already a WSL path, and we need convert it to a Linux-style path
+      return if (windowsPath.startsWith("\\\\wsl\$")) {
+         val wslPath = windowsPath.replace("\\", "/")
+         val pathDistroName = wslPath.split("/")[3]
+         wslPath.replaceFirst("\\\\wsl$\\\\$pathDistroName", EMPTY_STRING)
+      } else {
+         // Convert Windows-style path to WSL share path (e.g. /mnt/c/Users/path)
+         val driveLetter = windowsPath.substring(0, 1).lowercase() // Extract the drive letter and convert to lowercase
+         val windowsPathWithoutDrive = windowsPath.substring(2).replace("\\", "/") // Remove the drive letter and replace backslashes with forward slashes
+        "/mnt/${driveLetter}/$windowsPathWithoutDrive"
+      }
+   }
+
+   /**
+    * Converts a Linux-style path to a Windows-style path for use in WSL.
+    * Example: "/home/johndoe/myfile.txt" -> "\\wsl$\Ubuntu\home\johndoe\myfile.txt"
+    */
+   fun convertLinuxPathToWindowsWslPath(linuxPath: String, distroName: String? = getDefaultWslDistro()): String {
       require(isWindows()) { "WSL is a Windows OS technology only" }
       require(isWslInstalled()) { "WSL is not installed" }
       require(linuxPath.isNotBlank()) { "Linux path cannot be blank" }
@@ -216,6 +248,10 @@ object PlatformUtils {
       return Paths.get("\\\\wsl\$\\${distroName ?: getDefaultWslDistro()}$linuxPath").absolutePathString()
    }
 
+   /**
+    * Converts a Path to a string that can be used in a Docker command.
+    * Example: "C:\Users\path" -> "/mnt/c/Users/path" (WSL) or "C:/Users/path" (Docker Desktop)
+    */
    fun convertToDockerPath(path: Path): String {
       // For Linux or Mac, return the absolute path
       if (isLinux() || isMac()) {

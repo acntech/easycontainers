@@ -24,7 +24,7 @@ import java.time.Instant
  * a local daemon is assumed.
  */
 internal class DockerImageBuilder(
-   private val dockerClient: DockerClient = DockerClientFactory.createDefaultClient()
+   private val dockerClient: DockerClient = DockerClientFactory.createDefaultClient(),
 ) : ImageBuilder() {
 
    private var startTime: Instant? = null
@@ -34,6 +34,7 @@ internal class DockerImageBuilder(
    override fun getStartTime(): Instant? {
       return startTime
    }
+
    override fun getFinishTime(): Instant? {
       return finishTime
    }
@@ -62,7 +63,7 @@ internal class DockerImageBuilder(
 
       // Pushing the Docker image
       pushImage(tags)
-      if(getState() != State.FAILED) {
+      if (getState() != State.FAILED) {
          changeState(State.COMPLETED)
       }
 

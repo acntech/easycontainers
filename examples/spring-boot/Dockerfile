@@ -19,7 +19,7 @@ WORKDIR /opt/app
 
 # Copy necessary files
 COPY target/*.jar app.jar
-COPY start.sh start.sh
+COPY entrypoint.sh start.sh
 COPY jvm_options jvm_options
 
 # Make the start script executable and ensure jvm_options is readable
@@ -31,4 +31,4 @@ RUN chmod +x start.sh && \
 # Change to the app user
 USER appuser
 
-ENTRYPOINT ["/bin/sh", "start.sh"]
+ENTRYPOINT ["/bin/sh", "entrypoint.sh"]

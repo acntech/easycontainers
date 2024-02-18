@@ -1,7 +1,7 @@
 package no.acntech.easycontainers
 
 import no.acntech.easycontainers.docker.DockerContainer
-import no.acntech.easycontainers.k8s.K8sContainer
+import no.acntech.easycontainers.k8s.ServiceContainer
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.output.OutputLineCallback
 import no.acntech.easycontainers.util.text.NEW_LINE
@@ -155,7 +155,7 @@ class ContainerBuilder {
     * will be replaced by the provided ones.
     *
     * @param env a map of environment variable keys and values
-    * @return the updated ContainerBuilder instance
+    * @return the updated instance of ContainerBuilder, allowing for fluent API usage.
     */
    fun withEnv(env: Map<EnvVarKey, EnvVarValue>): ContainerBuilder {
       this.env.putAll(env)
@@ -163,10 +163,22 @@ class ContainerBuilder {
    }
 
    /**
-    * Sets the command for the container.
+    * Sets the command for the container, analogous to Kubernetes' `command` and Docker's overridden `ENTRYPOINT`.
+    * This method standardizes container execution across Kubernetes and Docker by specifying the executable
+    * to run when the container starts. In Docker, this effectively neutralizes the `ENTRYPOINT` directive
+    * by ensuring the command is executed directly, typically via `/bin/sh -c`, allowing for a seamless
+    * integration of command execution across both platforms.
+    * <p>
+    * Note: In Docker, the actual neutralization of `ENTRYPOINT` and execution of the command
+    * might be fully realized when `withArgs` is called, as it combines both command and arguments
+    * into a single executable statement.
+    * <p>
+    * Note that if no command or arguments are specified, the container will use the default command, arguments and entrypoint
+    * specified in the image.
     *
-    * @param command the executable command to be set
-    * @return the updated instance of ContainerBuilder
+    * @param command the executable command to be set. In Kubernetes, this corresponds to the `command` field.
+    *                In Docker, this is part of the command string executed by `/bin/sh -c`.
+    * @return the updated instance of ContainerBuilder, allowing for fluent API usage.
     */
    fun withCommand(command: Executable): ContainerBuilder {
       this.command = command
@@ -174,10 +186,19 @@ class ContainerBuilder {
    }
 
    /**
-    * Sets the command arguments for the container.
+    * Sets the command arguments for the container, aligning with Kubernetes' `args` and Docker's `CMD`.
+    * This method unifies the handling of command arguments in both Kubernetes and Docker. It ensures that
+    * in Docker, the `ENTRYPOINT` is effectively neutralized by combining these arguments with the command
+    * specified via `withCommand` to form a single command string. This string is then executed in a shell,
+    * mirroring Kubernetes' behavior and providing a consistent command execution environment across both platforms.
     *
-    * @param args The arguments to set for the container.
-    * @return The updated ContainerBuilder object.
+    * The invocation of this method completes the setup for command execution in Docker, ensuring that
+    * both command and arguments are treated as a unified command line, similar to how Kubernetes processes
+    * `command` and `args`.
+    *
+    * @param args The arguments to be used with the command. In Kubernetes, corresponds to the `args` provided
+    *             to the `command`. In Docker, these are combined with the command to form a complete shell command.
+    * @return the updated instance of ContainerBuilder, allowing for fluent API usage.
     */
    fun withArgs(args: Args): ContainerBuilder {
       this.args = args
@@ -395,7 +416,7 @@ class ContainerBuilder {
 
       return when (containerType) {
          ContainerType.DOCKER -> DockerContainer(this)
-         ContainerType.KUBERNETES -> K8sContainer(this)
+         ContainerType.KUBERNETES -> ServiceContainer(this)
       }.also {
          log.debug("Container created: {}", it)
       }

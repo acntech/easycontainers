@@ -2,35 +2,40 @@ package no.acntech.easycontainers.docker
 
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.api.async.ResultCallback
-import com.github.dockerjava.api.command.CreateContainerCmd
-import com.github.dockerjava.api.command.InspectContainerResponse
-import com.github.dockerjava.api.command.PullImageResultCallback
-import com.github.dockerjava.api.command.WaitContainerResultCallback
+import com.github.dockerjava.api.command.*
 import com.github.dockerjava.api.exception.DockerClientException
 import com.github.dockerjava.api.exception.DockerException
 import com.github.dockerjava.api.model.*
-import no.acntech.easycontainers.AbstractContainer
-import no.acntech.easycontainers.ContainerBuilder
-import no.acntech.easycontainers.ContainerException
+import com.github.dockerjava.api.model.Volume
+import no.acntech.easycontainers.*
 import no.acntech.easycontainers.docker.DockerConstants.DEFAULT_BRIDGE_NETWORK
+import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.model.Container
-import no.acntech.easycontainers.model.Host
-import no.acntech.easycontainers.model.NetworkName
+import no.acntech.easycontainers.util.io.FileUtils
+import no.acntech.easycontainers.util.io.FileUtils.tarFile
 import no.acntech.easycontainers.util.platform.PlatformUtils.convertToDockerPath
+import no.acntech.easycontainers.util.text.EMPTY_STRING
+import no.acntech.easycontainers.util.text.SPACE
 import no.acntech.easycontainers.util.time.DurationFormatter
+import java.io.*
 import java.net.InetAddress
+import java.nio.file.Files
 import java.nio.file.Path
+import java.nio.file.Paths
 import java.time.Duration
 import java.time.Instant
+import java.util.concurrent.CountDownLatch
 import java.util.concurrent.Executors
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
-
+import kotlin.io.path.exists
+import kotlin.io.path.isDirectory
+import kotlin.io.path.isRegularFile
 
 internal class DockerContainer(
    containerBuilder: ContainerBuilder,
+   private val dockerClient: DockerClient = DockerClientFactory.createDefaultClient(),
 ) : AbstractContainer(containerBuilder) {
 
    private inner class LogWatcher : Runnable {
@@ -69,11 +74,9 @@ internal class DockerContainer(
       var SCHEDULER: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
    }
 
-   private val dockerClient: DockerClient = DockerClientFactory.createDefaultClient()
-
    private val containerId: AtomicReference<String> = AtomicReference()
 
-   private val exitCode: AtomicInteger = AtomicInteger()
+   private var exitCode: Int? = null
 
    private var ipAddress: InetAddress? = null
 
@@ -99,7 +102,7 @@ internal class DockerContainer(
       log.info("Waiting for container to complete: '${getName()}' ($containerId)")
       val callback = dockerClient.waitContainerCmd(containerId.get()).exec(WaitContainerResultCallback())
       val statusCode = callback.awaitStatusCode(timeoutValue, timeoutUnit)
-      exitCode.set(statusCode)
+      exitCode = statusCode
       log.info(
          "Container '${getName()}' ($containerId) has completed in " +
             "${DurationFormatter.formatAsMinutesAndSecondsLong(getDuration()!!)} with status code $statusCode"
@@ -204,6 +207,14 @@ internal class DockerContainer(
       }
    }
 
+   override fun getType(): ContainerType {
+      return builder.containerType
+   }
+
+   override fun getExecutionMode(): ExecutionMode {
+      return builder.executionMode
+   }
+
    override fun getIpAddress(): InetAddress? {
       return ipAddress
    }
@@ -222,6 +233,140 @@ internal class DockerContainer(
       }
    }
 
+   override fun getExitCode(): Int? {
+      if (exitCode == null && containerId.get() != null) {
+         val containerInfo = dockerClient.inspectContainerCmd(containerId.get()).exec()
+         exitCode = containerInfo.state.exitCodeLong?.toInt()
+      }
+      return exitCode
+   }
+
+   override fun execute(
+      executable: Executable,
+      args: Args?,
+      workingDir: UnixDir?,
+      input: InputStream?,
+      waitTimeValue: Long?,
+      waitTimeUnit: TimeUnit?,
+   ): Triple<Int, String, String> {
+      return internalExecute(
+         listOf(executable.value) + (args?.toStringList() ?: emptyList()),
+         workingDir?.value,
+         input,
+         waitTimeValue,
+         waitTimeUnit,
+      )
+   }
+
+   override fun putFile(localPath: Path, remoteDir: UnixDir, remoteFilename: String?) {
+      requireState(Container.State.RUNNING)
+
+      require(localPath.exists()) { "Local file '$localPath' does not exist" }
+      require(localPath.isRegularFile()) { "Local path '$localPath' is not a file" }
+
+      // Check if remoteDir exists, if not create it
+      createContainerDirIfNotExists(remoteDir)
+
+      val tarFile = tarFile(localPath, remoteFilename ?: localPath.fileName.toString())
+      val inputStream = FileInputStream(tarFile)
+      try {
+         dockerClient.copyArchiveToContainerCmd(containerId.get())
+            .withRemotePath(remoteDir.value)
+            .withTarInputStream(inputStream)
+            .exec()
+
+         log.info("File '${localPath.fileName}' uploaded to container '${getName()}' ('$containerId') " +
+            "in directory '${remoteDir.value}'")
+
+      } catch (e: Exception) {
+         handleDockerError(e)
+      } finally {
+         inputStream.close()
+         tarFile.delete()
+      }
+   }
+
+   override fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path?): Path {
+      val tempTarFile = Files.createTempFile("temp", ".tar").toFile()
+
+      val remoteFilePath = "$remoteDir/$remoteFilename"
+
+      try {
+         dockerClient
+            .copyArchiveFromContainerCmd(containerId.get(), remoteFilePath)
+            .exec()
+            .use { responseStream ->
+               FileOutputStream(tempTarFile).use { outputStream ->
+                  responseStream.copyTo(outputStream)
+               }
+            }
+
+         val targetPath = determineLocalPath(localPath, remoteFilename)
+
+         // untar the tempTarFile to the targetPath
+         FileUtils.untarFile(tempTarFile, targetPath)
+
+         return targetPath.also {
+            log.info("File '$remoteDir/$remoteFilename' successfully downloaded to $it")
+         }
+      } catch(e: Exception) {
+         handleDockerError(e)
+         // Not reached
+         return Paths.get(EMPTY_STRING)
+      } finally {
+         tempTarFile.delete()
+      }
+   }
+
+   override fun putDirectory(localPath: Path, remoteDir: UnixDir) {
+      requireState(Container.State.RUNNING)
+      require(localPath.exists() && localPath.isDirectory()) { "Local directory '$localPath' does not exist" }
+
+      // Check if remoteDir exists, if not create it
+      createContainerDirIfNotExists(remoteDir)
+
+      val tarFile = FileUtils.tarDir(localPath)
+
+      val inputStream = FileInputStream(tarFile)
+      try {
+         dockerClient.copyArchiveToContainerCmd(containerId.get())
+            .withRemotePath(remoteDir.value)
+            .withTarInputStream(inputStream)
+            .exec()
+
+         log.info("Directory'$localPath' uploaded to container '${getName()}' ('$containerId') " +
+            "in directory '${remoteDir.value}'")
+
+      } catch (e: Exception) {
+         handleDockerError(e)
+      } finally {
+         inputStream.close()
+         tarFile.delete()
+      }
+   }
+
+   override fun getDirectory(remoteDir: UnixDir, localPath: Path) {
+      val tarBall = Files.createTempFile("docker-download-tarball", ".tar").toFile()
+
+      try {
+         FileOutputStream(tarBall).use { outputStream ->
+            dockerClient.copyArchiveFromContainerCmd(containerId.get(), remoteDir.value).exec().use { inputStream ->
+               inputStream.copyTo(outputStream)
+            }
+         }
+
+         if (Files.isDirectory(localPath)) {
+            FileUtils.untarDir(tarBall, localPath)
+         }
+      } catch (ex: Exception) {
+         handleDockerError(ex)
+      } finally {
+         if (!tarBall.delete()) {
+            log.warn("Failed to delete temporary tarball: ${tarBall.absolutePath}")
+         }
+      }
+   }
+
    private fun pullImage() {
       try {
          dockerClient.pullImageCmd(builder.image.toFQDN())
@@ -237,7 +382,7 @@ internal class DockerContainer(
          log.info("Image pulled successfully: ${builder.image}")
 
       } catch (e: Exception) {
-         handleError(e)
+         handleDockerError(e)
       }
    }
 
@@ -257,19 +402,18 @@ internal class DockerContainer(
          setContainerHostName(containerInfo)
          scheduleContainerKillTask(builder.maxLifeTime)
 
-         changeState(Container.State.RUNNING)
-
-         log.info("Container '${getName()}' ('$containerId') is RUNNING with IP-address '$ipAddress' and hostname '$host'")
+         changeState(Container.State.RUNNING).also {
+            log.info("Container '${getName()}' ('$containerId') is RUNNING with IP-address '$ipAddress' and hostname '$host'")
+         }
 
       } catch (e: Exception) {
-         handleError(e)
+         handleDockerError(e)
       }
    }
 
    private fun prepareHostConfig(): HostConfig {
       return HostConfig.newHostConfig().apply {
          if (builder.isEphemeral) {
-            log.info("Setting autoRemove to true")
             withAutoRemove(true)
          }
       }
@@ -281,19 +425,25 @@ internal class DockerContainer(
          withEnv(builder.env.toMap().entries.map { "${it.key.unwrap()}=${it.value.unwrap()}" })
          withLabels(builder.labels.map { (key, value) -> key.unwrap() to value.unwrap() }.toMap())
          withExposedPorts(builder.exposedPorts.values.map { ExposedPort.tcp(it.value) })
-         configurePortBindings(this, hostConfig)
+         configurePortBindings(hostConfig)
          configureVolumes(this, hostConfig)
          configureCommandAndArgs(this)
+
+         // We want to mimic the behaviour of k8s here, so we override the entrypoint if the command or args are set
+         if (builder.command != null || (builder.args != null && builder.args!!.args.isNotEmpty())) {
+            withEntrypoint("/bin/sh", "-c")
+         }
+
          withHostConfig(hostConfig)
       }
    }
 
-   private fun configurePortBindings(cmd: CreateContainerCmd, hostConfig: HostConfig) {
+   private fun configurePortBindings(hostConfig: HostConfig) {
       if (builder.portMappings.isNotEmpty()) {
          val portBindings = getPortBindings()
          hostConfig.withPortBindings(portBindings)
       } else {
-         log.info("No ports to bind")
+         log.debug("No ports to bind")
       }
    }
 
@@ -302,7 +452,19 @@ internal class DockerContainer(
          val volumes = createDockerVolumes(hostConfig)
          cmd.withVolumes(*volumes.toTypedArray())
       } else {
-         log.info("No volumes to bind")
+         log.debug("No volumes to bind")
+      }
+   }
+
+   private fun determineLocalPath(localPath: Path?, remoteFilename: String): Path {
+      if (localPath == null) {
+         return Paths.get(System.getProperty("user.dir"), remoteFilename)
+      }
+
+      return if (Files.isDirectory(localPath)) {
+         localPath.resolve(remoteFilename)
+      } else {
+         localPath
       }
    }
 
@@ -312,7 +474,7 @@ internal class DockerContainer(
          builder.args?.let { addAll(it.toStringList()) }
       }
       cmd.withCmd(commandParts)
-      log.info("Running container using command: $commandParts")
+      log.info("Using container command: $commandParts")
    }
 
    private fun startContainer(containerId: String) {
@@ -338,10 +500,6 @@ internal class DockerContainer(
       maxLifeTime?.let {
          SCHEDULER.schedule(KillTask(), it.toSeconds(), TimeUnit.SECONDS)
       }
-   }
-
-   private fun logContainerRunningInfo(containerId: String?, ipAddress: InetAddress?, host: Host?) {
-      log.info("Container started: $containerId with IP address: $ipAddress and host: $host")
    }
 
    private fun configureNetwork(hostConfig: HostConfig) {
@@ -432,7 +590,7 @@ internal class DockerContainer(
    private fun configureHostConfigVolumes(hostConfig: HostConfig, binds: List<Bind>, tmpfsMounts: List<Mount>): HostConfig {
       return hostConfig
 
-         // Volume ninds
+         // Volume binds
          .withBinds(*binds.toTypedArray())
 
          // Tmpfs mounts
@@ -442,6 +600,82 @@ internal class DockerContainer(
                withMounts(tmpfsMounts)
             }
          }
+   }
+
+   private fun internalExecute(
+      command: List<String>,
+      workingDir: String? = null,
+      input: InputStream? = null,
+      waitTimeValue: Long? = null,
+      waitTimeUnit: TimeUnit? = null,
+   ): Triple<Int, String, String> {
+      requireState(Container.State.RUNNING)
+
+      log.trace("Executing command: ${command.joinToString(SPACE)}")
+
+      val latch = CountDownLatch(1)
+
+      val outputBuilder: StringBuilder = StringBuilder()
+
+      val callback = object : ResultCallback<Frame> {
+
+         override fun close() {
+            log.trace("Exec command callback: Closed")
+         }
+
+         override fun onStart(closeable: Closeable?) {
+            log.trace("Exec command callback: Started")
+         }
+
+         override fun onNext(frame: Frame?) {
+            val line = frame?.payload?.decodeToString()
+            log.trace("Exec command callback: Output: $line")
+            outputBuilder.append(line)
+         }
+
+         override fun onError(error: Throwable?) {
+            log.error("Exec command callback: Error (${error?.message}", error)
+            latch.countDown()
+         }
+
+         override fun onComplete() {
+            log.trace("Exec command callback: Completed")
+            latch.countDown()
+         }
+      }
+
+      val execCreateCmdResponse = dockerClient.execCreateCmd(containerId.get())
+         .withAttachStdout(true)
+         .withAttachStderr(true)
+         .withCmd(*command.toTypedArray())
+         .apply {
+            workingDir?.let { withWorkingDir(workingDir) }
+            input?.let { withAttachStdin(true) }
+         }
+         .exec()
+
+      val execId = execCreateCmdResponse.id
+
+      dockerClient.execStartCmd(execId)
+         .apply {
+            input?.let { withStdIn(input) }
+         }
+         .exec(callback)
+
+      waitTimeValue?.let {
+         waitTimeUnit?.let { TimeUnit.MILLISECONDS }?.let { it1 -> latch.await(waitTimeValue, it1) }
+      } ?: run {
+         latch.await() // Wait indefinitely
+      }
+
+      val execInspectCmdResponse = dockerClient.inspectExecCmd(execId).exec()
+      val exitCode = execInspectCmdResponse.exitCodeLong.toInt()
+
+      return Triple(exitCode, outputBuilder.toString(), EMPTY_STRING)
+   }
+
+   private fun createContainerDirIfNotExists(remoteDir: UnixDir) {
+      val (exitValue, stdOut, stdErr) = internalExecute(listOf("mkdir", "-p", remoteDir.value))
    }
 
    private fun getActualHostDir(path: Path): String {
@@ -486,18 +720,22 @@ internal class DockerContainer(
       }
    }
 
-   private fun handleError(e: Exception, swallow: Boolean = false) {
+   private fun handleDockerError(e: Exception, swallow: Boolean = false) {
       when (e) {
          is DockerException, is DockerClientException -> {
             log.error("A Docker error '{}' occurred in container '${builder.name}', raising ContainerException", e.message, e)
             changeState(Container.State.FAILED)
-            throw ContainerException("Error '${e.message} in container ${builder.name}", e)
+            if (!swallow) {
+               throw ContainerException("Error '${e.message} in container ${builder.name}", e)
+            }
          }
 
          else -> {
             log.error("An error '{}' occurred in container '${builder.name}', re-throwing", e.message, e)
             changeState(Container.State.FAILED)
-            throw e;
+            if (!swallow) {
+               throw e;
+            }
          }
       }
    }

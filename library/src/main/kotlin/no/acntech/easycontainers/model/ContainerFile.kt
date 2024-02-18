@@ -28,5 +28,5 @@ data class ContainerFile(
    val containerFileName: ContainerFileName,
    val mountPath: UnixDir,
    val content: String? = null,
-   val hostFile: Path? = null
+   val hostFile: Path? = null,
 )

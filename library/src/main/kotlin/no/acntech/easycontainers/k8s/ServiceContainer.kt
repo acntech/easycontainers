@@ -6,18 +6,22 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentSpec
 import io.fabric8.kubernetes.client.*
 import io.fabric8.kubernetes.client.dsl.Resource
 import io.fabric8.kubernetes.client.utils.Serialization
-import no.acntech.easycontainers.AbstractContainer
+import no.acntech.easycontainers.*
 import no.acntech.easycontainers.ContainerBuilder
-import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.k8s.K8sConstants.ENV_HOSTNAME
 import no.acntech.easycontainers.k8s.K8sConstants.MEDIUM_MEMORY_BACKED
 import no.acntech.easycontainers.k8s.K8sUtils.normalizeLabelValue
+import no.acntech.easycontainers.model.Args
+import no.acntech.easycontainers.model.Executable
 import no.acntech.easycontainers.model.Host
+import no.acntech.easycontainers.model.UnixDir
 import no.acntech.easycontainers.util.text.NEW_LINE
 import no.acntech.easycontainers.util.text.SPACE
 import org.awaitility.Awaitility.await
 import java.io.File
+import java.io.InputStream
 import java.net.InetAddress
+import java.nio.file.Path
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.CopyOnWriteArrayList
@@ -27,10 +31,10 @@ import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 
-internal class K8sContainer(
+internal class ServiceContainer(
    builder: ContainerBuilder,
-   private val client: KubernetesClient = K8sClientFactory.createDefaultClient()
-) : AbstractContainer(builder) {
+   client: KubernetesClient = K8sClientFactory.createDefaultClient(),
+) : AbstractK8sContainer(builder, client) {
 
    private inner class PodWatcher : Watcher<Pod> {
 
@@ -91,7 +95,7 @@ internal class K8sContainer(
       requireState(no.acntech.easycontainers.model.Container.State.CREATED)
 
       log.info("Starting container: ${getName()}")
-      log.debug("Using container config\n${builder}")
+      log.debug("Using container config$NEW_LINE${builder}")
 
       try {
          createNamespaceIfAllowedAndNotExists()
@@ -213,6 +217,14 @@ internal class K8sContainer(
       changeState(no.acntech.easycontainers.model.Container.State.REMOVED)
    }
 
+   override fun getType(): ContainerType {
+      return builder.containerType
+   }
+
+   override fun getExecutionMode(): ExecutionMode {
+      return builder.executionMode
+   }
+
    override fun getHost(): Host? {
       return host
    }
@@ -222,7 +234,38 @@ internal class K8sContainer(
    }
 
    override fun getDuration(): Duration? {
-      return null
+      TODO("Not yet implemented")
+   }
+
+   override fun getExitCode(): Int? {
+      TODO("Not yet implemented")
+   }
+
+   override fun execute(
+      executable: Executable,
+      args: Args?,
+      workingDir: UnixDir?,
+      input: InputStream?,
+      waitTimeValue: Long?,
+      waitTimeUnit: TimeUnit?,
+   ): Triple<Int, String, String> {
+      TODO("Not yet implemented")
+   }
+
+   override fun putFile(localPath: Path, remoteDir: UnixDir, remoteFilename: String?) {
+      TODO("Not yet implemented")
+   }
+
+   override fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path?): Path {
+      TODO("Not yet implemented")
+   }
+
+   override fun putDirectory(localPath: Path, remoteDir: UnixDir) {
+      TODO("Not yet implemented")
+   }
+
+   override fun getDirectory(remoteDir: UnixDir, localPath: Path) {
+      TODO("Not yet implemented")
    }
 
    @Throws(ContainerException::class)
@@ -387,17 +430,17 @@ internal class K8sContainer(
       resourceRequirements.limits = limits
 
       return Container().apply {
-         val k8sContainer = this@K8sContainer
-         name = "${k8sContainer.getName().value}$CONTAINER_NAME_SUFFIX"
-         image = k8sContainer.getImage().toFQDN()
-         env = k8sContainer.getEnv().map { EnvVar(it.key.value, it.value.value, null) }
-         ports = k8sContainer.getExposedPorts().map {
+         val serviceContainer = this@ServiceContainer
+         name = "${serviceContainer.getName().value}$CONTAINER_NAME_SUFFIX"
+         image = serviceContainer.getImage().toFQDN()
+         env = serviceContainer.getEnv().map { EnvVar(it.key.value, it.value.value, null) }
+         ports = serviceContainer.getExposedPorts().map {
             ContainerPort(it.value, null, null, null, "TCP")
          }
-         k8sContainer.getCommand()?.let {
+         serviceContainer.getCommand()?.let {
             command = it.value.split(SPACE)
          }
-         k8sContainer.getArgs()?.let {
+         serviceContainer.getArgs()?.let {
             args = it.toStringList()
          }
          resources = resourceRequirements
@@ -565,8 +608,8 @@ internal class K8sContainer(
       )
 
       defaultLabels["acntech.no/created-by"] = "Easycontainers"
-      defaultLabels["easycontainers.acntech.no/parent-application"] = parentAppName
       defaultLabels["easycontainers.acntech.no/created-at"] = K8sUtils.instantToLabelValue(Instant.now())
+      defaultLabels["easycontainers.acntech.no/parent-application"] = parentAppName
       defaultLabels["easycontainers.acntech.no/is-ephemeral"] = builder.isEphemeral.toString()
       if (builder.maxLifeTime != null) {
          defaultLabels["easycontainers.acntech.no/max-life-time"] = builder.maxLifeTime.toString()
@@ -592,7 +635,7 @@ internal class K8sContainer(
    private fun createDeploymentFromPodSpec(podSpec: PodSpec) {
       val templateMetadata = ObjectMeta().apply {
          this.labels = selectorLabels + createDefaultLabels()
-         name = this@K8sContainer.getName().value + POD_NAME_SUFFIX
+         name = this@ServiceContainer.getName().value + POD_NAME_SUFFIX
       }
 
       val podTemplateSpec = PodTemplateSpec().apply {
@@ -607,9 +650,9 @@ internal class K8sContainer(
       }
 
       val deploymentMetadata = ObjectMeta().apply {
-         name = this@K8sContainer.getName().value + DEPLOYMENT_NAME_SUFFIX
-         namespace = this@K8sContainer.getNamespace().value
-         val stringLabels: Map<String, String> = this@K8sContainer.getLabels().flatMap { (key, value) ->
+         name = this@ServiceContainer.getName().value + DEPLOYMENT_NAME_SUFFIX
+         namespace = this@ServiceContainer.getNamespace().value
+         val stringLabels: Map<String, String> = this@ServiceContainer.getLabels().flatMap { (key, value) ->
             listOf(key.value to value.value)
          }.toMap()
 

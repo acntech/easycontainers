@@ -1,6 +1,10 @@
 package no.acntech.easycontainers.model
 
+import no.acntech.easycontainers.ContainerType
+import no.acntech.easycontainers.ExecutionMode
+import java.io.InputStream
 import java.net.InetAddress
+import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.TimeUnit
 
@@ -23,6 +27,10 @@ interface Container : Runnable {
    }
 
    fun getState(): State
+
+   fun getType(): ContainerType
+
+   fun getExecutionMode(): ExecutionMode
 
    // Name
 
@@ -58,6 +66,9 @@ interface Container : Runnable {
 
    /**
     * Retrieves the executable command for the container.
+    * <p>
+    * Note that setting a command (and/or args) will effectively neutralize the ENTRYPOINT directive in the container's
+    * image for both Docker and kubernetes.
     *
     * @return the executable command as an Executable object, or null if no command is specified
     */
@@ -65,6 +76,8 @@ interface Container : Runnable {
 
    /**
     * Retrieves the command arguments for the container.
+    * <p>
+    * Note that setting a command (and/or args) will effectively neutralize the ENTRYPOINT directive in the container's
     *
     * @return the command arguments as an instance of Args, or null if there are no arguments.
     */
@@ -132,13 +145,82 @@ interface Container : Runnable {
    fun getIpAddress(): InetAddress?
 
    /**
-    * Retrieves the duration of the container execution (RUNNING state).
+    * Retrieves the duration of the container execution (RUNNING state). If running, returns the time since the container
+    * was started, if stopped, returns the time the container was running.
     */
    fun getDuration(): Duration?
 
+   /**
+    * Retrieves the exit code of the container.
+    *
+    * @return the exit code of the container, or null if the container is still running or has never been started.
+    */
+   fun getExitCode(): Int?
+
+   /**
+    * Executes a command in the container.
+    * <p>
+    * Note that for Docker, std out and std err are combined in the std out result - hence the std error string is always empty.
+    *
+    * @param executable the command to execute
+    * @param args the arguments to pass to the command
+    * @param workingDir the working directory for the command
+    * @param input the input stream to pass to the command
+    * @param waitTimeValue the time to wait for the command to complete
+    * @param waitTimeUnit the time unit for the wait time
+    * @return a Triple containing the exit code, the standard output and the standard error of the command execution
+    */
+   fun execute(
+      executable: Executable,
+      args: Args? = null,
+      workingDir: UnixDir? = null,
+      input: InputStream? = null,
+      waitTimeValue: Long? = null,
+      waitTimeUnit: TimeUnit? = null,
+   ): Triple<Int, String, String>
+
+   /**
+    * Uploads a file to the container.
+    *
+    * @param localPath the path of the file to upload -
+    * @param remoteDir the path where the file will be uploaded in the container - if it doesn't exist, it will be attempted created
+    * @param remoteFilename the name of the file in the container - if null, the file will be uploaded with the same name as the
+    * local file
+    */
+   fun putFile(localPath: Path, remoteDir: UnixDir, remoteFilename: String? = null)
+
+   /**
+    * Downloads a file from the container.
+    *
+    * @param remoteDir the path of the file to download
+    * @param remoteFilename the name of the file in the container
+    * @param localPath the path where the file will be downloaded to - if null, the file will be downloaded to the current
+    *                  directory, with the same name as the remote file, if not null, the file will be downloaded with the
+    *                  specified name unless the path is a directory, in which case the file will be downloaded to the directory
+    *                  with the same name as the remote file
+    * @return the path of the downloaded file
+    */
+   fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path? = null): Path
+
+   /**
+    * Uploads a directory to the container.
+    *
+    * @param localPath the path of the directory to upload
+    * @param remoteDir the path where the directory will be uploaded in the container
+    */
+   fun putDirectory(localPath: Path, remoteDir: UnixDir)
+
+   /**
+    * Downloads a directory from the container.
+    *
+    * @param remoteDir the path of the directory to download
+    * @param localPath the path where the directory will be downloaded to
+    */
+   fun getDirectory(remoteDir: UnixDir, localPath: Path)
+
    // Lifecycle
 
-   fun waitForCompletion(timeoutValue: Long = Long.MAX_VALUE, timeoutUnit: TimeUnit = TimeUnit.DAYS) : Int
+   fun waitForCompletion(timeoutValue: Long = Long.MAX_VALUE, timeoutUnit: TimeUnit = TimeUnit.DAYS): Int
 
    /**
     * Stops the container.

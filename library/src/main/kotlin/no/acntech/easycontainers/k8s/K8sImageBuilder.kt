@@ -199,7 +199,7 @@ internal class K8sImageBuilder(
             if (localKanikoPath.startsWith(FORWARD_SLASH)) { // Unix-dir, i.e. inside WSL
                // Return the directory as the $WSL share
                localKanikoPath = PlatformUtils.createDirectoryInWsl(localKanikoPath)
-            } else if(! localKanikoPath.startsWith("\\\\wsl\$")) {
+            } else if (!localKanikoPath.startsWith("\\\\wsl\$")) {
                // Otherwise it needs to be in the \\wsl$ share
                throw ContainerException("Invalid local Kaniko path: $localKanikoPath")
             }

@@ -8,6 +8,7 @@ enum class ContainerType {
     * Represents the DOCKER container type.
     */
    DOCKER,
+
    /**
     * Represents the Kubernetes container type.
     */

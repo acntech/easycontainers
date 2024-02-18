@@ -15,7 +15,7 @@ object DockerClientFactory {
 
       var dockerHost = System.getenv(DockerConstants.ENV_DOCKER_HOST)
 
-      if(dockerHost.isEmpty()) {
+      if (dockerHost.isEmpty()) {
          dockerHost = System.getProperty(DockerConstants.PROP_DOCKER_HOST, EMPTY_STRING)
       }
 

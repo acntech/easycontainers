@@ -12,7 +12,7 @@ value class Arg(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
-      private val REGEXP: Regex = "^[a-zA-Z0-9_\\-\\.]+\$".toRegex()
+      private val REGEXP: Regex = "^[a-zA-Z0-9_\\-.]+\$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(
          minLength = 1,

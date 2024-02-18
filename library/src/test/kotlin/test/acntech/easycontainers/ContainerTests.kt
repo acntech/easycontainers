@@ -9,7 +9,7 @@ import no.acntech.easycontainers.docker.DockerRegistryUtils
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.util.net.NetworkUtils
 import no.acntech.easycontainers.util.platform.PlatformUtils
-import no.acntech.easycontainers.util.platform.PlatformUtils.getWslPath
+import no.acntech.easycontainers.util.platform.PlatformUtils.convertLinuxPathToWindowsWslPath
 import org.awaitility.Awaitility
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -41,7 +41,7 @@ class ContainerTests {
 
       private val registry = "${registryIpAddress}:5000"
 
-      private val localKanikoPath = getWslPath("/home/thomas/kind/kaniko-data")
+      private val localKanikoPath = convertLinuxPathToWindowsWslPath("/home/thomas/kind/kaniko-data")
 
       private val DOCKERFILE_CONTENT = """       
          # Use Alpine Linux as the base image
