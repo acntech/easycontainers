@@ -40,10 +40,6 @@ internal class DockerContainer(
 
    private inner class LogWatcher : Runnable {
       override fun run() {
-         logOutputToCompletion()
-      }
-
-      private fun logOutputToCompletion() {
          dockerClient.logContainerCmd(containerId.get())
             .withStdOut(true)
             .withStdErr(true)
@@ -71,7 +67,11 @@ internal class DockerContainer(
    }
 
    companion object {
-      var SCHEDULER: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
+      private var SCHEDULER: ScheduledExecutorService = Executors.newScheduledThreadPool(
+         1,
+         Thread.ofVirtual().factory());
+
+      private val EXECUTOR_SERVICE = Executors.newVirtualThreadPerTaskExecutor()
    }
 
    private val containerId: AtomicReference<String> = AtomicReference()
@@ -88,13 +88,13 @@ internal class DockerContainer(
 
    private var finishedAt: Instant? = null
 
-   private val executorService = Executors.newVirtualThreadPerTaskExecutor()
+
 
    override fun run() {
       changeState(Container.State.STARTED)
       pullImage()
       startContainer()
-      executorService.submit(LogWatcher())
+      EXECUTOR_SERVICE.submit(LogWatcher())
       extractStartTime()
    }
 

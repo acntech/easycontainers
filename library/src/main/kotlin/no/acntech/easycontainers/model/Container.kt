@@ -26,13 +26,26 @@ interface Container : Runnable {
       REMOVED
    }
 
+   /**
+    * Retrieves the current state of the container.
+    *
+    * @return the current state of the container as a State enum value
+    */
    fun getState(): State
 
+   /**
+    * Retrieves the type of the container.
+    *
+    * @return the type of the container as a ContainerType enum value
+    */
    fun getType(): ContainerType
 
+   /**
+    * Retrieves the execution mode of the container.
+    *
+    * @return the execution mode of the container as an ExecutionMode enum value
+    */
    fun getExecutionMode(): ExecutionMode
-
-   // Name
 
    /**
     * Returns the name of the container.
@@ -142,6 +155,9 @@ interface Container : Runnable {
 
    fun getHost(): Host?
 
+   /**
+    * Retrieves the IP address of the container.
+    */
    fun getIpAddress(): InetAddress?
 
    /**

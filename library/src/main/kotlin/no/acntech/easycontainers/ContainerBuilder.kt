@@ -78,7 +78,7 @@ class ContainerBuilder {
     * Sets the container type for the container builder.
     *
     * @param type The container type to be set.
-    * @return The container builder with the specified container type.
+    * @return The updated ContainerBuilder instance.
     */
    fun withType(type: ContainerType): ContainerBuilder {
       this.containerType = type
@@ -87,6 +87,8 @@ class ContainerBuilder {
 
    /**
     * Sets the execution mode for the container.
+    * @param executionMode The execution mode to be set.
+    * @return The updated ContainerBuilder instance.
     */
    fun withExecutionMode(executionMode: ExecutionMode): ContainerBuilder {
       this.executionMode = executionMode
@@ -97,7 +99,7 @@ class ContainerBuilder {
     * Sets the name of the container.
     *
     * @param name the name of the container
-    * @return the ContainerBuilder with the updated name
+    * @return The updated ContainerBuilder instance.
     */
    fun withName(name: ContainerName): ContainerBuilder {
       this.name = name
@@ -132,7 +134,7 @@ class ContainerBuilder {
     *
     * @param key The key of the environment variable.
     * @param value The value of the environment variable.
-    * @return The ContainerBuilder object with the environment variable set.
+    * @return The updated ContainerBuilder instance.
     */
    fun withEnv(key: String, value: String): ContainerBuilder {
       return withEnv(EnvVarKey(key), EnvVarValue(value))
@@ -143,7 +145,7 @@ class ContainerBuilder {
     *
     * @param key the environment variable key
     * @param value the environment variable value
-    * @return the updated ContainerBuilder instance
+    * @return The updated ContainerBuilder instance.
     */
    fun withEnv(key: EnvVarKey, value: EnvVarValue): ContainerBuilder {
       env[key] = value
@@ -155,7 +157,7 @@ class ContainerBuilder {
     * will be replaced by the provided ones.
     *
     * @param env a map of environment variable keys and values
-    * @return the updated instance of ContainerBuilder, allowing for fluent API usage.
+    * @return The updated ContainerBuilder instance.
     */
    fun withEnv(env: Map<EnvVarKey, EnvVarValue>): ContainerBuilder {
       this.env.putAll(env)
@@ -178,7 +180,7 @@ class ContainerBuilder {
     *
     * @param command the executable command to be set. In Kubernetes, this corresponds to the `command` field.
     *                In Docker, this is part of the command string executed by `/bin/sh -c`.
-    * @return the updated instance of ContainerBuilder, allowing for fluent API usage.
+    * @return The updated ContainerBuilder instance.
     */
    fun withCommand(command: Executable): ContainerBuilder {
       this.command = command
@@ -198,7 +200,7 @@ class ContainerBuilder {
     *
     * @param args The arguments to be used with the command. In Kubernetes, corresponds to the `args` provided
     *             to the `command`. In Docker, these are combined with the command to form a complete shell command.
-    * @return the updated instance of ContainerBuilder, allowing for fluent API usage.
+    * @return The updated ContainerBuilder instance.
     */
    fun withArgs(args: Args): ContainerBuilder {
       this.args = args
@@ -209,7 +211,7 @@ class ContainerBuilder {
     * Set the image to use for the container.
     *
     * @param image The image to use for the container.
-    * @return The updated ContainerBuilder with the specified image.
+    * @return The updated ContainerBuilder instance.
     */
    fun withImage(image: ImageURL): ContainerBuilder {
       this.image = image
@@ -233,7 +235,7 @@ class ContainerBuilder {
     *
     * @param port The network port to be mapped.
     * @param mappedPort The mapped network port.
-    * @return The updated instance of `ContainerBuilder`.
+    * @return The updated ContainerBuilder instance.
     * @throws IllegalArgumentException if the `port` is not exposed.
     */
    fun withPortMapping(port: NetworkPort, mappedPort: NetworkPort): ContainerBuilder {
@@ -243,10 +245,24 @@ class ContainerBuilder {
    }
 
    /**
-    * Sets the network name for the container. Only applicable for Docker containers - will create a bridge network with the
-    * given name allowing containers on the same network to communicate with each other.
+    * Configures the network mode for a container, specifically targeting Docker container environments. This method allows
+    * setting the network to predefined modes such as "bridge", "host", "none", or to a user-defined network. Additionally,
+    * it supports attaching the container to the network namespace of another container using the "container:&lt;name&gt;"
+    * syntax, where "&lt;name&gt;" is the name or ID of another container.
     *
-    * @param networkName The network name to set for the container.
+    * Predefined network modes include:
+    * - "bridge": Creates a new network stack for the container on the Docker bridge network. This is the default network mode.
+    * - "host": Uses the host's network stack, effectively bypassing Docker's networking layers.
+    * - "none": Disables all networking for the container, isolating it completely.
+    *
+    * Custom network names can also be provided to connect the container to user-defined networks, enabling advanced
+    * networking features such as network segmentation and custom network policies.
+    *
+    * Note: This setting is only applicable to Docker containers. If the container platform does not support Docker or
+    * the specified network mode, this setting may be ignored or result in an error.
+    *
+    * @param networkName The network mode or custom network name to assign to the container. This parameter is of type
+    *                    NetworkName, which encapsulates the network name value.
     * @return The updated ContainerBuilder instance.
     */
    fun withNetworkName(networkName: NetworkName): ContainerBuilder {
@@ -302,7 +318,7 @@ class ContainerBuilder {
     * Sets the ephemeral property of the container.
     *
     * @param ephemeral true if the container is ephemeral, false otherwise
-    * @return the instance of ContainerBuilder
+    * @return The updated ContainerBuilder instance.
     */
    fun withIsEphemeral(ephemeral: Boolean): ContainerBuilder {
       this.isEphemeral = ephemeral
@@ -313,7 +329,7 @@ class ContainerBuilder {
     * Sets the line callback for logging purposes.
     *
     * @param outputLineCallback The line callback to be used for logging.
-    * @return The instance of ContainerBuilder with the line callback set.
+    * @return The updated ContainerBuilder instance.
     */
    fun withOutputLineCallback(outputLineCallback: OutputLineCallback): ContainerBuilder {
       this.outputLineCallback = outputLineCallback
@@ -327,6 +343,7 @@ class ContainerBuilder {
     * @param path The path in the container where the file will be mounted.
     * @param data The content of the file as a key-value map
     * @param keyValSeparator The separator between the key and value in the content of the file (default is ": ")
+    * @return The updated ContainerBuilder instance.
     */
    fun withContainerFile(name: ContainerFileName, path: UnixDir, data: Map<String, String>, keyValSeparator: String = ": ") {
       val content = data.entries.joinToString(NEW_LINE) { (key, value) -> "$key$keyValSeparator$value" }
@@ -340,6 +357,7 @@ class ContainerBuilder {
     * @param name The name of the file in the container
     * @param path The path in the container where the file will be mounted.
     * @param content The content of the file
+    * @return The updated ContainerBuilder instance.
     */
    fun withContainerFile(name: ContainerFileName, path: UnixDir, content: String) {
       containerFiles[name] = ContainerFile(name, path, content)
@@ -350,7 +368,7 @@ class ContainerBuilder {
     *
     * @param name The name of the volume
     * @param mountPath The path in the container where the volume will be mounted
-    * @return The updated container builder
+    * @return The updated ContainerBuilder instance.
     */
    fun withVolume(name: VolumeName, mountPath: UnixDir): ContainerBuilder {
       volumes.add(Volume(name, mountPath))
@@ -361,7 +379,7 @@ class ContainerBuilder {
     * Adds a volume to the container.
     *
     * @param volume The volume to be added or mapped into the container.
-    * @return This ContainerBuilder instance.
+    * @return The updated ContainerBuilder instance.
     */
    fun withVolume(volume: Volume): ContainerBuilder {
       volumes.add(volume)
@@ -396,7 +414,7 @@ class ContainerBuilder {
     *
     * @param key the key of the custom property
     * @param value the value of the custom property
-    * @return the container builder instance
+    * @return The updated ContainerBuilder instance.
     */
    fun withCustomProperty(key: String, value: Any): ContainerBuilder {
       customProperties[key] = value
@@ -408,6 +426,7 @@ class ContainerBuilder {
     *
     * @return The built container.
     * @throws ContainerException if the image is not initialized.
+    * @return The built container.
     */
    fun build(): Container {
       if (!(::image.isInitialized)) {
@@ -423,14 +442,8 @@ class ContainerBuilder {
    }
 
    /**
-    * Returns a string representation of the object.
-    *
-    * This method overrides the default `toString` method to provide a more detailed string representation of the object.
-    * The string representation includes the container type, name, image, namespace, environment, command, arguments,
-    * exposed ports, port mappings, ephemeral status, and container files.
-    * The string representation is generated using the ToStringBuilder class from the Apache Commons Lang library.
-    *
-    * @return A string representation of the object.
+    * Returns a string representation of this ContainerBuilder.
+    * @return A string representation of this ContainerBuilder.
     */
    override fun toString(): String {
       return ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)

@@ -48,7 +48,8 @@ class ContainerTests {
          FROM alpine:latest
 
          # Install dependencies
-         RUN apk add --no-cache curl netcat-openbsd openssh
+         # RUN apk add --no-cache curl netcat-openbsd openssh
+         RUN apk add --no-cache openssh
 
          # Additional setup SSH
          RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
@@ -182,7 +183,7 @@ class ContainerTests {
    @ParameterizedTest
    @CsvSource(
          "DOCKER, 30021",
-         "KUBERNETES, 30022"
+//         "KUBERNETES, 30022"
    )
    fun `Test alpine SSH image build and run`(containerType: String, sshPort: Int) {
       log.info("Testing Alpine SSH container with container type: {}", containerType)

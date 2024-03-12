@@ -49,6 +49,7 @@ internal class ServiceContainer(
    }
 
    companion object {
+      
       const val CONTAINER_NAME_SUFFIX = "-container"
       const val POD_NAME_SUFFIX = "-pod"
       const val DEPLOYMENT_NAME_SUFFIX = "-deployment"
@@ -57,7 +58,9 @@ internal class ServiceContainer(
       const val PVC_NAME_SUFFIX = "-pvc"
 
       // Used to schedule the stopAndRemoveTask when a timeout is set
-      var SCHEDULER: ScheduledExecutorService = Executors.newScheduledThreadPool(1)
+      private var SCHEDULER: ScheduledExecutorService = Executors.newScheduledThreadPool(
+         1,
+         Thread.ofVirtual().factory());
    }
 
    private var deployment: Deployment? = null
