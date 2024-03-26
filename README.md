@@ -16,13 +16,14 @@
    1. [Docker examples](#Docker-examples)
    2. [Kubernetes examples](#Kubernetes-examples)
 6. [API Reference](#API-Reference)
-7. [Troubleshooting](#Troubleshooting)
-8. [FAQs](#FAQs)
-9. [Community and Support](#Community-and-Support)
-10. [Acknowledgments](#Acknowledgments)
-11. [Roadmap](#Roadmap)
-12. [Contributing](#Contributing)
-13. [License](#License)
+7. [Known Issues](#Known-Issues)
+8. [Troubleshooting](#Troubleshooting)
+9. [FAQs](#FAQs)
+10. [Community and Support](#Community-and-Support)
+11. [Acknowledgments](#Acknowledgments)
+12. [Roadmap](#Roadmap)
+13. [Contributing](#Contributing)
+14. [License](#License)
 
 ## Introduction
  
@@ -77,9 +78,9 @@ fun doElasticsearchStuff() {
 }
 ```
 
-Note that the mapped ports are mapped via NodePort since running the test from outside the cluster. If you run the code from a pod insideh the cluster, the mapped ports can be the same as the exposed ports.
+Note that the ports are mapped via NodePort when running the test from outside the cluster. If you run the code from a pod inside the cluster, the mapped ports can be the same as the exposed ports.
 <p>
-To run the above example in Docker, just replace the `withContainerPlatformType(ContainerPlatformType.KUBERNETES)` with `withContainerPlatformType(ContainerPlatformType.DOCKER)`. 
+To run the above example using Docker as the target container platform, just replace the `withContainerPlatformType(ContainerPlatformType.KUBERNETES)` with `withContainerPlatformType(ContainerPlatformType.DOCKER)`. 
 
 ### Building and deploying a custom container
 
@@ -112,7 +113,7 @@ fun buildAndRunCustomContainer() {
     DockerRegistryUtils.deleteImage("http://$REGISTRY/test", imageNameVal)
     
     val tempDir = Files.createTempDirectory("dockercontext-").toString()
-    log.debug("Temp dir for docker-context created: {}", tempDir)
+    log.debug("Temp [.gitignore](.gitignore)dir for docker-context created: {}", tempDir)
     val dockerfile = File(tempDir, "Dockerfile")
     val logTimeScript = File(tempDir, "log_time.sh")
     dockerfile.writeText(dockerfileContent)
@@ -155,54 +156,47 @@ To run the above example in Kubernetes, just replace the `withContainerPlatformT
 ## Requirements
 
 ### Docker
-
-Developed using Docker version 24.0.5.
+Developed using Docker [version 24.0.5](https://docs.docker.com/engine/release-notes/24.0/).
 
 ### Kubernetes
-
-Developed using Kubernetes version 1.29.2 on Kind version 0.22.
+Developed using Kubernetes [version 1.29.2](https://kubernetes.io/releases/)  on Kind [version 0.22](https://github.com/kubernetes-sigs/kind/releases).
 
 ## Configuration
+See the test-env folder for scripts and resources to set up a test environment for running the tests.
 
 ### Docker specifics
-See the test-env directory test environment configuration for Docker and Kubernetes.
 
 ### Kubernetes specifics
-See the test-env directory test environment configuration for Docker and Kubernetes.
+In the current version, when running outside a k8s cluster, the Kubernetes runtime only supports using the default kubeconfig file located in the user's home directory. If using the library inside a Kubernetes cluster (i.e. in a pod), the Fabric8 default approach is used to authenticate the client, i.e. the mounted service account token at `/var/run/secrets/kubernetes.io/serviceaccount/token`.
 
 ## Examples
 
 ### Docker examples
-
 TODO
 
 ### Kubernetes examples
-
 TODO
 
 ## API Reference
+[JavaDoc](https://blog.acntech.no/easycontainers/index.html)
 
-TODO
+## Known Issues
+Currently neither the Kubernetes nor the Docker container runtime implementation supports exeucting commands with stdin input. For Docker, this is due to the fact that the Docker API does not support this feature. For Docker, this is due to a "hijacking session" issue that is not yet resolved. For Kubernetes, this is due to the ExecWatch::getOutput() method is for some reason always null.
 
 ## Troubleshooting
-
 TODO
 
 ## FAQs
-
 TODO
 
 ## Community and Support
-
 TODO
 
 ## Acknowledgments
-
 TODO
 
 ## Roadmap
-
-TODO
+- Convert all tests to use [Testcontainers](https://testcontainers.com/) - either the official [K3s module](https://java.testcontainers.org/modules/k3s/), or the community contributed [KinD module](https://testcontainers.com/modules/kindcontainer/).
 
 ## Contributing
 - Thomas Muller (thomas.muller@accenture.com): main contributor and maintainer
