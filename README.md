@@ -181,7 +181,7 @@ TODO
 [JavaDoc](https://blog.acntech.no/easycontainers/index.html)
 
 ## Known Issues
-Currently neither the Kubernetes nor the Docker container runtime implementation supports exeucting commands with stdin input. For Docker, this is due to the fact that the Docker API does not support this feature. For Docker, this is due to a "hijacking session" issue that is not yet resolved. For Kubernetes, this is due to the ExecWatch::getOutput() method is for some reason always null.
+Currently neither the Kubernetes nor the Docker container runtime implementation supports exeucuting commands with stdin input. For Docker, this is due to a "hijacking session" issue that is not yet resolved. For Kubernetes, this is due to the fact that the `ExecWatch::getOutput()` method is for some unknown reason always null. 
 
 ## Troubleshooting
 TODO
