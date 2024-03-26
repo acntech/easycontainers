@@ -3,14 +3,26 @@
 ## Table of Contents
 
 1. [Introduction](#Introduction)
-2. [Usage](#Usage)
+2. [Getting Started](#Getting-Started)
    1. [Starting a container](#Starting-a-container)
-   2. [Building a custom container](#Building-a-custom-container)
+   2. [Building and deploying a custom container](#Building-and-deploying-a-custom-container)
+3. [Requirements](#Requirements)
+   1. [Docker](#Docker)
+   2. [Kubernetes](#Kubernetes)
+4. [Configuration](#Configuration)
+   1. [Docker specifics](#Docker-specifics)
    2. [Kubernetes specifics](#Kubernetes-specifics)
-   3. [Docker specifics](#Docker-specifics)
-3. [Limitations](#Limitations) 
-4. [Contributing](#Contributing)
-5. [License](#License)
+5. [Examples](#Examples)
+   1. [Docker examples](#Docker-examples)
+   2. [Kubernetes examples](#Kubernetes-examples)
+6. [API Reference](#API-Reference)
+7. [Troubleshooting](#Troubleshooting)
+8. [FAQs](#FAQs)
+9. [Community and Support](#Community-and-Support)
+10. [Acknowledgments](#Acknowledgments)
+11. [Roadmap](#Roadmap)
+12. [Contributing](#Contributing)
+13. [License](#License)
 
 ## Introduction
  
@@ -21,7 +33,7 @@ The inspiration for this library came from the [testcontainers](https://www.test
 This library aims to provide a similar experience (albeit limited) as the Testcontainers library, but with the added benefit of being able to create 
 and manage containers also in Kubernetes. In addition it has the benefit of not being tied to a Junit-test life-cycle, and hence useful for any kind of container management, also beyond testing.
 
-## Usage
+## Getting Started
 
 ### Starting a container
 
@@ -69,7 +81,7 @@ Note that the mapped ports are mapped via NodePort since running the test from o
 <p>
 To run the above example in Docker, just replace the `withContainerPlatformType(ContainerPlatformType.KUBERNETES)` with `withContainerPlatformType(ContainerPlatformType.DOCKER)`. 
 
-### Building a custom container
+### Building and deploying a custom container
 
 The following example shows how to build and deploy a custom container in Docker:
 
@@ -140,16 +152,60 @@ fun buildAndRunCustomContainer() {
 
 To run the above example in Kubernetes, just replace the `withContainerPlatformType(ContainerPlatformType.DOCKER)` with `withContainerPlatformType(ContainerPlatformType.KUBERNETES)`.
 
+## Requirements
+
+### Docker
+
+Developed using Docker version 24.0.5.
+
+### Kubernetes
+
+Developed using Kubernetes version 1.29.2 on Kind version 0.22.
+
+## Configuration
+
 ### Docker specifics
+See the test-env directory test environment configuration for Docker and Kubernetes.
 
 ### Kubernetes specifics
+See the test-env directory test environment configuration for Docker and Kubernetes.
 
-## Limitations
+## Examples
+
+### Docker examples
+
+TODO
+
+### Kubernetes examples
+
+TODO
+
+## API Reference
+
+TODO
+
+## Troubleshooting
+
+TODO
+
+## FAQs
+
+TODO
+
+## Community and Support
+
+TODO
+
+## Acknowledgments
+
+TODO
+
+## Roadmap
+
+TODO
 
 ## Contributing
 - Thomas Muller (thomas.muller@accenture.com): main contributor and maintainer
 
 ## License
-2024, Accenture Inc. All Rights Reserved.
-
-This software is provided "as is" without warranty of any kind, either expressed or implied, including, but not limited to, the implied warranties of merchantability and fitness for a particular purpose. In no event shall Accenture Inc or its contributors be liable for any direct, indirect, incidental, special, exemplary, or consequential damages (including, but not limited to, procurement of substitute goods or services; loss of use, data, or profits; or business interruption) however caused and on any theory of liability, whether in contract, strict liability, or tort (including negligence or otherwise) arising
+This software is licensed under the Apache 2 license, see LICENSE and NOTICE for details.

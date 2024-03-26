@@ -40,7 +40,6 @@
     <junit.version>5.10.1</junit.version>
     <rest-assured.version>5.3.2</rest-assured.version>
     <okhttp.version>4.12.0</okhttp.version>
-    <snakeyaml.version>2.2</snakeyaml.version>
     <checker-qual.version>3.42.0</checker-qual.version>
     <aspectjweaver.version>1.9.21</aspectjweaver.version>
     <slf4j.version>2.0.10</slf4j.version>
@@ -122,22 +121,18 @@
       <version>${logback.version}</version>
     </dependency>
 
+    <!--
     <dependency>
       <groupId>org.apache.commons</groupId>
       <artifactId>commons-exec</artifactId>
       <version>${commons-exec.version}</version>
     </dependency>
+    -->
 
     <dependency>
       <groupId>com.github.mwiede</groupId>
       <artifactId>jsch</artifactId>
       <version>${jsch.version}</version>
-    </dependency>
-
-    <dependency>
-      <groupId>org.yaml</groupId>
-      <artifactId>snakeyaml</artifactId>
-      <version>${snakeyaml.version}</version>
     </dependency>
 
     <dependency>
