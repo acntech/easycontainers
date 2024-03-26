@@ -293,7 +293,7 @@
           <sourceDirectories>
             <dir>${project.basedir}/src/main/kotlin</dir>
           </sourceDirectories>
-          <outputDir>${project.basedir}/docs</outputDir>
+          <outputDir>${project.basedir}/javadoc</outputDir>
           <sourceLinks>
             <link>
               <!-- Source directory -->
