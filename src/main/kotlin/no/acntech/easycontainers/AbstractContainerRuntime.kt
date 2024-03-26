@@ -10,6 +10,13 @@ import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.*
 
+/**
+ * AbstractContainerRuntime is an abstract class that provides common functionality for implementing a ContainerRuntime.
+ * It contains methods for starting and stopping containers, executing commands inside containers, transferring files to and from containers,
+ * and retrieving information about the container runtime.
+ *
+ * @property container The GenericContainer instance representing the container to manage.
+ */
 abstract class AbstractContainerRuntime(
    protected val container: GenericContainer,
 ) : ContainerRuntime {

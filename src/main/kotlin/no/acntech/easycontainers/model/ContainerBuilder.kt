@@ -4,6 +4,11 @@ import no.acntech.easycontainers.output.OutputLineCallback
 import java.time.Duration
 import java.time.temporal.ChronoUnit
 
+/**
+ * The ContainerBuilder interface provides methods for building container configurations.
+ *
+ * @param <SELF> The type of the ContainerBuilder implementation.
+ */
 interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
 
    /**

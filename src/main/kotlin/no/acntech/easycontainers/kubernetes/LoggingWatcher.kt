@@ -6,6 +6,12 @@ import io.fabric8.kubernetes.client.WatcherException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
+/**
+ * An implementation of the Watcher interface that logs events and exceptions.
+ *
+ * @param T the type of the watched resource
+ * @property log the logger instance for logging events and exceptions
+ */
 internal class LoggingWatcher<Any>(
    val log: Logger = LoggerFactory.getLogger(LoggingWatcher::class.java),
 ) : Watcher<Any> {

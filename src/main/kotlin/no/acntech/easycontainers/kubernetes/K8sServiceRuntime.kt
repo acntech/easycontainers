@@ -13,6 +13,12 @@ import org.awaitility.Awaitility
 import java.time.Instant
 import java.util.concurrent.TimeUnit
 
+/**
+ * Represents a Kubernetes service runtime that deploys and manages a container and associated resources.
+ *
+ * @property container The container to be deployed.
+ * @property client The Kubernetes client used to interact with the cluster.
+ */
 class K8sServiceRuntime(
    container: GenericContainer,
    client: KubernetesClient = K8sClientFactory.createDefaultClient(),

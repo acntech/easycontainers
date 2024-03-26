@@ -18,6 +18,12 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 
+/**
+ * GenericContainer represents a generic container implementation that can be customized and built using the provided builder.
+ * It implements the Container interface.
+ *
+ * @property builder The builder object used to construct the GenericContainer instance.
+ */
 open class GenericContainer(
    internal val builder: GenericContainerBuilder,
 ) : Container {

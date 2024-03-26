@@ -9,6 +9,12 @@ import no.acntech.easycontainers.kubernetes.K8sConstants.DEFAULT_NAMESPACE
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import org.slf4j.LoggerFactory
 
+/**
+ * AccessChecker is a class that provides methods to check access permissions for various operations
+ * in a Kubernetes cluster.
+ *
+ * @property client - The Kubernetes client used for accessing the cluster.
+ */
 class AccessChecker(
    private val client: KubernetesClient,
 ) {

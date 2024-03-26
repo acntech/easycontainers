@@ -6,6 +6,10 @@ import com.github.dockerjava.core.DockerClientBuilder
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import org.slf4j.LoggerFactory
 
+/**
+ * The DockerClientFactory class is responsible for creating a DockerClient instance.
+ * It provides a method to create a default DockerClient using the Docker host configuration.
+ */
 object DockerClientFactory {
 
    private val log = LoggerFactory.getLogger(DockerClientFactory::class.java)

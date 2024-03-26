@@ -39,6 +39,20 @@ import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 import kotlin.io.path.isRegularFile
 
+/**
+ * DockerRuntime class provides functionality for managing Docker containers.
+ * It allows starting, stopping, and deleting containers, executing commands inside containers,
+ * transferring files to and from containers, and retrieving container information.
+ *
+ * @property dockerClient The Docker client instance used for communicating with the Docker daemon.
+ * @property containerId The ID of the Docker container.
+ * @property exitCode The exit code of the last executed command in the Docker container.
+ * @property ipAddress The IP address of the Docker container.
+ * @property host The host where the Docker container is running.
+ * @property networkName The name of the network the Docker container is connected to.
+ * @property startedAt The timestamp when the Docker container was started.
+ * @property finishedAt The timestamp when the Docker container finished its execution.
+ */
 internal class DockerRuntime(
    container: GenericContainer,
    private val dockerClient: DockerClient = DockerClientFactory.createDefaultClient(),

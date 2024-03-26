@@ -180,7 +180,8 @@ abstract class AbstractK8sRuntime(
          // Wait for the execWatch to open before processing input
          waitForLatch(started, waitTimeValue, waitTimeUnit)
 
-         processPodExecInput(input, execWatch)
+//         processPodExecInput(input, execWatch)
+
          waitForExecutionToFinish(execWatch, waitTimeValue, waitTimeUnit, exitCode, error)
       } catch (e: Exception) {
          handleK8sException(e)
@@ -627,8 +628,10 @@ abstract class AbstractK8sRuntime(
          .inContainer(container.name)
          .apply {
             if (input != null) {
-               redirectingInput()
-               this@AbstractK8sRuntime.log.trace("Redirecting input")
+//               redirectingInput()
+//               this@AbstractK8sRuntime.log.trace("Redirecting input")
+               readingInput(input) // Need to apply this since redirectingInput() DOES NOT WORK!
+               this@AbstractK8sRuntime.log.trace("Reading input")
             }
             if (useTty) {
                withTTY()
@@ -638,6 +641,7 @@ abstract class AbstractK8sRuntime(
          }
          .writingOutput(stdOut)
          .writingError(stdErr)
+
          .usingListener(listener)
          .exec(*command.toTypedArray())
    }
@@ -645,7 +649,7 @@ abstract class AbstractK8sRuntime(
    private fun processPodExecInput(input: InputStream?, execWatch: ExecWatch) {
       input?.use { clientStdin ->
          if (clientStdin.available() == 0) {
-            log.warn("No client input available for command execution")
+            log.warn("No stdin data available for command execution")
             return
          }
 
@@ -670,11 +674,13 @@ abstract class AbstractK8sRuntime(
    ) {
       if (waitTimeValue == null || waitTimeUnit == null) {
          log.trace("Waiting indefinitely for execWatch to finish")
-         exitCode.set(execWatch.exitCode().get())
+         val exitCodeValue = execWatch.exitCode().get()
+         exitCode.compareAndSet(null, exitCodeValue)
       } else {
          log.trace("Waiting $waitTimeValue $waitTimeUnit for execWatch to finish")
          try {
-            exitCode.set(execWatch.exitCode().get(waitTimeValue, waitTimeUnit))
+            val exitCodeValue = execWatch.exitCode().get(waitTimeValue, waitTimeUnit)
+            exitCode.compareAndSet(null, exitCodeValue)
          } catch (e: TimeoutException) {
             log.warn("Timeout waiting for execWatch to finish")
             throw ContainerException("Timeout waiting for execWatch to finish", e)
@@ -683,10 +689,10 @@ abstract class AbstractK8sRuntime(
 
       // Check for any errors that occurred during execution
       error.get()?.let {
-         throw it // Re-throw the error if one was captured during execution
+         log.error("Error during command execution: ${it.message}", it)
+         throw ContainerException("Error during command execution: ${it.message}", it)
       }
    }
-
 
    private fun waitForLatch(latch: CountDownLatch, waitTimeValue: Long?, waitTimeUnit: TimeUnit?) {
       if (waitTimeValue == null || waitTimeUnit == null) {
@@ -696,7 +702,7 @@ abstract class AbstractK8sRuntime(
          log.trace("Waiting $waitTimeValue $waitTimeUnit for latch to count down")
          val notified = latch.await(waitTimeValue, waitTimeUnit)
          if (!notified) {
-            throw ContainerException("Timeout waiting for latch to count down")
+            throw ContainerException("Timeout waiting $waitTimeValue $waitTimeUnit for latch to count down")
          } else {
             log.trace("Latch counted down!")
          }

@@ -1,5 +1,8 @@
 package no.acntech.easycontainers.model
 
+/**
+ * Represents the state of a container.
+ */
 enum class ContainerState {
 
    /**

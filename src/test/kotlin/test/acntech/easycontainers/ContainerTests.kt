@@ -153,9 +153,11 @@ class ContainerTests {
       val container = startContainer(platform, ExecutionMode.SERVICE, false)
       val runtime = container.getRuntime()
 
+      val msg = "Hello, ${platform.name}!"
+
       val (exitCode, stdout, stderr) = container.execute(
          Executable.of("echo"),
-         Args.of("Hello, World!"),
+         Args.of(msg),
          false,
          UnixDir.of("/"),
          null,
@@ -170,7 +172,7 @@ class ContainerTests {
       exitCode?.let {
          assertEquals(0, exitCode)
       }
-      assertTrue(stdout.startsWith("Hello, World!"))
+      assertTrue(stdout.startsWith(msg))
       assertEquals(EMPTY_STRING, stderr)
 
       runtime.stop()
@@ -235,15 +237,13 @@ class ContainerTests {
       val container = startContainer(platform, ExecutionMode.SERVICE, false)
       val runtime = container.getRuntime()
 
-      TimeUnit.SECONDS.sleep(10000)
-
-      val inputString = "Hello, Docker!"
+      val inputString = "Hello, ${platform.name}!"
       val inputStream = ByteArrayInputStream(inputString.toByteArray())
 
       val (exitCode, stdout, stderr) = container.execute(
          Executable.of("cat"),
          null,
-         false,
+         true,
          UnixDir.of("/"),
          inputStream,
          30,

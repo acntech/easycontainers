@@ -12,6 +12,34 @@ import java.time.Duration
 import java.time.temporal.ChronoUnit
 import java.util.*
 
+/**
+ * Abstract base class for container builders.
+ *
+ * @param SELF the type of the concrete builder that extends this class.
+ * @property log the logger instance.
+ * @property executionMode the execution mode of the container.
+ * @property name the name of the container.
+ * @property namespace the namespace of the container.
+ * @property labels the labels associated with the container.
+ * @property env the environment variables of the container.
+ * @property command the command to be executed in the container.
+ * @property args the arguments for the command.
+ * @property image the image URL of the container.
+ * @property exposedPorts the ports exposed by the container.
+ * @property portMappings the port mappings for the container.
+ * @property containerFiles the files in the container.
+ * @property volumes the volumes attached to the container.
+ * @property cpuRequest the CPU request of the container.
+ * @property cpuLimit the CPU limit of the container.
+ * @property memoryRequest the memory request of the container.
+ * @property memoryLimit the memory limit of the container.
+ * @property networkName the network name of the container.
+ * @property isEphemeral indicates if the container is ephemeral.
+ * @property outputLineCallback the callback for handling output lines.
+ * @property maxLifeTime the maximum lifetime of the container.
+ * @property customProperties the custom properties of the container.
+ * @property containerPlatformType the type of the container platform.
+ */
 abstract class BaseContainerBuilder<SELF : BaseContainerBuilder<SELF>> : ContainerBuilder<SELF> {
 
    protected val log: Logger = LoggerFactory.getLogger(javaClass)
