@@ -1,9 +1,0 @@
--XX:+UseContainerSupport
--XX:MinRAMPercentage=50.0
--XX:MaxRAMPercentage=75.0
--XX:+UseG1GC
--XX:+HeapDumpOnOutOfMemoryError
--XshowSettings
--Dlogback.debug=true
--Dspring.profiles.active=dev
--jar /opt/app/app.jar
