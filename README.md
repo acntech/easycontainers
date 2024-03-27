@@ -125,10 +125,10 @@ fun buildAndRunCustomContainer() {
     val imageBuilder = K8sContainerImageBuilder()
     .withName(ImageName.of(imageNameVal))
     .withImageRegistry(ImageURL.of("$REGISTRY/test/$imageName:latest"))
-    .withNamespace(Namespace.of("test"))
+    .withNamespace(Namespa[pom.xml](pom.xml)ce.of("test"))
     .withDockerContextDir(File(tempDir).absolutePath)
     .withLogLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
-    
+    [pom.xml](pom.xml)
     imageBuilder.buildImage()
     // INVARIANT: The image is built and pushed to the registry
     
@@ -181,7 +181,7 @@ TODO
 [JavaDoc](https://blog.acntech.no/easycontainers/index.html)
 
 ## Known Issues
-Currently neither the Kubernetes nor the Docker container runtime implementation supports exeucuting commands with stdin input. For Docker, this is due to a "hijacking session" issue that is not yet resolved. For Kubernetes, this is due to the fact that the `ExecWatch::getOutput()` method is for some unknown reason always null. 
+Currently, neither the Kubernetes nor the Docker container runtime implementation supports executing commands with stdin input. For Docker, this is due to a "hijacking session" issue that is not yet resolved. For Kubernetes, this is due to the fact that the `ExecWatch::getOutput()` method for some strange unknown reason always returns null. 
 
 ## Troubleshooting
 TODO
