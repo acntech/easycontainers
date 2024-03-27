@@ -282,8 +282,8 @@
           <execution>
             <phase>pre-site</phase>
             <goals>
-              <!--<goal>dokka</goal> -->
-              <goal>javadoc</goal>
+              <!-- <goal>dokka</goal> -->
+               <goal>javadoc</goal>
             </goals>
             <configuration>
             </configuration>
@@ -293,7 +293,8 @@
           <sourceDirectories>
             <dir>${project.basedir}/src/main/kotlin</dir>
           </sourceDirectories>
-          <outputDir>${project.basedir}/javadoc</outputDir>
+           <outputDir>${project.basedir}/javadoc</outputDir>
+           <!-- <outputDir>${project.basedir}/kdoc</outputDir> -->
           <sourceLinks>
             <link>
               <!-- Source directory -->
