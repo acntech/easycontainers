@@ -1,7 +1,7 @@
 Easycontainers Project
 Copyright 2024 Accenture AS
 
-The Easycontainers Project is developed and maintained by Thomas Muller (thomas.muller@accenture.com).
+The Easycontainers Project is developed and maintained by Thomas Muller (thomas.muller@accenture.com) (me.thomas.muller@gmail.com).
 
 This product includes software developed at
 The Apache Software Foundation (http://www.apache.org/).
@@ -40,11 +40,7 @@ Additional notices:
    - JSch
    The JSch library is used under the terms of the MIT License.
 
-8. This product includes software from the SnakeYAML project (https://bitbucket.org/asomov/snakeyaml):
-   - SnakeYAML
-   The SnakeYAML library is used under the terms of the Apache License 2.0.
-
-9. This product includes software from the JUnit Team (https://junit.org/):
+8. This product includes software from the JUnit Team (https://junit.org/):
    - JUnit Jupiter API
    - JUnit Jupiter Engine
    - JUnit Jupiter Params

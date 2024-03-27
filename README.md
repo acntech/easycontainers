@@ -178,7 +178,8 @@ TODO
 TODO
 
 ## API Reference
-[JavaDoc](https://blog.acntech.no/easycontainers/index.html)
+* [JavaDoc](https://blog.acntech.no/easycontainers/javadoc/index.html)
+* [KDoc](https://blog.acntech.no/easycontainers/kdoc/index.html)
 
 ## Known Issues
 Currently, neither the Kubernetes nor the Docker container runtime implementation supports executing commands with stdin input. For Docker, this is due to a "hijacking session" issue that is not yet resolved. For Kubernetes, this is due to the fact that the `ExecWatch::getOutput()` method for some strange unknown reason always returns null. 
@@ -199,7 +200,7 @@ TODO
 - Convert all tests to use [Testcontainers](https://testcontainers.com/) - either the official [K3s module](https://java.testcontainers.org/modules/k3s/), or the community contributed [KinD module](https://testcontainers.com/modules/kindcontainer/).
 
 ## Contributing
-- Thomas Muller (thomas.muller@accenture.com): main contributor and maintainer
+- Thomas Muller (thomas.muller@accenture.com) (me.thomas.muller@gmail.com): main contributor and maintainer
 
 ## License
 This software is licensed under the Apache 2 license, see LICENSE and NOTICE for details.
