@@ -191,7 +191,7 @@ TODO
 TODO
 
 ## Community and Support
-TODO
+For issues and bugs please submit an issue on the [GitHub repository](https://github.com/acntech/kollective-query/issues). Also feel free to contact the main contributor and maintainer directly at his [personal email](mailto:me.thomas.muller@gmail.com) or [work email](mailto:thomas.muller@accenture.com).
 
 ## Acknowledgments
 TODO
@@ -200,7 +200,7 @@ TODO
 - Convert all tests to use [Testcontainers](https://testcontainers.com/) - either the official [K3s module](https://java.testcontainers.org/modules/k3s/), or the community contributed [KinD module](https://testcontainers.com/modules/kindcontainer/).
 
 ## Contributing
-- Thomas Muller (thomas.muller@accenture.com) (me.thomas.muller@gmail.com): main contributor and maintainer
+[Thomas Muller](mailto:thomas.muller@accenture.com) ([personal email](mailto:me.thomas.muller@gmail.com)): main contributor and maintainer
 
 ## License
-This software is licensed under the Apache 2 license, see LICENSE and NOTICE for details.
+This software is licensed under the Apache 2 license, see [LICENSE](https://github.com/acntech/easycontainers/blob/main/LICENSE) and [NOTICE](https://github.com/acntech/easycontainers/blob/main/NOTICE) for details.

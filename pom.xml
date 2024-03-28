@@ -16,6 +16,8 @@
     <java.version>21</java.version>
     <kotlin.version>1.9.21</kotlin.version>
     <maven.version>[3.9,)</maven.version>
+    <dokka.dir>${project.basedir}/kdoc</dokka.dir>
+    <dokka.goal>dokka</dokka.goal>
 
     <!-- Semantic versioning -->
     <revision>SNAPSHOT</revision>
@@ -282,8 +284,7 @@
           <execution>
             <phase>pre-site</phase>
             <goals>
-              <!-- <goal>dokka</goal> -->
-               <goal>javadoc</goal>
+              <goal>${dokka.goal}</goal>
             </goals>
             <configuration>
             </configuration>
@@ -293,7 +294,7 @@
           <sourceDirectories>
             <dir>${project.basedir}/src/main/kotlin</dir>
           </sourceDirectories>
-           <outputDir>${project.basedir}/javadoc</outputDir>
+          <outputDir>${dokka.dir}</outputDir>
            <!-- <outputDir>${project.basedir}/kdoc</outputDir> -->
           <sourceLinks>
             <link>
