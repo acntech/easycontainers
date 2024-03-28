@@ -26,13 +26,18 @@
 14. [License](#License)
 
 ## Introduction
- 
-Easycontainers is a powerful Kotlin library that allows you to easily create and manage containers in Kubernetes and Docker using a simple and intuitive common platform-agnostic API. 
 
-The inspiration for this library came from the [testcontainers](https://www.testcontainers.org/) library, which is a Java library that allows you to create and manage (ephimeral) containers for testing purposes. However, the Testcontainers library is not (always) suitable for production use (i.e. in CI pipeline), as it is not possible to create containers in Kubernetes without a DinD solution. 
+**Easycontainers** is a streamlined Kotlin library, that can be used in both Kotlin and Java projects, designed to facilitate the creation and management of containers across both Kubernetes and Docker environments. By offering a straightforward, platform-agnostic API, it simplifies the complexities typically associated with container orchestration, making it an essential tool for developers looking to enhance their productivity and efficiency.
 
-This library aims to provide a similar experience (albeit limited) as the Testcontainers library, but with the added benefit of being able to create 
-and manage containers also in Kubernetes. In addition it has the benefit of not being tied to a Junit-test life-cycle, and hence useful for any kind of container management, also beyond testing.
+Born from the practical insights gained from the [Testcontainers](https://www.testcontainers.org/) library, Easycontainers extends these concepts to support not just ephemeral testing containers but also stable production environments. It addresses a critical gap for Kubernetes users by eliminating the need for Docker-in-Docker (DinD) solutions, providing a more integrated and reliable approach to container management.
+
+**Key Features:**
+- **Unified API**: Manage Docker and Kubernetes containers with ease, thanks to a cohesive and intuitive API.
+- **Flexibility**: Ideal for a wide array of applications, from testing to CI pipelines and production deployments.
+- **Independence**: Operates independently of the Junit-test lifecycle, offering versatility beyond just testing scenarios.
+
+With Easycontainers, developers gain a versatile tool that streamlines container management, freeing them to focus more on development and less on the operational intricacies of containers.
+
 
 ## Getting Started
 
@@ -100,7 +105,7 @@ private val dockerfileContent = """
 
 // Simple script that logs the time every 2 seconds
 private val logTimeScriptContent = """
-     #!/bin/sh[pom.xml](library%2Fpom.xml)
+     #!/bin/sh
      while true; do
            echo "The time is now $(date)"
            sleep 2
@@ -123,12 +128,13 @@ fun buildAndRunCustomContainer() {
     log.debug("log_time.sh created: {}", logTimeScript.absolutePath)
     
     val imageBuilder = K8sContainerImageBuilder()
-    .withName(ImageName.of(imageNameVal))
-    .withImageRegistry(ImageURL.of("$REGISTRY/test/$imageName:latest"))
-    .withNamespace(Namespa[pom.xml](pom.xml)ce.of("test"))
-    .withDockerContextDir(File(tempDir).absolutePath)
-    .withLogLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
-    [pom.xml](pom.xml)
+       .withName(ImageName.of(imageNameVal))
+       .withImageRegistry(ImageURL.of("$REGISTRY/test/$imageName:latest"))
+       .withNamespace(Namespa[pom.xml](pom.xml)ce.of("test"))
+       .withDockerContextDir(File(tempDir).absolutePath)
+       .withLogLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") 
+    }
+    
     imageBuilder.buildImage()
     // INVARIANT: The image is built and pushed to the registry
     
@@ -162,12 +168,12 @@ Developed using Docker [version 24.0.5](https://docs.docker.com/engine/release-n
 Developed using Kubernetes [version 1.29.2](https://kubernetes.io/releases/)  on Kind [version 0.22](https://github.com/kubernetes-sigs/kind/releases).
 
 ## Configuration
-See the test-env folder for scripts and resources to set up a test environment for running the tests.
+See the [test-env](https://github.com/acntech/easycontainers/tree/main/test-env) folder for scripts and resources to set up a a local environment for running the tests.
 
 ### Docker specifics
 
 ### Kubernetes specifics
-In the current version, when running outside a k8s cluster, the Kubernetes runtime only supports using the default kubeconfig file located in the user's home directory. If using the library inside a Kubernetes cluster (i.e. in a pod), the Fabric8 default approach is used to authenticate the client, i.e. the mounted service account token at `/var/run/secrets/kubernetes.io/serviceaccount/token`.
+In the current version, when running outside a k8s cluster, the Kubernetes runtime only supports using the default `kubeconfig` file located in the user's home directory. If using the library inside a Kubernetes cluster (i.e. in a pod), the Fabric8 default approach is used to authenticate the client, i.e. the mounted service account token at `/var/run/secrets/kubernetes.io/serviceaccount/token`.
 
 ## Examples
 
@@ -178,11 +184,12 @@ TODO
 TODO
 
 ## API Reference
-* [JavaDoc](https://blog.acntech.no/easycontainers/javadoc/index.html)
-* [KDoc](https://blog.acntech.no/easycontainers/kdoc/index.html)
+* [JavaDoc](https://blog.acntech.no/easycontainers/apidocs/javadoc/index.html)
+* [KDoc](https://blog.acntech.no/easycontainers/apidocs/kdoc/index.html)
 
 ## Known Issues
-Currently, neither the Kubernetes nor the Docker container runtime implementation supports executing commands with stdin input. For Docker, this is due to a "hijacking session" issue that is not yet resolved. For Kubernetes, this is due to the fact that the `ExecWatch::getOutput()` method for some strange unknown reason always returns null. 
+- Currently, neither the Kubernetes nor the Docker container runtime implementation supports executing commands with stdin input. For Docker, this is due to a "hijacking session" issue that is not yet resolved. For Kubernetes, this is due to the fact that the `ExecWatch::getOutput()` method for some strange unknown reason always returns null.
+- More test cases are needed to ensure the library is robust and reliable. 
 
 ## Troubleshooting
 TODO
@@ -197,7 +204,8 @@ For issues and bugs please submit an issue on the [GitHub repository](https://gi
 TODO
 
 ## Roadmap
-- Convert all tests to use [Testcontainers](https://testcontainers.com/) - either the official [K3s module](https://java.testcontainers.org/modules/k3s/), or the community contributed [KinD module](https://testcontainers.com/modules/kindcontainer/).
+- [ ] Add support for Kubernetes Jobs as a container runtime.
+- [ ] Convert all tests to use [Testcontainers](https://testcontainers.com/) - using either the official [K3s module](https://java.testcontainers.org/modules/k3s/), or the community contributed [KinD module](https://testcontainers.com/modules/kindcontainer/).
 
 ## Contributing
 [Thomas Muller](mailto:thomas.muller@accenture.com) ([personal email](mailto:me.thomas.muller@gmail.com)): main contributor and maintainer
