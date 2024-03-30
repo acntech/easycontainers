@@ -50,8 +50,8 @@ The following example shows how to create a (test) Elasticsearch container in Ku
 fun doElasticsearchStuff() {
     val container = GenericContainer.builder().apply {      
         withContainerPlatformType(ContainerPlatformType.KUBERNETES)
-        withName(ContainerName.of("elasticsearch-test"))
-        withNamespace(Namespace.of("test"))
+        withName("elasticsearch-test")
+        withNamespace("test")
         withImage(ImageURL.of("docker.elastic.co/elasticsearch/elasticsearch:8.11.3"))
         withEnv("discovery.type", "single-node")
         withEnv("xpack.security.enabled", "false")
@@ -65,8 +65,8 @@ fun doElasticsearchStuff() {
         withEnv("ES_LOG_LEVEL", "DEBUG")
         withExposedPort(PortMappingName.HTTP, NetworkPort.of(9200))
         withExposedPort(PortMappingName.TRANSPORT, 9300)
-        withPortMapping(NetworkPort.of(9200), NetworkPort.of(30200))
-        withPortMapping(NetworkPort.of(9300), NetworkPort.of(30300))
+        withPortMapping(9200, 30200)
+        withPortMapping(9300, 30300)
         withIsEphemeral(true)
         withLogLineCallback { line -> println("ELASTIC-OUTPUT: $line") }
     }.build()
@@ -129,8 +129,8 @@ fun buildAndRunCustomContainer() {
     
     val imageBuilder = K8sContainerImageBuilder()
        .withName(ImageName.of(imageNameVal))
-       .withImageRegistry(ImageURL.of("$REGISTRY/test/$imageName:latest"))
-       .withNamespace(Namespa[pom.xml](pom.xml)ce.of("test"))
+       .withImageRegistry("$REGISTRY/test/$imageName:latest")
+       .withNamespace("test")
        .withDockerContextDir(File(tempDir).absolutePath)
        .withLogLineCallback { line -> println("KANIKO-JOB-OUTPUT: ${Instant.now()} $line") 
     }
@@ -141,9 +141,9 @@ fun buildAndRunCustomContainer() {
     // Test deploying the custom image in Docker
    val container = GenericContainer.builder().apply {
         withContainerPlatformType(ContainerPlatformType.DOCKER)
-        withName(ContainerName.of("simple-alpine-test"))
-        withNamespace(Namespace.of("test"))
-        withImage(ImageURL.of("$REGISTRY/test/$imageName:latest"))
+        withName("simple-alpine-test")
+        withNamespace("test")
+        withImage("$REGISTRY/test/$imageName:latest")
         withIsEphemeral(true)
         withLogLineCallback { line -> println("SIMPLE-ALPINE-OUTPUT: $line") }
     }.build()
@@ -168,12 +168,12 @@ Developed using Docker [version 24.0.5](https://docs.docker.com/engine/release-n
 Developed using Kubernetes [version 1.29.2](https://kubernetes.io/releases/)  on Kind [version 0.22](https://github.com/kubernetes-sigs/kind/releases).
 
 ## Configuration
-See the [test-env](https://github.com/acntech/easycontainers/tree/main/src/test/resources/env) folder for scripts and resources to set up a a local environment for running the tests.
+See the [test-env](https://github.com/acntech/easycontainers/tree/main/src/test/resources/env) folder for scripts and resources to set up a local environment for running the tests.
 
 ### Docker specifics
 
 ### Kubernetes specifics
-In the current version, when running outside a k8s cluster, the Kubernetes runtime only supports using the default `kubeconfig` file located in the user's home directory. If using the library inside a Kubernetes cluster (i.e. in a pod), the Fabric8 default approach is used to authenticate the client, i.e. the mounted service account token at `/var/run/secrets/kubernetes.io/serviceaccount/token`.
+In the current version, when running outside a k8s cluster, the Kubernetes runtime only supports using the default `kubeconfig` file located in the user's home directory. If using the library inside a Kubernetes cluster (i.e. in a pod/container), the Fabric8 default approach is used to authenticate the client, i.e. the mounted service account token at `/var/run/secrets/kubernetes.io/serviceaccount/token`.
 
 ## Examples
 
@@ -188,7 +188,7 @@ TODO
 * [KDoc](https://blog.acntech.no/easycontainers/apidocs/kdoc/index.html)
 
 ## Known Issues
-- Currently, neither the Kubernetes nor the Docker container runtime implementation supports executing commands with stdin input. For Docker, this is due to a "hijacking session" issue that is not yet resolved. For Kubernetes, this is due to the fact that the `ExecWatch::getOutput()` method for some strange unknown reason always returns null.
+- The Docker container runtime implementation does not support executing commands with stdin input due to a "hijacking session" issue that is not yet resolved. 
 - More test cases are needed to ensure the library is robust and reliable. 
 
 ## Troubleshooting
@@ -205,6 +205,7 @@ TODO
 
 ## Roadmap
 - [ ] Add support for Kubernetes Jobs as a container runtime.
+- [ ] Add specific container implementations for popular databases and services.
 - [ ] Convert all tests to use [Testcontainers](https://testcontainers.com/) - using either the official [K3s module](https://java.testcontainers.org/modules/k3s/), or the community contributed [KinD module](https://testcontainers.com/modules/kindcontainer/).
 
 ## Contributing
