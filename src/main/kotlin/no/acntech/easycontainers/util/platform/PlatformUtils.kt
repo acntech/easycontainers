@@ -1,6 +1,7 @@
 package no.acntech.easycontainers.util.platform
 
 import no.acntech.easycontainers.util.text.EMPTY_STRING
+import no.acntech.easycontainers.util.text.FORWARD_SLASH
 import no.acntech.easycontainers.util.text.NEW_LINE
 import no.acntech.easycontainers.util.text.splitOnWhites
 import org.apache.commons.exec.CommandLine
@@ -279,6 +280,10 @@ object PlatformUtils {
 
       // Default case, return the path as-is (This might be a non-Windows path or an unhandled case)
       return path.toString()
+   }
+
+   fun convertWindowsPathToUnix(windowsPath: String): String {
+      return windowsPath.replace("\\", FORWARD_SLASH).replace("^[a-zA-Z]:".toRegex(), EMPTY_STRING)
    }
 
    private fun stripNullBytes(input: String): String {

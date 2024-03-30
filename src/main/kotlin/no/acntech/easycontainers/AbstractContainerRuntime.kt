@@ -5,6 +5,7 @@ import no.acntech.easycontainers.util.lang.guardedExecution
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.InputStream
+import java.io.OutputStream
 import java.net.InetAddress
 import java.nio.file.Path
 import java.time.Duration
@@ -41,10 +42,10 @@ abstract class AbstractContainerRuntime(
    companion object {
 
       @JvmStatic
-      protected val GENERAL_EXECUTOR_SERVICE: ExecutorService = Executors.newVirtualThreadPerTaskExecutor()
+      val GENERAL_EXECUTOR_SERVICE: ExecutorService = Executors.newVirtualThreadPerTaskExecutor()
 
       @JvmStatic
-      protected val SCHEDULER: ScheduledExecutorService = Executors.newScheduledThreadPool(
+      val SCHEDULER: ScheduledExecutorService = Executors.newScheduledThreadPool(
          1,
          Thread.ofVirtual().factory()
       )
@@ -113,9 +114,10 @@ abstract class AbstractContainerRuntime(
       useTty: Boolean,
       workingDir: UnixDir?,
       input: InputStream?,
+      output: OutputStream = OutputStream.nullOutputStream(),
       waitTimeValue: Long?,
       waitTimeUnit: TimeUnit?,
-   ): Triple<Int?, String, String>
+   ): Pair<Int?, String?> // Pair of exit code and stderr
 
    internal abstract fun putFile(localPath: Path, remoteDir: UnixDir, remoteFilename: String?)
 

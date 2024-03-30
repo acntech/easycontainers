@@ -11,6 +11,7 @@ import org.apache.commons.lang3.builder.ToStringStyle
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.InputStream
+import java.io.OutputStream
 import java.net.InetAddress
 import java.nio.file.Path
 import java.time.Duration
@@ -159,15 +160,17 @@ open class GenericContainer(
       useTty: Boolean,
       workingDir: UnixDir?,
       input: InputStream?,
+      output: OutputStream,
       waitTimeValue: Long?,
       waitTimeUnit: TimeUnit?,
-   ): Triple<Int?, String, String> {
+   ): Pair<Int?, String?> {
       return runtime.execute(
          executable,
          args,
          useTty,
          workingDir,
          input,
+         output,
          waitTimeValue,
          waitTimeUnit
       )

@@ -14,6 +14,11 @@ object DockerClientFactory {
 
    private val log = LoggerFactory.getLogger(DockerClientFactory::class.java)
 
+   /**
+    * This method creates a default Docker client.
+    *
+    * @return The default DockerClient instance.
+    */
    fun createDefaultClient(): DockerClient {
       val configBuilder = DefaultDockerClientConfig.createDefaultConfigBuilder()
 

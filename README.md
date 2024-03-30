@@ -168,7 +168,7 @@ Developed using Docker [version 24.0.5](https://docs.docker.com/engine/release-n
 Developed using Kubernetes [version 1.29.2](https://kubernetes.io/releases/)  on Kind [version 0.22](https://github.com/kubernetes-sigs/kind/releases).
 
 ## Configuration
-See the [test-env](https://github.com/acntech/easycontainers/tree/main/test-env) folder for scripts and resources to set up a a local environment for running the tests.
+See the [test-env](https://github.com/acntech/easycontainers/tree/main/src/test/resources/env) folder for scripts and resources to set up a a local environment for running the tests.
 
 ### Docker specifics
 

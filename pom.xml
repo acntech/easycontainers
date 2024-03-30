@@ -30,6 +30,7 @@
     <awaitility.version>4.2.1</awaitility.version>
     <commons.lang3.version>3.14.0</commons.lang3.version>
     <commons-exec.version>1.4.0</commons-exec.version>
+    <commons-io.version>2.15.1</commons-io.version>
     <commons-compress.version>1.25.0</commons-compress.version>
     <jsch.version>0.2.17</jsch.version>
     <junit.version>5.10.1</junit.version>
@@ -37,6 +38,7 @@
     <logback.version>1.5.3</logback.version>
     <junit.version>5.10.2</junit.version>
     <khttp.version>1.6.1</khttp.version>
+
 
     <!-- Plugin versions -->
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
@@ -64,11 +66,6 @@
       <version>${kotlin.version}</version>
     </dependency>
 
-    <dependency>
-      <groupId>org.danilopianini</groupId>
-      <artifactId>khttp</artifactId>
-      <version>${khttp.version}</version>
-    </dependency>
 
     <dependency>
       <groupId>io.fabric8</groupId>
@@ -88,6 +85,15 @@
       <version>${awaitility.version}</version>
     </dependency>
 
+
+
+
+    <dependency>
+      <groupId>org.danilopianini</groupId>
+      <artifactId>khttp</artifactId>
+      <version>${khttp.version}</version>
+    </dependency>
+
     <!--
     <dependency>
       <groupId>org.apache.commons</groupId>
@@ -95,6 +101,12 @@
       <version>${commons-compress.version}</version>
     </dependency>
     -->
+
+    <dependency>
+      <groupId>commons-io</groupId>
+      <artifactId>commons-io</artifactId>
+      <version>${commons-io.version}</version>
+    </dependency>
 
     <dependency>
       <groupId>org.apache.commons</groupId>

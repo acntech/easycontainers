@@ -2,6 +2,7 @@ package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.output.OutputLineCallback
 import java.io.InputStream
+import java.io.OutputStream
 import java.net.InetAddress
 import java.nio.file.Path
 import java.time.Duration
@@ -167,17 +168,18 @@ interface Container {
     * @param input the input stream to pass to the command
     * @param waitTimeValue the time to wait for the command to complete
     * @param waitTimeUnit the time unit for the wait time
-    * @return a Triple containing the exit code, the standard output and the standard error of the command execution
+      * @return a pair of the exit code and the std error output
     */
    fun execute(
       executable: Executable,
       args: Args? = null,
-      useTty: Boolean,
+      useTty: Boolean = false,
       workingDir: UnixDir? = null,
       input: InputStream? = null,
+      output: OutputStream = OutputStream.nullOutputStream(),
       waitTimeValue: Long? = null,
       waitTimeUnit: TimeUnit? = null,
-   ): Triple<Int?, String, String>
+   ): Pair<Int?, String?>
 
    /**
     * Uploads a file to the container.

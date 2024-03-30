@@ -23,6 +23,8 @@ value class CPU(val value: Double) : SimpleValueObject<Double> {
          return CPU(numericValue)
       }
 
+      fun of(value: Double): CPU = CPU(value)
+
       private val VALIDATOR = SimpleValueObjectValidator(
          range = ValidationRange(
             inclusiveMin = 0.001,

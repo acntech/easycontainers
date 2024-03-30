@@ -11,24 +11,30 @@ import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.AbstractContainerRuntime
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.GenericContainer
+import no.acntech.easycontainers.kubernetes.ErrorSupport.handleK8sException
 import no.acntech.easycontainers.kubernetes.K8sConstants.MEDIUM_MEMORY_BACKED
 import no.acntech.easycontainers.kubernetes.K8sUtils.normalizeLabelValue
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.util.collections.prettyPrint
 import no.acntech.easycontainers.util.io.closeQuietly
-
+import no.acntech.easycontainers.util.io.toUtf8String
+import no.acntech.easycontainers.util.text.FORWARD_SLASH
 import no.acntech.easycontainers.util.text.NEW_LINE
 import no.acntech.easycontainers.util.text.SPACE
+import no.acntech.easycontainers.util.text.chop
+import org.apache.commons.io.input.TeeInputStream
+import org.apache.commons.io.output.TeeOutputStream
 import org.awaitility.Awaitility
-import java.io.ByteArrayOutputStream
-import java.io.File
-import java.io.InputStream
+import org.awaitility.core.ConditionTimeoutException
+import java.io.*
 import java.net.InetAddress
+import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import java.time.Instant
 import java.util.concurrent.*
+import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
 
@@ -50,7 +56,7 @@ import java.util.concurrent.atomic.AtomicReference
  * @property exitCode The exit code of the container.
  * @property podPhaseLatches The latches used to wait for pod phases.
  */
-abstract class AbstractK8sRuntime(
+abstract class K8sRuntime(
    container: GenericContainer,
    protected val client: KubernetesClient = K8sClientFactory.createDefaultClient(),
 ) : AbstractContainerRuntime(container) {
@@ -131,6 +137,14 @@ abstract class AbstractK8sRuntime(
       PodPhase.SUCCEEDED to CountDownLatch(1),
    )
 
+   /**
+    * Returns the name of the (first) Kubernetes container associated with the (first) pod.
+    */
+   override fun getName(): ContainerName {
+      return pods.firstOrNull()?.second?.firstOrNull().let { k8sContainer -> k8sContainer?.name?.let { ContainerName.of(it) } }
+         ?: throw IllegalStateException("No pod/container present")
+   }
+
    override fun delete(force: Boolean) {
       val configMapsExists = client.configMaps()
          .inNamespace(getNamespace())
@@ -158,74 +172,91 @@ abstract class AbstractK8sRuntime(
       useTty: Boolean,
       workingDir: UnixDir?,
       input: InputStream?,
+      output: OutputStream,
       waitTimeValue: Long?,
       waitTimeUnit: TimeUnit?,
-   ): Triple<Int?, String, String> {
+   ): Pair<Int?, String?> {
       val (pod, container) = prepareCommandExecution()
       val command = listOf(executable.unwrap()) + args?.toStringList().orEmpty()
 
-      log.debug("Executing command: ${command.joinToString(" ")} in container: ${container.name} in pod: ${pod.metadata.name}")
+      val cmdSupport = CommandSupport(client, pod, container)
 
-      val stdOut = ByteArrayOutputStream()
-      val stdErr = ByteArrayOutputStream()
-      val exitCode = AtomicReference<Int>()
-      val error = AtomicReference<Throwable>()
-
-      var execWatch: ExecWatch? = null
-
-      val started = CountDownLatch(1)
-      try {
-         execWatch = executeCommand(pod, container, command, useTty, stdOut, stdErr, input, started, error)
-
-         // Wait for the execWatch to open before processing input
-         waitForLatch(started, waitTimeValue, waitTimeUnit)
-
-//         processPodExecInput(input, execWatch)
-
-         waitForExecutionToFinish(execWatch, waitTimeValue, waitTimeUnit, exitCode, error)
-      } catch (e: Exception) {
-         handleK8sException(e)
-      } finally {
-         execWatch?.closeQuietly()
-      }
-
-      error.get()?.let {
-         throw ContainerException("Error executing command: ${it.message}", it)
-      }
-
-//      assert(exitCode.get() != null) { "Exit code should not be null" }
-
-      return Triple(exitCode.get(), stdOut.toString(), stdErr.toString())
+      return cmdSupport.execute(
+         command,
+         useTty,
+         input,
+         output,
+         waitTimeValue,
+         waitTimeUnit
+      )
    }
 
-   /**
-    * This method is not supported for Kubernetes containers.
-    * TODO: Might be implemented using a common file storage.
-    */
    override fun putFile(localPath: Path, remoteDir: UnixDir, remoteFilename: String?) {
-      throw UnsupportedOperationException(FILE_TRANSFER_NOT_SUPPORTED_MSG)
+      // Checking if the local file exists or not
+      if (!Files.exists(localPath)) {
+         throw FileNotFoundException("The local file $localPath does not exist")
+      }
+
+      // Getting the absolute path of the remote file inside the pod
+      val remotePath = "${remoteDir.unwrap()}/${remoteFilename ?: localPath.fileName.toString()}"
+
+      log.debug("Transferring local file '$localPath' to remote path '$remotePath'")
+
+      val command = listOf("sh", "-c", "cat > $remotePath")
+      val (pod, container) = prepareCommandExecution()
+      // Prepare the execution of the command with the file's content piped into stdin
+      val input = BufferedInputStream(FileInputStream(localPath.toFile()))
+
+      val cmdSupport = CommandSupport(client, pod, container)
+
+      val (exitCode, stdErr) = cmdSupport.execute(
+         command,
+         false,
+         input,
+         OutputStream.nullOutputStream(),
+         60L,
+         TimeUnit.SECONDS
+      )
+
+      if( (exitCode != null && exitCode != 0) || stdErr != null) {
+         val msg = "Transferring file '$localPath' to '$remotePath' failed with code $exitCode and error msg: $stdErr"
+         log.error(msg)
+         throw ContainerException(msg)
+      }
    }
 
-   /**
-    * This method is not supported for Kubernetes containers.
-    * TODO: Might be implemented using a common file storage.
-    */
    override fun putDirectory(localPath: Path, remoteDir: UnixDir) {
       throw UnsupportedOperationException(FILE_TRANSFER_NOT_SUPPORTED_MSG)
    }
 
-   /**
-    * This method is not supported for Kubernetes containers.
-    * TODO: Might be implemented using a common file storage.
-    */
    override fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path?): Path {
-      throw UnsupportedOperationException(FILE_TRANSFER_NOT_SUPPORTED_MSG)
+      val remotePath = "${remoteDir.unwrap()}/$remoteFilename"
+      val targetPath = localPath ?: Files.createTempFile("k8s-file-", ".tmp")
+
+      val command = listOf("cat", remotePath)
+      val output = BufferedOutputStream(FileOutputStream(targetPath.toFile()))
+
+      val (pod, container) = prepareCommandExecution()
+      val cmdSupport = CommandSupport(client, pod, container)
+
+      val (exitCode, stdErr) = cmdSupport.execute(
+         command,
+         false,
+         null,
+         output,
+         60L,
+         TimeUnit.SECONDS
+      )
+
+      if( (exitCode != null && exitCode != 0) || stdErr != null) {
+         val msg = "Transferring file '$localPath' to '$remotePath' failed with code $exitCode and error msg: $stdErr"
+         log.error(msg)
+         throw ContainerException(msg)
+      }
+
+      return targetPath
    }
 
-   /**
-    * This method is not supported for Kubernetes containers.
-    * TODO: Might be implemented using a common file storage.
-    */
    override fun getDirectory(remoteDir: UnixDir, localPath: Path) {
       throw UnsupportedOperationException(FILE_TRANSFER_NOT_SUPPORTED_MSG)
    }
@@ -251,6 +282,12 @@ abstract class AbstractK8sRuntime(
 
    override fun getType(): ContainerPlatformType {
       return ContainerPlatformType.KUBERNETES
+   }
+
+   // Extra methods
+
+   fun getPodName(): String {
+      return pods.firstOrNull()?.first?.metadata?.name ?: throw IllegalStateException("No pod present")
    }
 
    protected fun watchPods() {
@@ -412,24 +449,6 @@ abstract class AbstractK8sRuntime(
       }
    }
 
-   @Throws(ContainerException::class)
-   protected fun handleK8sException(e: Exception) {
-      when (e) {
-         is KubernetesClientException, is ResourceNotFoundException, is WatcherException -> {
-            val message = "Kubernetes error: ${e.message}"
-            log.error(message, e)
-            throw ContainerException(message, e)
-         }
-
-         is ContainerException -> throw e
-
-         else -> {
-            log.error("Unexpected exception '${e.javaClass.simpleName}:'${e.message}', re-throwing", e)
-            throw e // Rethrow the exception if it's not one of the handled types
-         }
-      }
-   }
-
    protected fun getNamespace(): String = container.getNamespace().value
 
    private fun handleContainerFiles(
@@ -579,6 +598,7 @@ abstract class AbstractK8sRuntime(
    }
 
    private fun prepareCommandExecution(): Pair<Pod, Container> {
+      refreshAllPods()
       val (pod, containers) = pods.firstOrNull()
          ?: throw IllegalArgumentException("No available pods to execute command")
 
@@ -590,121 +610,34 @@ abstract class AbstractK8sRuntime(
       return Pair(pod, container)
    }
 
-   private fun executeCommand(
-      pod: Pod,
-      container: Container,
-      command: List<String>,
-      useTty: Boolean,
-      stdOut: ByteArrayOutputStream,
-      stdErr: ByteArrayOutputStream,
-      input: InputStream?,
-      started: CountDownLatch,
-      error: AtomicReference<Throwable>,
-   ): ExecWatch {
-      val listener = object : ExecListener {
-
-         override fun onOpen() {
-            log.trace("ExecListener: onOpen")
-            started.countDown()
-         }
-
-         override fun onFailure(throwable: Throwable?, response: ExecListener.Response?) {
-            log.error("ExecListener: onFailure: ${throwable?.message}", throwable)
-            error.set(throwable)
-            started.countDown()
-         }
-
-         override fun onClose(code: Int, reason: String?) {
-            log.debug("ExecListener: onClose: code=$code, reason=$reason")
-            exitCode.set(code)
-            started.countDown()
-         }
-      }
-
-      return client
-         .pods()
-         .inNamespace(pod.metadata.namespace)
-         .withName(pod.metadata.name)
-         .inContainer(container.name)
-         .apply {
-            if (input != null) {
-//               redirectingInput()
-//               this@AbstractK8sRuntime.log.trace("Redirecting input")
-               readingInput(input) // Need to apply this since redirectingInput() DOES NOT WORK!
-               this@AbstractK8sRuntime.log.trace("Reading input")
-            }
-            if (useTty) {
-               withTTY()
-               this@AbstractK8sRuntime.log.trace("TTY enabled")
-            }
-            terminateOnError()
-         }
-         .writingOutput(stdOut)
-         .writingError(stdErr)
-
-         .usingListener(listener)
-         .exec(*command.toTypedArray())
-   }
-
-   private fun processPodExecInput(input: InputStream?, execWatch: ExecWatch) {
-      input?.use { clientStdin ->
-         if (clientStdin.available() == 0) {
-            log.warn("No stdin data available for command execution")
-            return
-         }
-
-         // Wait for execWatch input to be ready
-         Awaitility.await()
-            .atMost(10, TimeUnit.SECONDS)
-            .alias("Waiting for execWatch input to be ready")
-            .until { execWatch.input != null }
-
-         execWatch.input?.let { podStdin ->
-            podStdin.use { clientStdin.transferTo(it) }
-         } ?: log.warn("No pod stdin stream available for command execution")
-      }
-   }
-
-   private fun waitForExecutionToFinish(
-      execWatch: ExecWatch,
+   private fun execPollWait(
       waitTimeValue: Long?,
       waitTimeUnit: TimeUnit?,
-      exitCode: AtomicReference<Int>,
-      error: AtomicReference<Throwable>,
+      alive: AtomicBoolean,
+      stdErr: ByteArrayOutputStream,
+      stdOut: ByteArrayOutputStream,
    ) {
-      if (waitTimeValue == null || waitTimeUnit == null) {
-         log.trace("Waiting indefinitely for execWatch to finish")
-         val exitCodeValue = execWatch.exitCode().get()
-         exitCode.compareAndSet(null, exitCodeValue)
-      } else {
-         log.trace("Waiting $waitTimeValue $waitTimeUnit for execWatch to finish")
-         try {
-            val exitCodeValue = execWatch.exitCode().get(waitTimeValue, waitTimeUnit)
-            exitCode.compareAndSet(null, exitCodeValue)
-         } catch (e: TimeoutException) {
-            log.warn("Timeout waiting for execWatch to finish")
-            throw ContainerException("Timeout waiting for execWatch to finish", e)
+      log.trace("Poll-waiting for command execution to finish...")
+      try {
+         Awaitility.await()
+            .atMost(waitTimeValue ?: 30, waitTimeUnit ?: TimeUnit.SECONDS)
+            .pollInterval(500, TimeUnit.MILLISECONDS)
+            .until {
+               log.trace("Polling... alive=${alive.get()}")
+               !alive.get()
+            }
+      } catch (e: ConditionTimeoutException) {
+         val errorOut = stdErr.toString()
+         if (errorOut.isNotEmpty()) {
+            log.error("Error executing command: $errorOut")
+            throw ContainerException("Error executing command: ${errorOut.chop(32)}")
          }
-      }
 
-      // Check for any errors that occurred during execution
-      error.get()?.let {
-         log.error("Error during command execution: ${it.message}", it)
-         throw ContainerException("Error during command execution: ${it.message}", it)
-      }
-   }
-
-   private fun waitForLatch(latch: CountDownLatch, waitTimeValue: Long?, waitTimeUnit: TimeUnit?) {
-      if (waitTimeValue == null || waitTimeUnit == null) {
-         log.trace("Waiting indefinitely for latch to count down")
-         latch.await()
-      } else {
-         log.trace("Waiting $waitTimeValue $waitTimeUnit for latch to count down")
-         val notified = latch.await(waitTimeValue, waitTimeUnit)
-         if (!notified) {
-            throw ContainerException("Timeout waiting $waitTimeValue $waitTimeUnit for latch to count down")
+         val standardOut = stdOut.toString()
+         if (standardOut.isNotEmpty()) {
+            log.info("Command execution timed out, but std output was captured: ${standardOut.chop(32)}")
          } else {
-            log.trace("Latch counted down!")
+            log.warn("Command execution timed out and no std output was captured")
          }
       }
    }
@@ -811,10 +744,14 @@ abstract class AbstractK8sRuntime(
       pods.addAll(refreshedPods)
       ipAddress.set(InetAddress.getByName(pods.first().first.status.podIP))
 
-      val stringVal = pods.joinToString(", ") { (pod, containers) ->
-         "$pod.metadata.name -> ${containers.joinToString { it.name }}"
-      }
-      log.trace("Pods and containers refreshed: $stringVal")
+//      val stringVal = pods.joinToString(", ") { (pod, containers) ->
+//         "$pod.metadata.name -> ${containers.joinToString { it.name }}"
+//      }
+//      log.trace("Pods and containers refreshed: $stringVal")
+
+      log.trace("Pods and containers refreshed")
+
+
    }
 
 }

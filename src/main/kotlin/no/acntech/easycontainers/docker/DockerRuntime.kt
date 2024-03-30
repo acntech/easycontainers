@@ -22,10 +22,7 @@ import no.acntech.easycontainers.util.text.SPACE
 import no.acntech.easycontainers.util.text.splitOnWhites
 import org.awaitility.Awaitility.await
 import org.awaitility.core.ConditionTimeoutException
-import java.io.Closeable
-import java.io.FileInputStream
-import java.io.FileOutputStream
-import java.io.InputStream
+import java.io.*
 import java.net.InetAddress
 import java.nio.file.Files
 import java.nio.file.Path
@@ -101,6 +98,13 @@ internal class DockerRuntime(
 
    override fun getType(): ContainerPlatformType {
       return ContainerPlatformType.DOCKER
+   }
+
+   /**
+    * Retrieves the container ID of the Docker container if it has been started, otherwise the container name.
+    */
+   override fun getName(): ContainerName {
+      return containerId.get()?.run { ContainerName.of(this) } ?: container.getName()
    }
 
    override fun start() {
@@ -222,14 +226,16 @@ internal class DockerRuntime(
       useTty: Boolean,
       workingDir: UnixDir?,
       input: InputStream?,
+      output: OutputStream,
       waitTimeValue: Long?,
       waitTimeUnit: TimeUnit?,
-   ): Triple<Int?, String, String> {
+   ): Pair<Int?, String?> {
       return internalExecute(
          listOf(executable.value) + (args?.toStringList() ?: emptyList()),
          workingDir?.value,
          useTty,
          input,
+         output,
          waitTimeValue,
          waitTimeUnit,
       )
@@ -711,16 +717,15 @@ internal class DockerRuntime(
       workingDir: String? = null,
       useTty: Boolean = false,
       input: InputStream? = null,
+      output: OutputStream = OutputStream.nullOutputStream(),
       waitTimeValue: Long? = null,
       waitTimeUnit: TimeUnit? = null,
-   ): Triple<Int?, String, String> {
+   ): Pair<Int?, String?> {
       container.requireOneOfStates(ContainerState.RUNNING)
 
       log.trace("Executing command: ${command.joinToString(SPACE)}")
 
       val latch = CountDownLatch(1)
-
-      val outputBuilder: StringBuilder = StringBuilder()
 
       val callback = object : ResultCallback<Frame> {
 
@@ -729,29 +734,30 @@ internal class DockerRuntime(
          }
 
          override fun onStart(closeable: Closeable?) {
-            log.trace("Exec command callback: Started")
+            log.trace("Exec command callback: onStart")
          }
 
          override fun onNext(frame: Frame?) {
-            val line = frame?.payload?.decodeToString()
-            log.trace("Exec command callback: Output: $line")
-            outputBuilder.append(line)
+            frame?.payload?.let {
+               log.trace("Exec command callback: output: ${it.decodeToString()}")
+               output.write(it)
+            }
          }
 
          override fun onError(error: Throwable?) {
-            log.error("Exec command callback: Error (${error?.message}", error)
+            log.error("Exec command callback: onError: ${error?.message}", error)
             latch.countDown()
          }
 
          override fun onComplete() {
-            log.trace("Exec command callback: Completed")
+            log.trace("Exec command callback: onComplete")
             latch.countDown()
          }
       }
 
       val execCreateCmdResponse = dockerClient.execCreateCmd(containerId.get())
          .withAttachStdout(true)
-         .withAttachStderr(true)
+         .withAttachStderr(false)
          .withCmd(*command.toTypedArray())
          .withTty(useTty)
          .apply {
@@ -778,7 +784,7 @@ internal class DockerRuntime(
          .exec()
       val exitCode = execInspectCmdResponse.exitCodeLong?.toInt()
 
-      return Triple(exitCode, outputBuilder.toString(), EMPTY_STRING)
+      return Pair(exitCode, null)
    }
 
    private fun getDisplayName(): String = "${container.getName()} (${containerId.get()})"

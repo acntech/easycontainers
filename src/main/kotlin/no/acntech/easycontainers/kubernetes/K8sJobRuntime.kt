@@ -8,7 +8,7 @@ import java.util.*
 class K8sJobRuntime(
    container: GenericContainer,
    client: KubernetesClient = K8sClientFactory.createDefaultClient(),
-) : AbstractK8sRuntime(container, client) {
+) : K8sRuntime(container, client) {
 
    private val uuid: String = UUID.randomUUID().toString()
 

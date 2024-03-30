@@ -45,4 +45,9 @@ interface ContainerRuntime {
     * @param force if true, force the deletion of the container (default is false)
     */
    fun delete(force: Boolean = false)
+
+   /**
+    * Retrieves the (runtime) name of the container - for Docker this is the container ID, for Kubernetes this is the pod name.
+    */
+   fun getName(): ContainerName
 }

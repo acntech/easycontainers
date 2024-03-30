@@ -6,6 +6,7 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentSpec
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.GenericContainer
+import no.acntech.easycontainers.kubernetes.ErrorSupport.handleK8sException
 import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.model.Host
 import no.acntech.easycontainers.util.text.NEW_LINE
@@ -22,7 +23,7 @@ import java.util.concurrent.TimeUnit
 class K8sServiceRuntime(
    container: GenericContainer,
    client: KubernetesClient = K8sClientFactory.createDefaultClient(),
-) : AbstractK8sRuntime(container, client) {
+) : K8sRuntime(container, client) {
 
    private var deployment = createDeployment()
 
@@ -73,7 +74,7 @@ class K8sServiceRuntime(
          GENERAL_EXECUTOR_SERVICE.execute(containerLogStreamer!!)
 
       } catch (e: Exception) {
-         handleK8sException(e)
+         handleK8sException(e, log)
       }
 
       service?.let {

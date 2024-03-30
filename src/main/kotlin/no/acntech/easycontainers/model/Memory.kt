@@ -46,6 +46,8 @@ value class Memory(val bytes: BigInteger) : SimpleValueObject<BigInteger> {
          return Memory(numericValue * unit)
       }
 
+      fun of(value: BigInteger): Memory = Memory(value)
+
       private val VALIDATOR = SimpleValueObjectValidator(
          range = ValidationRange(
             exclusiveMin = BigInteger.ZERO,
