@@ -12,7 +12,7 @@ import no.acntech.easycontainers.kubernetes.ErrorSupport.handleK8sException
 import no.acntech.easycontainers.util.io.closeQuietly
 import no.acntech.easycontainers.util.io.toUtf8String
 import no.acntech.easycontainers.util.text.SPACE
-import no.acntech.easycontainers.util.text.chop
+import no.acntech.easycontainers.util.text.truncate
 import no.acntech.easycontainers.util.time.WaitTimeCalculator
 import org.apache.commons.io.output.TeeOutputStream
 import org.slf4j.Logger
@@ -23,6 +23,7 @@ import java.io.OutputStream
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
@@ -88,13 +89,17 @@ internal class CommandSupport(
 
          val processFutures = createExecutionFutures(execWatch, stdIn, stdOut, stdErr)
 
-         waitForCompletion(
-            processFutures,
-            stdIn != null,
-            finished,
-            waitTimeCalculator,
-            waitTimeUnit
-         )
+         try {
+            waitForCompletion(
+               processFutures,
+               stdIn != null,
+               finished,
+               waitTimeCalculator,
+               waitTimeUnit
+            )
+         } catch (e: TimeoutException) {
+            log.warn("Timed out waiting for command execution to complete", e)
+         }
 
       } catch (e: Exception) {
          handleK8sException(e, log)
@@ -143,63 +148,57 @@ internal class CommandSupport(
       waitTimeCalculator: WaitTimeCalculator?,
       waitTimeUnit: TimeUnit?,
    ) {
-      if (!timedOutputWait) {
-         CompletableFuture.allOf(futures.first, futures.second, futures.third).let { allFutures ->
-            waitTimeCalculator?.getRemainingTime()?.let { waitTimeRemaining ->
-               allFutures.get(waitTimeRemaining, waitTimeUnit!!)
-            } ?: allFutures.join()
-         }
-
-         val remainingTime = waitTimeCalculator?.getRemainingTime()
-         waitForLatch(finishedLatch, remainingTime, waitTimeUnit)
-
-      } else {
-
-         // Wait for the input future to complete
+//      if (!timedOutputWait) {
+      CompletableFuture.allOf(futures.first, futures.second, futures.third).let { allFutures ->
          waitTimeCalculator?.getRemainingTime()?.let { waitTimeRemaining ->
-            futures.first.get(waitTimeRemaining, waitTimeUnit!!)
-         } ?: futures.first.join()
-
-         // Cheeky sleep to allow the input to be processed and output to be written
-         TimeUnit.SECONDS.sleep(5)
-
-         // We cannot wait for the output and error futures to complete, as they will never complete before the execWatch is
-         // explicitly closed. We never get an onExit event, so we cannot wait for the finishedLatch to count down either.
-
-         // Bummer.
-
+            log.debug("Waiting $waitTimeRemaining $waitTimeUnit for streams to complete")
+            allFutures.get(waitTimeRemaining, waitTimeUnit!!)
+         } ?: allFutures.join()
       }
+
+      val remainingTime = waitTimeCalculator?.getRemainingTime()
+      waitForLatch(finishedLatch, remainingTime, waitTimeUnit)
+
+//      } else {
+//         // DEFICIENCY ALERT!!!
+//
+//         // We cannot wait for the output and error futures to complete, as they will never complete before the execWatch is
+//         // explicitly closed. We never get an onExit event, so we cannot wait for the finishedLatch to count down either.
+//
+//         // Bummer.
+//
+//         // Wait for the input future to complete
+//         waitTimeCalculator?.getRemainingTime()?.let { waitTimeRemaining ->
+//            futures.first.get(waitTimeRemaining, waitTimeUnit!!)
+//         } ?: futures.first.join()
+//
+//         // Cheeky sleep to allow the input to be processed and output to be written - not good.
+//         TimeUnit.SECONDS.sleep(3)
+//      }
    }
 
    private fun processPodExecInput(execWatch: ExecWatch, input: InputStream?) {
-      input?.use { sendData ->
-         if (sendData.available() == 0) {
-            log.warn("No stdin data available for command execution")
-            return
-         }
+      input?.use { cmdStdIn ->
 
-         log.debug("Stdin data available for command execution: ${sendData.available()} bytes")
+         log.debug("Stdin data available for command execution: ${cmdStdIn.available()} bytes")
 
-         execWatch.input?.let { cmdStdinAsOutputStream ->
+         execWatch.input?.use { cmdStdinAsOutputStream ->
 
-            cmdStdinAsOutputStream.use {
+            // ByteArrayOutputStream to capture the input for logging
+            val logStream = ByteArrayOutputStream()
 
-               // ByteArrayOutputStream to capture the input for logging
-               val logStream = ByteArrayOutputStream()
+            // TeeOutputStream to write to both podStdin and logStream
+            val teeStream = TeeOutputStream(cmdStdinAsOutputStream, logStream)
 
-               // TeeOutputStream to write to both podStdin and logStream
-               val teeStream = TeeOutputStream(cmdStdinAsOutputStream, logStream)
+            // Transfer data from clientStdIn to teeStream, which writes to both cmdStdinAsOutputStream and logStream
+            cmdStdIn.transferTo(teeStream)
+            teeStream.flush()
 
-               // Transfer data from clientStdIn to teeStream, which writes to both podStdin and logStream
-               sendData.transferTo(teeStream)
-               teeStream.flush()
-
-               // Convert the captured input to a string and log it
-               logStream.toUtf8String().also {
-                  log.debug("Captured stdin data for command execution: ${it.chop(1024)}")
-
-               }
+            // Convert the captured input to a string and log it
+            logStream.toUtf8String().also {debugString ->
+               log.debug("Captured stdin data for command execution: ${debugString.truncate(1024)}")
             }
+
          } ?: log.warn("No pod stdin stream available for command execution")
       }
    }
@@ -221,13 +220,9 @@ internal class CommandSupport(
             // Transfer data from podOut to teeStream, which writes to both sink and logStream
             containerOutputAsInputStream.transferTo(teeStream)
 
-            teeStream.flush()
-            teeStream.close()
-            containerOutputAsInputStream.close()
-
             // Convert the captured output to a string and log it
-            logStream.toUtf8String().also {
-               log.debug("Captured output data for command execution: ${it.chop(1024)}")
+            logStream.toUtf8String().also { debugString ->
+               log.debug("Captured output data for command execution: ${debugString.truncate(1024)}")
             }
 
          } ?: log.warn("The container output is not available for command execution")

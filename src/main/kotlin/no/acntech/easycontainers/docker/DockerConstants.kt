@@ -12,4 +12,6 @@ object DockerConstants {
 
    const val DEFAULT_BRIDGE_NETWORK = "bridge"
 
+   const val DEFAULT_DOCKER_API_VERSION = "1.45"
+
 }

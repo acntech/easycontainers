@@ -176,20 +176,20 @@ open class GenericContainer(
       )
    }
 
-   override fun putFile(localPath: Path, remoteDir: UnixDir, remoteFilename: String?) {
-      runtime.putFile(localPath, remoteDir, remoteFilename)
+   override fun putFile(localFile: Path, remoteDir: UnixDir, remoteFilename: String?): Long {
+      return runtime.putFile(localFile, remoteDir, remoteFilename)
    }
 
    override fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path?): Path {
       return runtime.getFile(remoteDir, remoteFilename, localPath)
    }
 
-   override fun putDirectory(localPath: Path, remoteDir: UnixDir) {
-      runtime.putDirectory(localPath, remoteDir)
+   override fun putDirectory(localDir: Path, remoteDir: UnixDir): Long {
+      return runtime.putDirectory(localDir, remoteDir)
    }
 
-   override fun getDirectory(remoteDir: UnixDir, localPath: Path) {
-      runtime.getDirectory(remoteDir, localPath)
+   override fun getDirectory(remoteDir: UnixDir, localPath: Path): Pair<Path, List<Path>> {
+      return runtime.getDirectory(remoteDir, localPath)
    }
 
    @Synchronized
@@ -202,8 +202,14 @@ open class GenericContainer(
       log.debug("Waiting $timeout $unit for container '${getName()}' to reach state '$state'")
 
       return when {
-         timeout > 0 -> latch.await(timeout, unit)
-         else -> latch.await().let { true }
+         timeout > 0 -> {
+            log.debug("Waiting $timeout $unit for container '${getName()}' to reach state '$state'")
+            latch.await(timeout, unit)
+         }
+         else -> {
+            log.debug("Waiting indefinately for container '${getName()}' to reach state '$state'")
+            latch.await().let { true }
+         }
       }
    }
 

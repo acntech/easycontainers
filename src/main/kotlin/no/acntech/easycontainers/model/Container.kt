@@ -4,6 +4,7 @@ import no.acntech.easycontainers.output.OutputLineCallback
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.InetAddress
+import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.TimeUnit
@@ -168,7 +169,7 @@ interface Container {
     * @param input the input stream to pass to the command
     * @param waitTimeValue the time to wait for the command to complete
     * @param waitTimeUnit the time unit for the wait time
-      * @return a pair of the exit code and the std error output
+    * @return a pair of the exit code and the std error output
     */
    fun execute(
       executable: Executable,
@@ -184,12 +185,13 @@ interface Container {
    /**
     * Uploads a file to the container.
     *
-    * @param localPath the path of the file to upload -
+    * @param localFile the path of the file to upload -
     * @param remoteDir the path where the file will be uploaded in the container - if it doesn't exist, it will be attempted created
     * @param remoteFilename the name of the file in the container - if null, the file will be uploaded with the same name as the
     * local file
+    * @return the size of the file in bytes
     */
-   fun putFile(localPath: Path, remoteDir: UnixDir, remoteFilename: String? = null)
+   fun putFile(localFile: Path, remoteDir: UnixDir, remoteFilename: String? = null): Long
 
    /**
     * Downloads a file from the container.
@@ -207,10 +209,11 @@ interface Container {
    /**
     * Uploads a directory to the container.
     *
-    * @param localPath the path of the directory to upload
+    * @param localDir the path of the directory to upload
     * @param remoteDir the path where the directory will be uploaded in the container
+    * @return the size of the directory in bytes
     */
-   fun putDirectory(localPath: Path, remoteDir: UnixDir)
+   fun putDirectory(localDir: Path, remoteDir: UnixDir): Long
 
    /**
     * Downloads a directory from the container.
@@ -218,7 +221,10 @@ interface Container {
     * @param remoteDir the path of the directory to download
     * @param localPath the path where the directory will be downloaded to
     */
-   fun getDirectory(remoteDir: UnixDir, localPath: Path)
+   fun getDirectory(
+      remoteDir: UnixDir,
+      localPath: Path = Files.createTempDirectory("container-download-tar").toAbsolutePath(),
+   ): Pair<Path, List<Path>>
 
    /**
     * Retrieves the state of the container.

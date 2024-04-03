@@ -116,7 +116,7 @@ fun buildAndRunCustomContainer() {
     val imageNameVal = "simple-alpine"
     
     DockerRegistryUtils.deleteImage("http://$REGISTRY/test", imageNameVal)
-    
+    [ContainerExecTests.kt](src%2Ftest%2Fkotlin%2Ftest%2Facntech%2Feasycontainers%2FContainerExecTests.kt)
     val tempDir = Files.createTempDirectory("dockercontext-").toString()
     log.debug("Temp [.gitignore](.gitignore)dir for docker-context created: {}", tempDir)
     val dockerfile = File(tempDir, "Dockerfile")
@@ -173,7 +173,7 @@ See the [test-env](https://github.com/acntech/easycontainers/tree/main/src/test/
 ### Docker specifics
 
 ### Kubernetes specifics
-In the current version, when running outside a k8s cluster, the Kubernetes runtime only supports using the default `kubeconfig` file located in the user's home directory. If using the library inside a Kubernetes cluster (i.e. in a pod/container), the Fabric8 default approach is used to authenticate the client, i.e. the mounted service account token at `/var/run/secrets/kubernetes.io/serviceaccount/token`.
+In the current version, when running outside a k8s cluster, the Kubernetes runtime only supports using the default `kubeconfig` file located in the user's home directory. If using the library inside a Kubernetes cluster (i.e. in a pod/container), the Fabric8 default approach is used to authenticate the client, i.e. the mounted service account token at `/var/run/secrets/kubernetes.io/serviceaccount/token`. Make sure the service account has the necessary permissions to create and manage resources in the target namespace.
 
 ## Examples
 
@@ -189,7 +189,7 @@ TODO
 
 ## Known Issues
 - The Docker container runtime implementation does not support executing commands with stdin input due to a "hijacking session" issue that is not yet resolved. 
-- More test cases are needed to ensure the library is robust and reliable. 
+- More test cases are needed to ensure the library is robust and reliable for both Docker and Kubernetes container runtimes in production environments. 
 
 ## Troubleshooting
 TODO
@@ -205,6 +205,7 @@ TODO
 
 ## Roadmap
 - [ ] Add support for Kubernetes Jobs as a container runtime.
+- [ ] Add conditional wait strategies for containers - similar to Testcontainers, see [here](https://java.testcontainers.org/features/startup_and_waits/).
 - [ ] Add specific container implementations for popular databases and services.
 - [ ] Convert all tests to use [Testcontainers](https://testcontainers.com/) - using either the official [K3s module](https://java.testcontainers.org/modules/k3s/), or the community contributed [KinD module](https://testcontainers.com/modules/kindcontainer/).
 

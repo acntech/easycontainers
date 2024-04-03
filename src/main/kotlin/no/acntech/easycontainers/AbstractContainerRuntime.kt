@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory
 import java.io.InputStream
 import java.io.OutputStream
 import java.net.InetAddress
+import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import java.util.concurrent.*
@@ -119,19 +120,72 @@ abstract class AbstractContainerRuntime(
       waitTimeUnit: TimeUnit?,
    ): Pair<Int?, String?> // Pair of exit code and stderr
 
-   internal abstract fun putFile(localPath: Path, remoteDir: UnixDir, remoteFilename: String?)
+   /**
+    * Puts a file from local path to a remote directory on a Unix system.
+    *
+    * @param localFile The local path of the file to be put.
+    * @param remoteDir The remote directory on the Unix system where the file will be put.
+    * @param remoteFilename The name of the file on the remote directory. If null, the same name as the local file will be used.
+    * @return The size of the file in bytes.
+    */
+   internal abstract fun putFile(localFile: Path, remoteDir: UnixDir, remoteFilename: String?): Long
 
+   /**
+    * Retrieves a file from the specified remote directory and returns the local path where the file is stored.
+    *
+    * @param remoteDir The remote directory from which to retrieve the file.
+    * @param remoteFilename The name of the file to retrieve.
+    * @param localPath The local path where the retrieved file will be stored. If null, a temporary directory will be used.
+    * @return The local path where the retrieved file is stored.
+    */
    internal abstract fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path?): Path
 
-   internal abstract fun putDirectory(localPath: Path, remoteDir: UnixDir)
+   /**
+    * Copies a local directory to the remote directory.
+    *
+    * @param localDir The local directory to be copied.
+    * @param remoteDir The remote directory to copy to.
+    * @return The size of the directory in bytes.
+    */
+   internal abstract fun putDirectory(localDir: Path, remoteDir: UnixDir): Long
 
-   internal abstract fun getDirectory(remoteDir: UnixDir, localPath: Path)
+   /**
+    * Retrieves the directory from the remote Unix system and saves it to the local file system.
+    *
+    * @param remoteDir The remote directory path to retrieve.
+    * @param localPath The local path where the directory should be saved. Defaults to a temporary directory.
+    * @return A pair containing the local path where the directory was saved and a list of paths for each file in the directory.
+    */
+   internal abstract fun getDirectory(
+      remoteDir: UnixDir,
+      localPath: Path = Files.createTempDirectory("container-download-tar").toAbsolutePath(),
+   ): Pair<Path, List<Path>>
 
+   /**
+    * Retrieves the duration of the container's execution.
+    *
+    * @return the duration as a Duration object, or null if the duration is not available
+    */
    internal abstract fun getDuration(): Duration?
 
+   /**
+    * Retrieves the exit code of the container.
+    *
+    * @return the exit code of the container, or null if the container has not yet exited
+    */
    internal abstract fun getExitCode(): Int?
 
+   /**
+    * Retrieves the host associated with the container runtime.
+    *
+    * @return the host as a Host object or null if the host is not available
+    */
    internal abstract fun getHost(): Host?
 
+   /**
+    * Retrieves the IP address of the container.
+    *
+    * @return the IP address of the container as an InetAddress object, or null if the IP address is not available
+    */
    internal abstract fun getIpAddress(): InetAddress?
 }

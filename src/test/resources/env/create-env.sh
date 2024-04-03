@@ -28,6 +28,7 @@ if kubectl get namespace "$NAMESPACE" > /dev/null 2>&1; then
 else
     # Create the namespace
     kubectl create namespace "$NAMESPACE"
+    # shellcheck disable=SC2181
     if [ $? -eq 0 ]; then
         echo "Namespace '$NAMESPACE' created successfully"
     else
@@ -49,7 +50,10 @@ kubectl apply -f host-share-pv-docker-wsl.yaml
 kubectl apply -f host-share-pvc.yaml
 
 # Start a local registry in Docker
-# ./run-registry.sh
+#./docker/start-registry.sh
+
+# Start Portainer in Docker
+#./docker/start-portainer.sh
 
 export DOCKER_CLI_AWS_NO_SIGN_REQUEST=1
 

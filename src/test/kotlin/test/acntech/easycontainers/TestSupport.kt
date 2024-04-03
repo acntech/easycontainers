@@ -9,6 +9,8 @@ import no.acntech.easycontainers.util.platform.PlatformUtils
 import org.junit.jupiter.api.Assertions
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.lang.management.ManagementFactory
+import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 object TestSupport {
@@ -26,6 +28,50 @@ object TestSupport {
 
    val localKanikoPath = PlatformUtils.convertLinuxPathToWindowsWslPath("/home/thomas/kind/kaniko-data")
 
+   private val DOCKERFILE_CONTENT = """       
+         # Use Alpine Linux as the base image
+         FROM alpine:latest
+
+         # Install dependencies
+         # RUN apk add --no-cache curl netcat-openbsd openssh
+         RUN apk add --no-cache openssh
+
+         # Additional setup SSH
+         RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+             && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+             && echo "root:root" | chpasswd \
+             && ssh-keygen -A
+         
+         # Copy the log-time.sh script to the container
+         COPY log-time.sh /usr/local/bin/log-time.sh
+         
+         # Make the log-time.sh script executable
+         RUN chmod +x /usr/local/bin/log-time.sh
+         
+         # Create a startup script directly in the Dockerfile
+         RUN echo '#!/bin/sh' > /start.sh \
+            && echo '/usr/sbin/sshd &' >> /start.sh \
+            && echo '/usr/local/bin/log-time.sh' >> /start.sh \
+            && chmod +x /start.sh
+
+         # Expose necessary ports (the SSH port)
+         EXPOSE 22
+         
+         # Define the container's default behavior
+         CMD ["/start.sh"]
+
+    """.trimIndent()
+
+   private val LOG_TIME_SCRIPT_CONTENT = """
+         count=1
+         while true
+         do
+           echo "${'$'}{count}: ${'$'}(date)"
+           count=${'$'}((count+1))
+           sleep 1
+         done
+      """.trimIndent()
+
    init {
       System.setProperty(DockerConstants.PROP_DOCKER_HOST, "tcp://$dockerHostAddress:2375")
    }
@@ -33,7 +79,7 @@ object TestSupport {
    fun startContainer(
       platform: ContainerPlatformType = ContainerPlatformType.DOCKER,
       executionMode: ExecutionMode = ExecutionMode.SERVICE,
-      ephemeral: Boolean = false,
+      ephemeral: Boolean = true,
    ): Container {
       val imageName = "container-test"
 
@@ -78,7 +124,7 @@ object TestSupport {
          withPortMapping(NetworkPort.SSH, NetworkPort.of(mappedLocalSshPort))
 
          withIsEphemeral(ephemeral)
-         withOutputLineCallback { line -> println("${imageName.uppercase()}-CONTAINER-OUTPUT: $line") }
+         withOutputLineCallback { line -> println("$platform-'${imageName.uppercase()}'-CONTAINER-OUTPUT: $line") }
          withContainerPlatformType(platform)
       }.build()
 
@@ -90,7 +136,7 @@ object TestSupport {
       runtime.start()
       Assertions.assertTrue(container.getState() == ContainerState.INITIALIZING || container.getState() == ContainerState.RUNNING)
 
-      container.waitForState(ContainerState.RUNNING, 10, TimeUnit.SECONDS)
+      container.waitForState(ContainerState.RUNNING, 30, TimeUnit.SECONDS)
 
       Assertions.assertEquals(ContainerState.RUNNING, runtime.getContainer().getState())
       Assertions.assertTrue(NetworkUtils.isPortOpen("localhost", mappedLocalHttpPort))
@@ -99,6 +145,38 @@ object TestSupport {
       TimeUnit.SECONDS.sleep(1)
 
       return container
+   }
+
+   fun monitorDeadlocks() {
+      val scheduledExecutorService = Executors.newScheduledThreadPool(1)
+      val deadlockMonitor = Runnable {
+         val threadBean = ManagementFactory.getThreadMXBean()
+         log.debug("Checking for deadlocks")
+         val deadlockedThreads = threadBean.findDeadlockedThreads()
+
+         deadlockedThreads?.let {
+            it.forEach { id ->
+               val threadInfo = threadBean.getThreadInfo(id)
+               log.warn("Deadlocked thread: $threadInfo")
+            }
+         }
+
+         printNonSystemNonDaemonThreads()
+      }
+      scheduledExecutorService.scheduleAtFixedRate(deadlockMonitor, 0, 3, TimeUnit.SECONDS)
+   }
+
+   fun printNonSystemNonDaemonThreads() {
+      val threadSet = Thread.getAllStackTraces().keys
+
+      for (thread in threadSet) {
+         if (!thread.isDaemon && thread.threadGroup.name != "system") {
+            val stackTraceElements = thread.stackTrace
+            val threadInfo = "${thread.name}\n"
+            val elementsInfo = stackTraceElements.joinToString("\n") { "\tat $it" }
+            log.debug("$threadInfo$elementsInfo")
+         }
+      }
    }
 
 }

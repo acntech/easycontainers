@@ -2,6 +2,7 @@ package no.acntech.easycontainers.util.net
 
 import org.slf4j.LoggerFactory
 import java.io.IOException
+import java.net.InetSocketAddress
 import java.net.NetworkInterface
 import java.net.Socket
 import java.net.SocketException
@@ -58,11 +59,19 @@ object NetworkUtils {
       return ipAddresses
    }
 
+   /**
+    * Checks if a given port on a host is open and reachable - similar to the <code>'nc -z'</code> *nix command.
+    *
+    * @param host the hostname or IP address of the host
+    * @param port the port number to check
+    * @param timeoutMillis the timeout in milliseconds for the connection attempt (default is 5000 milliseconds)
+    * @return true if the port is open and reachable, false otherwise
+    */
    fun isPortOpen(host: String, port: Int, timeoutMillis: Int = 5000): Boolean {
       return try {
          Socket().use { socket ->
             // Connects this socket to the server with a specified timeout value.
-            socket.connect(java.net.InetSocketAddress(host, port), timeoutMillis)
+            socket.connect(InetSocketAddress(host, port), timeoutMillis)
             true.also {
                log.debug("Port $port is OPEN on $host")
             } // The connection was successful, port is open

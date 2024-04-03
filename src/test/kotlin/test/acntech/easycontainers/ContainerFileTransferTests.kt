@@ -1,16 +1,19 @@
 package test.acntech.easycontainers
 
 import no.acntech.easycontainers.model.*
-import no.acntech.easycontainers.util.io.toUtf8String
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
+import no.acntech.easycontainers.util.lang.guardedExecution
+import no.acntech.easycontainers.util.text.FORWARD_SLASH
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.slf4j.LoggerFactory.getLogger
 import test.acntech.easycontainers.TestSupport.startContainer
-import java.io.ByteArrayOutputStream
+import java.io.File
 import java.nio.file.Files
 import java.util.concurrent.TimeUnit
+import kotlin.io.path.ExperimentalPathApi
+import kotlin.io.path.deleteIfExists
+import kotlin.io.path.deleteRecursively
 
 class ContainerFileTransferTests {
 
@@ -21,7 +24,7 @@ class ContainerFileTransferTests {
    @ParameterizedTest
    @ValueSource(
       strings = [
-//         "DOCKER",
+         "DOCKER",
          "KUBERNETES"
       ]
    )
@@ -29,51 +32,116 @@ class ContainerFileTransferTests {
       val platform = ContainerPlatformType.valueOf(containerType)
       val container = startContainer(platform, ExecutionMode.SERVICE, true)
 
-      val runtime = container.getRuntime()
-
-      val path = container.getFile(UnixDir.of("/"), "log-time.sh")
+      val path = container.getFile(UnixDir.of(FORWARD_SLASH), "log-time.sh")
 
       val content = Files.readString(path)
       log.debug("Content of file: $content")
+      assertTrue(content.contains("while getopts 'es:x:' flag; do"))
    }
 
    @ParameterizedTest
    @ValueSource(
       strings = [
-//         "DOCKER",
+         "DOCKER",
          "KUBERNETES"
       ]
    )
-   fun testPutFile(containerType: String) {
+   fun testPutAndGetFile(containerType: String) {
+      val remoteDir = UnixDir.of("/tmp")
+      val remoteFile = "remote_test.txt"
+
       val platform = ContainerPlatformType.valueOf(containerType)
       val container = startContainer(platform, ExecutionMode.SERVICE, true)
 
       val runtime = container.getRuntime()
-      val testContent = "Hello '${container.getName()}' with runtime '${runtime.getName()}'\n"
+      val content = "Hello '${container.getName()}' with runtime '${runtime.getName()}'"
+      log.debug("Content of file: $content")
 
       // Create a new temp file in the temp directory with some content
       val tempFile = Files.createTempFile("test_", ".txt")
-      Files.writeString(tempFile, testContent)
+      try {
+         Files.writeString(tempFile, content)
 
-      // Call the target method
-      val unixDir = UnixDir.of("/tmp")
-      container.putFile(tempFile, unixDir, "remote_test.txt")
+         // Call the target method
+         container.putFile(tempFile, remoteDir, remoteFile)
 
-      TimeUnit.SECONDS.sleep(1)
+         TimeUnit.SECONDS.sleep(3)
 
-      val readCommand = Executable.of("cat")
-      val args = Args.of("/tmp/remote_test.txt")
-      val stdOut = ByteArrayOutputStream()
+         val path = container.getFile(remoteDir, remoteFile)
 
-      val (exitCode, stdErr) = container.execute(
-         executable = readCommand,
-         args = args,
-         output = stdOut
-      )
+         val receivedContent = Files.readString(path)
+         log.debug("Content of received file: $receivedContent")
 
-      assertNull(stdErr)
-      assertEquals(0, exitCode)
-      assertEquals(testContent, stdOut.toUtf8String())
+         assertEquals(content, receivedContent)
+      } finally {
+         tempFile.deleteIfExists()
+      }
    }
+
+   @OptIn(ExperimentalPathApi::class)
+   @ParameterizedTest
+   @ValueSource(
+      strings = [
+         "DOCKER",
+         "KUBERNETES"
+      ]
+   )
+   fun testPutAndGetDirectory(containerType: String) {
+      val remoteDir = UnixDir.of("/tmp")
+
+      val platform = ContainerPlatformType.valueOf(containerType)
+      val container = startContainer(platform, ExecutionMode.SERVICE, true)
+
+      val runtime = container.getRuntime()
+      log.debug("Container '${container.getName()}' with runtime '${runtime.getName()}'")
+
+      val content1 = "Hello 1 '${container.getName()}' with runtime '${runtime.getName()}'"
+      val content2 = "Hello 2 '${container.getName()}' with runtime '${runtime.getName()}'"
+
+      // Create a new temp directory with a temp file in it
+      val tempSendDir = Files.createTempDirectory("dir_test_send_")
+      val tempReceiveDir = Files.createTempDirectory("dir_test_receive_")
+
+      try {
+         val rootDir = Files.createDirectories(tempSendDir.resolve("tar-root"))
+         val file1 = File(rootDir.toFile(), "test_1.txt")
+         val file2 = File(rootDir.toFile(), "test_2.txt")
+
+         Files.writeString(file1.toPath(), content1)
+         Files.writeString(file2.toPath(), content2)
+
+         // Call the target method to put the directory
+         container.putDirectory(rootDir, remoteDir)
+
+         // Call the target method to get the directory
+         val (path, files) = container.getDirectory(UnixDir.of(remoteDir.unwrap() + "/tar-root"), tempReceiveDir)
+
+         log.debug("Received directory: $path")
+         log.debug("Received files: $files")
+
+         val tarRoot = tempReceiveDir.resolve("tar-root")
+
+         // Check the received files
+         val receivedFile1 = tarRoot.resolve(file1.name)
+         val receivedFile2 = tarRoot.resolve(file2.name)
+
+         // Various assertions
+         assertEquals(2, files.size)
+         assertEquals(2, Files.list(tarRoot).count())
+         assertTrue(files.contains(receivedFile1))
+         assertTrue(files.contains(receivedFile2))
+         assertTrue(Files.exists(receivedFile1))
+         assertTrue(Files.exists(receivedFile2))
+         assertEquals(content1, Files.readString(receivedFile1))
+         assertEquals(content2, Files.readString(receivedFile2))
+
+      } finally {
+         guardedExecution( { tempSendDir.deleteRecursively() })
+         guardedExecution( { tempReceiveDir.deleteRecursively() })
+
+//         TimeUnit.SECONDS.sleep(60*10)
+      }
+   }
+
 
 }

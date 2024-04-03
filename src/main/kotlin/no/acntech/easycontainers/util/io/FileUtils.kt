@@ -1,16 +1,18 @@
 package no.acntech.easycontainers.util.io
 
+import no.acntech.easycontainers.util.text.BACK_SLASH
 import no.acntech.easycontainers.util.text.EMPTY_STRING
+import no.acntech.easycontainers.util.text.FORWARD_SLASH
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
-import org.apache.commons.compress.utils.IOUtils
-import java.io.File
-import java.io.FileInputStream
-import java.io.FileOutputStream
+import org.slf4j.LoggerFactory
+import java.io.*
 import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
+import kotlin.io.path.exists
+import kotlin.io.path.name
 
 /**
  * The `FileUtils` class provides utility functions related to file operations.
@@ -20,6 +22,8 @@ object FileUtils {
    private const val TAR_EXTENSION = ".tar"
 
    private val UNIX_COMPLETE_PATH_REGEX = Regex("^/([^/ ]+/)*[^/ ]+$")
+
+   private val log = LoggerFactory.getLogger(FileUtils::class.java)
 
    /**
     * Checks if the provided path is a complete Unix path.
@@ -38,6 +42,7 @@ object FileUtils {
     * @param entryName The name of the entry (file) inside the TAR file.
     * @return The TAR file as a [File] object.
     */
+   @Throws(IOException::class)
    fun tarFile(filePath: Path, entryName: String): File {
       return Files.createTempFile(EMPTY_STRING, TAR_EXTENSION).toFile().apply {
          TarArchiveOutputStream(FileOutputStream(this)).use { tarOs ->
@@ -51,31 +56,75 @@ object FileUtils {
    /**
     * Creates a TAR file containing the specified directory.
     *
-    * @param directoryPath The directory to be included in the TAR file.
+    * @param dir The directory to be included in the TAR file.
     * @return The TAR file as a [File] object.
     */
-   fun tarDir(directoryPath: Path): File {
-      return Files.createTempFile(EMPTY_STRING, TAR_EXTENSION).toFile().apply {
-         TarArchiveOutputStream(FileOutputStream(this)).use { tarOs ->
-            Files.walk(directoryPath).use { paths ->
-               paths.forEach { path ->
-                  val name = directoryPath.relativize(path).toString()
-                  val entry = TarArchiveEntry(path.toFile(), name)
-                  if (Files.isDirectory(path)) {
-                     entry.size = 0
-                     entry.mode = TarArchiveEntry.DEFAULT_DIR_MODE
-                  }
-                  tarOs.putArchiveEntry(entry)
-                  if (Files.isRegularFile(path)) {
-                     Files.newInputStream(path).use { inputStream ->
-                        IOUtils.copy(inputStream, tarOs)
-                     }
-                  }
-                  tarOs.closeArchiveEntry()
+   @Throws(IOException::class)
+   fun tar(
+      dir: Path,
+      tarball: Path = Files.createTempFile("tar-${dir.name}-", TAR_EXTENSION),
+      includeParentDir: Boolean = false,
+   ): Path {
+      tar(dir, FileOutputStream(tarball.toFile()), includeParentDir)
+      return tarball
+   }
+
+   /**
+    * Creates a TAR archive of the specified directory.
+    *
+    * @param dir The directory to be included in the TAR archive.
+    * @param output The output stream to write the TAR archive to.
+    * @param includeParentDir Specifies whether to include the parent directory in the TAR archive. Default is false.
+    * @return The total number of bytes written to the TAR archive.
+    */
+   @Throws(IOException::class)
+   fun tar(dir: Path, output: OutputStream, includeParentDir: Boolean = false): Long {
+      require(dir.exists() && Files.isDirectory(dir)) { "The provided path '$dir' is not a directory." }
+
+      val bufferedOut = if (output is BufferedOutputStream) output else BufferedOutputStream(output)
+      val actualDir = if (includeParentDir) dir.parent else dir
+      var totalBytes = 0L
+
+      TarArchiveOutputStream(bufferedOut).use { tarOutput ->
+         Files.walk(dir).use { paths ->
+            paths.forEach { path ->
+               val name = actualDir.relativize(path).toString().replace(BACK_SLASH, FORWARD_SLASH).removePrefix(FORWARD_SLASH)
+               val entry = TarArchiveEntry(path.toFile(), name).also {
+                  log.trace("Adding tar entry: $name -> ${path.toAbsolutePath()} (${path.toFile().length()} bytes)")
                }
+
+               if (Files.isDirectory(path)) {
+                  entry.size = 0
+                  entry.mode = TarArchiveEntry.DEFAULT_DIR_MODE
+               }
+
+               tarOutput.putArchiveEntry(entry)
+
+               if (Files.isRegularFile(path)) {
+                  Files.newInputStream(path).use { input ->
+                     totalBytes += input.transferTo(tarOutput)
+                  }
+               }
+
+               tarOutput.closeArchiveEntry()
             }
          }
       }
+      return totalBytes
+   }
+
+   /**
+    * Creates an input stream containing a TAR archive of the specified directory. Note that the piping to the input is done
+    * in a separate (virtual) thread.
+    *
+    * @param dir The directory to be included in the TAR archive.
+    * @param includeParentDir Specifies whether to include the parent directory in the TAR archive. Default is false.
+    * @return An input stream containing the TAR archive.
+    */
+   @Throws(IOException::class)
+   fun tar(dir: Path, includeParentDir: Boolean = false): InputStream {
+      require(dir.exists() && Files.isDirectory(dir)) { "The provided path is not a directory." }
+      return pipe { tar(dir, it, includeParentDir) }
    }
 
    /**
@@ -86,8 +135,9 @@ object FileUtils {
     * @param tarFile The TAR file to extract.
     * @param destination The destination to extract the TAR file to.
     */
-   fun untarFile(tarFile: File, destination: Path) {
-      TarArchiveInputStream(FileInputStream(tarFile)).use { tis ->
+   @Throws(IOException::class)
+   fun untarFile(tarFile: File, destination: Path = Files.createTempDirectory("untar-").toAbsolutePath()): Path {
+      TarArchiveInputStream(BufferedInputStream(FileInputStream(tarFile))).use { tis ->
          val entry = tis.nextEntry
          if (entry != null && !entry.isDirectory) {
             val destFile = if (Files.isDirectory(destination)) {
@@ -95,25 +145,72 @@ object FileUtils {
             } else {
                destination
             }
-            Files.copy(tis, destFile, StandardCopyOption.REPLACE_EXISTING)
+            Files.copy(tis, destFile, StandardCopyOption.REPLACE_EXISTING).also {
+               log.trace("Untaring - creating file: $destFile")
+            }
          }
       }
+      return destination
    }
 
-   fun untarDir(tarFile: File, destination: Path) {
-      TarArchiveInputStream(FileInputStream(tarFile)).use { tis ->
-         var entry = tis.nextEntry
+   /**
+    * Extracts the contents of a tarball to a specified destination directory.
+    *
+    * @param tarball The tarball file to be extracted.
+    * @param destination The destination directory where the contents should be extracted to.
+    *                    If not provided, a temporary directory will be created.
+    * @return A Pair containing the path of the destination directory and a list of extracted files.
+    * @throws IllegalArgumentException if the destination path is not a directory.
+    */
+   @Throws(IOException::class)
+   fun untar(
+      tarball: File,
+      destination: Path = Files.createTempDirectory("untar-${tarball.name}-").toAbsolutePath(),
+   ): Pair<Path, List<Path>> {
+      return untar(FileInputStream(tarball), destination)
+   }
+
+   /**
+    * Extracts the contents of a tarball from the given input stream to the specified destination directory.
+    *
+    * @param input The input stream of the tarball to be extracted.
+    * @param destination The destination directory where the contents should be extracted to.
+    *                    If not provided, a temporary directory will be created.
+    * @return A Pair containing the path of the destination directory and a list of extracted files.
+    * @throws IllegalArgumentException if the destination path is not a directory.
+    */
+   @Throws(IOException::class)
+   fun untar(
+      input: InputStream,
+      destination: Path = Files.createTempDirectory("untar-").toAbsolutePath(),
+   ): Pair<Path, List<Path>> {
+      require(destination.exists() && Files.isDirectory(destination)) { "The provided path is not a directory." }
+      log.trace("Untaring input to: $destination")
+
+      val bufferedInput = if (input is BufferedInputStream) input else BufferedInputStream(input)
+
+      val files: MutableList<Path> = mutableListOf()
+
+      TarArchiveInputStream(bufferedInput).use { tarInput ->
+         var entry = tarInput.nextEntry
          while (entry != null) {
             val destFile = destination.resolve(entry.name)
             if (entry.isDirectory) {
-               Files.createDirectories(destFile)
+               Files.createDirectories(destFile).also {
+                  log.trace("Untaring - creating directory: $destFile")
+               }
             } else {
                Files.createDirectories(destFile.parent)
-               Files.copy(tis, destFile, StandardCopyOption.REPLACE_EXISTING)
+               Files.copy(tarInput, destFile, StandardCopyOption.REPLACE_EXISTING).also {
+                  log.trace("Untaring - creating file: $destFile")
+               }
+               files.add(destFile)
             }
-            entry = tis.nextEntry
+            entry = tarInput.nextEntry
          }
       }
+
+      return Pair(destination, files.toList())
    }
 
 }

@@ -3,28 +3,22 @@ package no.acntech.easycontainers.kubernetes
 import io.fabric8.kubernetes.api.model.*
 import io.fabric8.kubernetes.api.model.Container
 import io.fabric8.kubernetes.api.model.Volume
-import io.fabric8.kubernetes.client.*
-import io.fabric8.kubernetes.client.dsl.ExecListener
-import io.fabric8.kubernetes.client.dsl.ExecWatch
+import io.fabric8.kubernetes.client.KubernetesClient
+import io.fabric8.kubernetes.client.Watcher
+import io.fabric8.kubernetes.client.WatcherException
 import io.fabric8.kubernetes.client.dsl.Resource
 import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.AbstractContainerRuntime
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.GenericContainer
-import no.acntech.easycontainers.kubernetes.ErrorSupport.handleK8sException
 import no.acntech.easycontainers.kubernetes.K8sConstants.MEDIUM_MEMORY_BACKED
 import no.acntech.easycontainers.kubernetes.K8sUtils.normalizeLabelValue
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.util.collections.prettyPrint
-import no.acntech.easycontainers.util.io.closeQuietly
-import no.acntech.easycontainers.util.io.toUtf8String
-import no.acntech.easycontainers.util.text.FORWARD_SLASH
-import no.acntech.easycontainers.util.text.NEW_LINE
-import no.acntech.easycontainers.util.text.SPACE
-import no.acntech.easycontainers.util.text.chop
-import org.apache.commons.io.input.TeeInputStream
-import org.apache.commons.io.output.TeeOutputStream
+import no.acntech.easycontainers.util.io.FileUtils
+import no.acntech.easycontainers.util.text.*
+import org.apache.commons.compress.utils.CountingInputStream
 import org.awaitility.Awaitility
 import org.awaitility.core.ConditionTimeoutException
 import java.io.*
@@ -33,9 +27,13 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import java.time.Instant
-import java.util.concurrent.*
+import java.util.concurrent.CopyOnWriteArrayList
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.io.path.exists
+import kotlin.io.path.isDirectory
 
 
 /**
@@ -191,21 +189,21 @@ abstract class K8sRuntime(
       )
    }
 
-   override fun putFile(localPath: Path, remoteDir: UnixDir, remoteFilename: String?) {
+   override fun putFile(localFile: Path, remoteDir: UnixDir, remoteFilename: String?): Long {
       // Checking if the local file exists or not
-      if (!Files.exists(localPath)) {
-         throw FileNotFoundException("The local file $localPath does not exist")
+      if (!Files.exists(localFile)) {
+         throw FileNotFoundException("The local file $localFile does not exist")
       }
 
       // Getting the absolute path of the remote file inside the pod
-      val remotePath = "${remoteDir.unwrap()}/${remoteFilename ?: localPath.fileName.toString()}"
+      val remotePath = "${remoteDir.unwrap()}/${remoteFilename ?: localFile.fileName.toString()}"
 
-      log.debug("Transferring local file '$localPath' to remote path '$remotePath'")
+      log.debug("Transferring local file '$localFile' to remote path '$remotePath'")
 
       val command = listOf("sh", "-c", "cat > $remotePath")
       val (pod, container) = prepareCommandExecution()
       // Prepare the execution of the command with the file's content piped into stdin
-      val input = BufferedInputStream(FileInputStream(localPath.toFile()))
+      val input = BufferedInputStream(FileInputStream(localFile.toFile()))
 
       val cmdSupport = CommandSupport(client, pod, container)
 
@@ -218,21 +216,20 @@ abstract class K8sRuntime(
          TimeUnit.SECONDS
       )
 
-      if( (exitCode != null && exitCode != 0) || stdErr != null) {
-         val msg = "Transferring file '$localPath' to '$remotePath' failed with code $exitCode and error msg: $stdErr"
+      if ((exitCode != null && exitCode != 0) || stdErr != null) {
+         val msg = "Transferring file '$localFile' to '$remotePath' failed with code $exitCode and error msg: $stdErr"
          log.error(msg)
          throw ContainerException(msg)
       }
-   }
 
-   override fun putDirectory(localPath: Path, remoteDir: UnixDir) {
-      throw UnsupportedOperationException(FILE_TRANSFER_NOT_SUPPORTED_MSG)
+      return localFile.toFile().length()
    }
 
    override fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path?): Path {
       val remotePath = "${remoteDir.unwrap()}/$remoteFilename"
-      val targetPath = localPath ?: Files.createTempFile("k8s-file-", ".tmp")
+      val targetPath = localPath ?: Files.createTempFile("k8s-file-transfer-", ".tmp")
 
+//      val command = listOf("sh", "-c", "cat", remotePath)
       val command = listOf("cat", remotePath)
       val output = BufferedOutputStream(FileOutputStream(targetPath.toFile()))
 
@@ -248,7 +245,7 @@ abstract class K8sRuntime(
          TimeUnit.SECONDS
       )
 
-      if( (exitCode != null && exitCode != 0) || stdErr != null) {
+      if ((exitCode != null && exitCode != 0) || stdErr != null) {
          val msg = "Transferring file '$localPath' to '$remotePath' failed with code $exitCode and error msg: $stdErr"
          log.error(msg)
          throw ContainerException(msg)
@@ -257,8 +254,82 @@ abstract class K8sRuntime(
       return targetPath
    }
 
-   override fun getDirectory(remoteDir: UnixDir, localPath: Path) {
-      throw UnsupportedOperationException(FILE_TRANSFER_NOT_SUPPORTED_MSG)
+   override fun putDirectory(localDir: Path, remoteDir: UnixDir): Long {
+      require(localDir.exists() && localDir.isDirectory()) { "Local directory '$localDir' does not exist" }
+      log.debug("Transferring local directory '$localDir' to remote path '$remoteDir'")
+
+      val tarInput = FileUtils.tar(localDir, true)
+      val countingInput = CountingInputStream(tarInput)
+      val remotePath = remoteDir.unwrap()
+      val command = listOf("sh", "-c", "tar -xf - -C $remotePath")
+      val (pod, container) = prepareCommandExecution()
+
+      // Prepare the execution of the command with the tar file's content piped into the container's stdin
+      val cmdSupport = CommandSupport(client, pod, container)
+
+      val (exitCode, stdErr) = cmdSupport.execute(
+         command,
+         false,
+         countingInput,
+         OutputStream.nullOutputStream(),
+         20L,
+         TimeUnit.SECONDS
+      )
+
+      if ((exitCode != null && exitCode != 0) || stdErr != null) {
+         val msg = "Transferring directory '$localDir' to '$remotePath' failed with code $exitCode and error msg: $stdErr"
+         log.error(msg)
+         throw ContainerException(msg)
+      }
+
+      return countingInput.bytesRead
+   }
+
+   override fun getDirectory(remoteDir: UnixDir, localPath: Path): Pair<Path, List<Path>> {
+      require(localPath.exists() && Files.isDirectory(localPath)) { "The provided path is not a directory." }
+
+      // Define the remote directory path
+      val remotePath = remoteDir.unwrap()
+
+      // Split the remote path into parent directory and target directory
+      val parentDir = remotePath.substringBeforeLast(FORWARD_SLASH, EMPTY_STRING)
+      val targetDir = remotePath.substringAfterLast(FORWARD_SLASH)
+
+      // Prepare the execution of the tar command to create a tar file of the directory inside the container
+      // Change to the parent directory and specify the target directory as the source files
+      val command = listOf("sh", "-c", "tar -cf - -C $parentDir $targetDir")
+
+      val pipedInput = PipedInputStream()
+      val pipedOutput = PipedOutputStream(pipedInput)
+
+      val (pod, container) = prepareCommandExecution()
+      val cmdSupport = CommandSupport(client, pod, container)
+
+      // Execute the command and capture the output, which is the tar file
+      val (exitCode, stdErr) = cmdSupport.execute(
+         command,
+         false,
+         null,
+         pipedOutput,
+         15L,
+         TimeUnit.SECONDS
+      )
+
+      if ((exitCode != null && exitCode != 0) || stdErr != null) {
+         val msg =
+            "Transferring directory '$remotePath' to local path '$localPath' failed with code $exitCode and error msg: $stdErr"
+         log.error(msg)
+         throw ContainerException(msg)
+      }
+
+      // Create the local directory if it doesn't exist
+      if (!Files.exists(localPath)) {
+         Files.createDirectories(localPath).also {
+            log.debug("Untar prep - creating directory: $localPath")
+         }
+      }
+
+      return FileUtils.untar(pipedInput, localPath)
    }
 
    override fun getDuration(): Duration? {
@@ -630,12 +701,12 @@ abstract class K8sRuntime(
          val errorOut = stdErr.toString()
          if (errorOut.isNotEmpty()) {
             log.error("Error executing command: $errorOut")
-            throw ContainerException("Error executing command: ${errorOut.chop(32)}")
+            throw ContainerException("Error executing command: ${errorOut.truncate(32)}")
          }
 
          val standardOut = stdOut.toString()
          if (standardOut.isNotEmpty()) {
-            log.info("Command execution timed out, but std output was captured: ${standardOut.chop(32)}")
+            log.info("Command execution timed out, but std output was captured: ${standardOut.truncate(32)}")
          } else {
             log.warn("Command execution timed out and no std output was captured")
          }

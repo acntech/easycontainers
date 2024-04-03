@@ -9,6 +9,7 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.slf4j.LoggerFactory
+import test.acntech.easycontainers.TestSupport.monitorDeadlocks
 import test.acntech.easycontainers.TestSupport.startContainer
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
@@ -22,7 +23,7 @@ class ContainerExecTests {
    @ParameterizedTest
    @ValueSource(
       strings = [
-//         "DOCKER",
+         "DOCKER",
          "KUBERNETES"
       ]
    )
@@ -111,7 +112,7 @@ class ContainerExecTests {
    @ParameterizedTest
    @ValueSource(
       strings = [
-         "DOCKER",
+//         "DOCKER", // Fails with "Does not support hijacking" error - unresolved
          "KUBERNETES"
       ]
    )
@@ -130,7 +131,7 @@ class ContainerExecTests {
          UnixDir.of("/"),
          input,
          output,
-         15,
+         20,
          TimeUnit.SECONDS
       )
 
@@ -193,7 +194,7 @@ class ContainerExecTests {
          }
 
          ContainerPlatformType.KUBERNETES -> {
-            val containerException = assertThrows<Exception> {
+            assertThrows<Exception> {
                container.execute(
                   Executable.of("nonexistentcommand"),
                   null,

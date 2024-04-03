@@ -2,7 +2,7 @@
 FROM alpine:latest
 
 # Install curl, httpie, openssh, lighttpd, bash, and other necessary dependencies
-RUN apk add --no-cache curl netcat-openbsd openssh lighttpd bash
+RUN apk add --no-cache curl netcat-openbsd gzip openssh lighttpd bash
 
 # Set bash as the default shell for the root user
 RUN sed -i 's#/bin/ash#/bin/bash#' /etc/passwd

@@ -33,7 +33,7 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
    /**
     *
     */
-   fun withName(name : String) : SELF {
+   fun withName(name: String): SELF {
       return withName(ContainerName.of(name))
    }
 
@@ -51,7 +51,7 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
     * @param namespace The namespace to set for the container.
     * @return The updated ContainerBuilder instance.
     */
-   fun withNamespace(namespace : String) : SELF {
+   fun withNamespace(namespace: String): SELF {
       return withNamespace(Namespace.of(namespace))
    }
 

@@ -20,6 +20,7 @@ import no.acntech.easycontainers.util.platform.PlatformUtils
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import no.acntech.easycontainers.util.text.SPACE
 import no.acntech.easycontainers.util.text.splitOnWhites
+import org.apache.commons.compress.utils.CountingInputStream
 import org.awaitility.Awaitility.await
 import org.awaitility.core.ConditionTimeoutException
 import java.io.*
@@ -129,13 +130,12 @@ internal class DockerRuntime(
 
       guardedExecution(
          {
+
             dockerClient.stopContainerCmd(containerId.get()).exec()
             dockerClient.waitContainerCmd(containerId.get()).exec(callback).awaitCompletion().also {
                log.info("Container successfully stopped: ${getDisplayName()}")
             }
-            val info = inspectContainer()
-            setFinishedTime(info)
-            setExitCode(info)
+            finishUp()
          },
          listOf(DockerException::class, DockerClientException::class),
          {
@@ -168,9 +168,7 @@ internal class DockerRuntime(
             dockerClient.waitContainerCmd(containerId.get()).exec(callback).awaitCompletion().also {
                log.info("Container successfully killed: ${getDisplayName()}")
             }
-            val info = inspectContainer()
-            setFinishedTime(info)
-            setExitCode(info)
+            finishUp()
          },
          listOf(DockerException::class, DockerClientException::class),
          {
@@ -241,15 +239,16 @@ internal class DockerRuntime(
       )
    }
 
-   override fun putFile(localPath: Path, remoteDir: UnixDir, remoteFilename: String?) {
-      require(localPath.exists()) { "Local file '$localPath' does not exist" }
-      require(localPath.isRegularFile()) { "Local path '$localPath' is not a file" }
+   override fun putFile(localFile: Path, remoteDir: UnixDir, remoteFilename: String?): Long {
+      require(localFile.exists()) { "Local file '$localFile' does not exist" }
+      require(localFile.isRegularFile()) { "Local path '$localFile' is not a file" }
+
       container.requireOneOfStates(ContainerState.RUNNING)
 
       // Check if remoteDir exists, if not create it
       createContainerDirIfNotExists(remoteDir)
 
-      val tarFile = FileUtils.tarFile(localPath, remoteFilename ?: localPath.fileName.toString())
+      val tarFile = FileUtils.tarFile(localFile, remoteFilename ?: localFile.fileName.toString())
       val inputStream = FileInputStream(tarFile)
 
       guardedExecution(
@@ -259,11 +258,11 @@ internal class DockerRuntime(
                .withTarInputStream(inputStream)
                .exec()
 
-            log.info("File '${localPath.fileName}' uploaded to container '${getDisplayName()}' in directory '${remoteDir.value}'")
+            log.info("File '${localFile.fileName}' uploaded to container '${getDisplayName()}' in directory '${remoteDir.value}'")
          },
          listOf(DockerException::class, DockerClientException::class),
          {
-            val msg = "Error '${it.message}' putting file: ${localPath.fileName} to container: ${getDisplayName()}"
+            val msg = "Error '${it.message}' putting file: ${localFile.fileName} to container: ${getDisplayName()}"
             log.warn(msg)
             throw ContainerException(msg, it)
          },
@@ -272,6 +271,7 @@ internal class DockerRuntime(
             guardedExecution({ tarFile.delete() })
          }
       )
+      return localFile.toFile().length()
    }
 
    override fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path?): Path {
@@ -286,7 +286,7 @@ internal class DockerRuntime(
                .exec()
                .use { responseStream ->
                   FileOutputStream(tempTarFile).use { outputStream ->
-                     responseStream.copyTo(outputStream)
+                     responseStream.transferTo(outputStream)
                   }
                }
 
@@ -311,50 +311,44 @@ internal class DockerRuntime(
       return Paths.get(EMPTY_STRING) // This is never reached, but the compiler doesn't know that
    }
 
-   override fun putDirectory(localPath: Path, remoteDir: UnixDir) {
-      require(localPath.exists() && localPath.isDirectory()) { "Local directory '$localPath' does not exist" }
+   override fun putDirectory(localDir: Path, remoteDir: UnixDir): Long {
+      require(localDir.exists() && localDir.isDirectory()) { "Local directory '$localDir' does not exist" }
       container.requireOneOfStates(ContainerState.RUNNING)
 
       // Check if remoteDir exists, if not create it
       createContainerDirIfNotExists(remoteDir)
 
-      val tarFile = FileUtils.tarDir(localPath)
-      val inputStream = FileInputStream(tarFile)
-
+      val tarInput = CountingInputStream(FileUtils.tar(localDir, includeParentDir = true))
 
       guardedExecution(
          {
             dockerClient.copyArchiveToContainerCmd(containerId.get())
                .withRemotePath(remoteDir.value)
-               .withTarInputStream(inputStream)
+               .withTarInputStream(tarInput)
                .exec()
-            log.info("Directory'$localPath' uploaded to container '${getDisplayName()} in directory '${remoteDir.value}'")
+            log.info("Directory'$localDir' uploaded to container '${getDisplayName()} in directory '${remoteDir.value}'")
          },
          listOf(DockerException::class, DockerClientException::class),
          {
-            val msg = "Error '${it.message}' putting directory: $localPath to container: ${getDisplayName()}"
+            val msg = "Error '${it.message}' putting directory: $localDir to container: ${getDisplayName()}"
             log.warn(msg)
             throw ContainerException(msg, it)
-         },
-         finallyBlock = {
-            guardedExecution({ inputStream.close() })
-            guardedExecution({ tarFile.delete() })
          })
+
+      return tarInput.bytesRead
    }
 
-   override fun getDirectory(remoteDir: UnixDir, localPath: Path) {
-      val tarBall = Files.createTempFile("docker-download-tarball", ".tar").toFile()
+   override fun getDirectory(remoteDir: UnixDir, localDir: Path): Pair<Path, List<Path>> {
+      require(localDir.isDirectory()) { "Local directory '$localDir' does not exist" }
 
       guardedExecution(
          {
-            FileOutputStream(tarBall).use { outputStream ->
-               dockerClient.copyArchiveFromContainerCmd(containerId.get(), remoteDir.value).exec().use { inputStream ->
-                  inputStream.copyTo(outputStream)
-               }
-            }
+            val tarInput: InputStream = dockerClient
+               .copyArchiveFromContainerCmd(containerId.get(), remoteDir.value)
+               .exec()
 
-            if (Files.isDirectory(localPath)) {
-               FileUtils.untarDir(tarBall, localPath)
+            return FileUtils.untar(tarInput, localDir).also {
+               log.info("Directory '$remoteDir' downloaded to '$localDir' with files: ${it.second}")
             }
          },
          listOf(DockerException::class, DockerClientException::class),
@@ -362,13 +356,10 @@ internal class DockerRuntime(
             val msg = "Error '${it.message}' getting directory '$remoteDir' from container' ${getDisplayName()}'"
             log.warn(msg)
             throw ContainerException(msg, it)
-         },
-         finallyBlock = {
-            if (!tarBall.delete()) {
-               log.warn("Failed to delete temporary tarball: ${tarBall.absolutePath}")
-            }
          }
       )
+
+      return Paths.get(EMPTY_STRING) to emptyList() // This is never reached, but the compiler doesn't know that
    }
 
    override fun getDuration(): Duration? {
@@ -382,7 +373,7 @@ internal class DockerRuntime(
    }
 
    override fun getExitCode(): Int? {
-      if (exitCode == null && containerId.get() != null) {
+      if (exitCode == null && containerId.get() != null && !container.isEphemeral()) {
          val containerInfo = dockerClient.inspectContainerCmd(containerId.get()).exec()
          exitCode = containerInfo.state.exitCodeLong?.toInt()
       }
@@ -425,8 +416,12 @@ internal class DockerRuntime(
             val hostConfig = prepareHostConfig()
             configureNetwork(hostConfig)
 
-            val containerCmd = createContainerCommand(image, hostConfig)
+            val containerCmd = createContainerCommand(image, hostConfig).also {
+               log.debug("containerCmd created: $it")
+            }
+
             containerCmd.exec().id.also {
+               log.debug("Container created: ${getDisplayName()}")
                containerId.set(it)
             }
 
@@ -490,6 +485,16 @@ internal class DockerRuntime(
          withAutoRemove(container.isEphemeral()).also {
             log.info("Using auto-remove: ${container.isEphemeral()}")
          }
+      }
+   }
+
+   private fun finishUp() {
+      if (!container.isEphemeral()) {
+         val info = inspectContainer()
+         setFinishedTime(info)
+         setExitCode(info)
+      } else {
+         finishedAt = Instant.now()
       }
    }
 
@@ -730,7 +735,7 @@ internal class DockerRuntime(
       val callback = object : ResultCallback<Frame> {
 
          override fun close() {
-            log.trace("Exec command callback: Closed")
+            log.trace("Exec command callback: close")
          }
 
          override fun onStart(closeable: Closeable?) {
@@ -739,7 +744,7 @@ internal class DockerRuntime(
 
          override fun onNext(frame: Frame?) {
             frame?.payload?.let {
-               log.trace("Exec command callback: output: ${it.decodeToString()}")
+               log.trace("Exec command callback: onNext (with frame): ${it.decodeToString()}")
                output.write(it)
             }
          }

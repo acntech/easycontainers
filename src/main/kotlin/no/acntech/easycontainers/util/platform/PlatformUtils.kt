@@ -185,7 +185,9 @@ object PlatformUtils {
             val ips = outputWithoutErrors.splitOnWhites()
 
             ips.firstOrNull()?.let {
-               return it
+               return it.also {
+                  log.debug("WSL IP address found: $it")
+               }
             }
          }
       } catch (e: Exception) {
