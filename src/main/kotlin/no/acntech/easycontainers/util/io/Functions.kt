@@ -37,7 +37,7 @@ fun ByteArrayOutputStream.toUtf8String(): String {
 fun <T> pipe(
    operation: (OutputStream) -> T = { _: OutputStream -> null as T },
 ): InputStream {
-   return pipe(operation, true)
+   return pipe(operation)
 }
 
 /**
