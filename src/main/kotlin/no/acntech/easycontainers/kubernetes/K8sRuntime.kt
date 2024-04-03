@@ -285,8 +285,8 @@ abstract class K8sRuntime(
       return countingInput.bytesRead
    }
 
-   override fun getDirectory(remoteDir: UnixDir, localPath: Path): Pair<Path, List<Path>> {
-      require(localPath.exists() && Files.isDirectory(localPath)) { "The provided path is not a directory." }
+   override fun getDirectory(remoteDir: UnixDir, localDir: Path): Pair<Path, List<Path>> {
+      require(localDir.exists() && Files.isDirectory(localDir)) { "The provided path is not a directory." }
 
       // Define the remote directory path
       val remotePath = remoteDir.unwrap()
@@ -317,19 +317,19 @@ abstract class K8sRuntime(
 
       if ((exitCode != null && exitCode != 0) || stdErr != null) {
          val msg =
-            "Transferring directory '$remotePath' to local path '$localPath' failed with code $exitCode and error msg: $stdErr"
+            "Transferring directory '$remotePath' to local path '$localDir' failed with code $exitCode and error msg: $stdErr"
          log.error(msg)
          throw ContainerException(msg)
       }
 
       // Create the local directory if it doesn't exist
-      if (!Files.exists(localPath)) {
-         Files.createDirectories(localPath).also {
-            log.debug("Untar prep - creating directory: $localPath")
+      if (!Files.exists(localDir)) {
+         Files.createDirectories(localDir).also {
+            log.debug("Untar prep - creating directory: $localDir")
          }
       }
 
-      return FileUtils.untar(pipedInput, localPath)
+      return FileUtils.untar(pipedInput, localDir)
    }
 
    override fun getDuration(): Duration? {

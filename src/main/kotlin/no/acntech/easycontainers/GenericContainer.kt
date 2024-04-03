@@ -188,8 +188,8 @@ open class GenericContainer(
       return runtime.putDirectory(localDir, remoteDir)
    }
 
-   override fun getDirectory(remoteDir: UnixDir, localPath: Path): Pair<Path, List<Path>> {
-      return runtime.getDirectory(remoteDir, localPath)
+   override fun getDirectory(remoteDir: UnixDir, localDir: Path): Pair<Path, List<Path>> {
+      return runtime.getDirectory(remoteDir, localDir)
    }
 
    @Synchronized

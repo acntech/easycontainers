@@ -153,12 +153,12 @@ abstract class AbstractContainerRuntime(
     * Retrieves the directory from the remote Unix system and saves it to the local file system.
     *
     * @param remoteDir The remote directory path to retrieve.
-    * @param localPath The local path where the directory should be saved. Defaults to a temporary directory.
+    * @param localDir The local path where the directory should be saved. Defaults to a temporary directory.
     * @return A pair containing the local path where the directory was saved and a list of paths for each file in the directory.
     */
    internal abstract fun getDirectory(
       remoteDir: UnixDir,
-      localPath: Path = Files.createTempDirectory("container-download-tar").toAbsolutePath(),
+      localDir: Path = Files.createTempDirectory("container-download-tar").toAbsolutePath(),
    ): Pair<Path, List<Path>>
 
    /**

@@ -219,11 +219,11 @@ interface Container {
     * Downloads a directory from the container.
     *
     * @param remoteDir the path of the directory to download
-    * @param localPath the path where the directory will be downloaded to
+    * @param localDir the path where the directory will be downloaded to
     */
    fun getDirectory(
       remoteDir: UnixDir,
-      localPath: Path = Files.createTempDirectory("container-download-tar").toAbsolutePath(),
+      localDir: Path = Files.createTempDirectory("container-download-tar").toAbsolutePath(),
    ): Pair<Path, List<Path>>
 
    /**

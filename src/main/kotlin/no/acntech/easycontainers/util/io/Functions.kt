@@ -28,18 +28,39 @@ fun ByteArrayOutputStream.toUtf8String(): String {
  * Executes the given (write) operation in a separate (virtual) thread and returns an [InputStream] that reads
  * from the result of the operation - effectively creating a "reactive" pipe between the [OutputStream] and
  * the [InputStream]. This means that this method is non-blocking and the operation is executed asynchronously.
+ * Streams are buffered.
  *
- * @param operation The operation to be executed, which takes an [OutputStream] as input and returns a result of type T.
+ * @param operation The operation to execute in a separate thread. The operation receives an [OutputStream] as a parameter.
+ *                  The default operation is a no-op.
  * @return An [InputStream] that reads from the output of the operation.
  */
-fun <T> pipe(operation: (OutputStream) -> T): InputStream {
-   val pipedOut = PipedOutputStream()
-   val pipedIn = BufferedInputStream(PipedInputStream(pipedOut))
+fun <T> pipe(
+   operation: (OutputStream) -> T = { _: OutputStream -> null as T },
+): InputStream {
+   return pipe(operation, true)
+}
+
+/**
+ * Executes the given (write) operation in a separate (virtual) thread and returns an [InputStream] that reads
+ * from the result of the operation - effectively creating a "reactive" pipe between the [OutputStream] and
+ * the [InputStream]. This means that this method is non-blocking and the operation is executed asynchronously.
+ *
+ * @param operation The operation to execute in a separate thread. The operation receives an [OutputStream] as a parameter.
+ *                  The default operation is a no-op.
+ * @param buffered Specifies whether the [InputStream] and [OutputStream] should be buffered. Default is true.
+ * @return An [InputStream] that reads from the output of the operation.
+ */
+fun <T> pipe(
+   operation: (OutputStream) -> T = { _: OutputStream -> null as T },
+   buffered: Boolean = true,
+): InputStream {
+   val output = PipedOutputStream()
+   val input = if (buffered) BufferedInputStream(PipedInputStream(output)) else PipedInputStream(output)
 
    Thread.startVirtualThread {
-      operation(pipedOut)
+      operation(if (buffered) BufferedOutputStream(output) else output)
    }
 
-   return pipedIn
+   return input
 }
 

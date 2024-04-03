@@ -12,6 +12,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.nio.file.StandardCopyOption
 import kotlin.io.path.exists
+import kotlin.io.path.isRegularFile
 import kotlin.io.path.name
 
 /**
@@ -54,10 +55,12 @@ object FileUtils {
    }
 
    /**
-    * Creates a TAR file containing the specified directory.
+    * Creates a TAR archive of the specified directory.
     *
-    * @param dir The directory to be included in the TAR file.
-    * @return The TAR file as a [File] object.
+    * @param dir The directory to be included in the TAR archive.
+    * @param tarball The path of the TAR archive to be created.
+    * @param includeParentDir Specifies whether to include the parent directory in the TAR archive. Default is false.
+    * @return The path of the TAR archive.
     */
    @Throws(IOException::class)
    fun tar(
@@ -65,6 +68,8 @@ object FileUtils {
       tarball: Path = Files.createTempFile("tar-${dir.name}-", TAR_EXTENSION),
       includeParentDir: Boolean = false,
    ): Path {
+      require(dir.exists() && Files.isDirectory(dir)) { "The provided path '$dir' is not a directory." }
+      require(tarball.exists() && tarball.isRegularFile()) { "The provided tarball '$tarball' is not a valid file." }
       tar(dir, FileOutputStream(tarball.toFile()), includeParentDir)
       return tarball
    }
@@ -123,8 +128,8 @@ object FileUtils {
     */
    @Throws(IOException::class)
    fun tar(dir: Path, includeParentDir: Boolean = false): InputStream {
-      require(dir.exists() && Files.isDirectory(dir)) { "The provided path is not a directory." }
-      return pipe { tar(dir, it, includeParentDir) }
+      require(dir.exists() && Files.isDirectory(dir)) { "The provided path '$dir' is not a directory." }
+      return pipe { output -> tar(dir, output, includeParentDir) }
    }
 
    /**
@@ -137,6 +142,9 @@ object FileUtils {
     */
    @Throws(IOException::class)
    fun untarFile(tarFile: File, destination: Path = Files.createTempDirectory("untar-").toAbsolutePath()): Path {
+      require(tarFile.exists() && tarFile.isFile) { "The provided file '$tarFile' is not a valid file." }
+      require(destination.exists() && Files.isDirectory(destination)) { "The provided path '$destination' is not a directory." }
+
       TarArchiveInputStream(BufferedInputStream(FileInputStream(tarFile))).use { tis ->
          val entry = tis.nextEntry
          if (entry != null && !entry.isDirectory) {
@@ -167,6 +175,8 @@ object FileUtils {
       tarball: File,
       destination: Path = Files.createTempDirectory("untar-${tarball.name}-").toAbsolutePath(),
    ): Pair<Path, List<Path>> {
+      require(tarball.exists() && tarball.isFile) { "The provided file '$tarball' is not a valid file." }
+      require(destination.exists() && Files.isDirectory(destination)) { "The provided path '$destination' is not a directory." }
       return untar(FileInputStream(tarball), destination)
    }
 
@@ -184,7 +194,9 @@ object FileUtils {
       input: InputStream,
       destination: Path = Files.createTempDirectory("untar-").toAbsolutePath(),
    ): Pair<Path, List<Path>> {
-      require(destination.exists() && Files.isDirectory(destination)) { "The provided path is not a directory." }
+      require(destination.exists() && Files.isDirectory(destination)) {
+         "The provided destination '$destination' is not a directory."
+      }
       log.trace("Untaring input to: $destination")
 
       val bufferedInput = if (input is BufferedInputStream) input else BufferedInputStream(input)
