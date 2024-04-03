@@ -74,48 +74,45 @@ object FileUtils {
       return tarball
    }
 
-   /**
-    * Creates a TAR archive of the specified directory.
-    *
-    * @param dir The directory to be included in the TAR archive.
-    * @param output The output stream to write the TAR archive to.
-    * @param includeParentDir Specifies whether to include the parent directory in the TAR archive. Default is false.
-    * @return The total number of bytes written to the TAR archive.
-    */
    @Throws(IOException::class)
    fun tar(dir: Path, output: OutputStream, includeParentDir: Boolean = false): Long {
       require(dir.exists() && Files.isDirectory(dir)) { "The provided path '$dir' is not a directory." }
-
       val bufferedOut = if (output is BufferedOutputStream) output else BufferedOutputStream(output)
       val actualDir = if (includeParentDir) dir.parent else dir
       var totalBytes = 0L
-
       TarArchiveOutputStream(bufferedOut).use { tarOutput ->
          Files.walk(dir).use { paths ->
             paths.forEach { path ->
                val name = actualDir.relativize(path).toString().replace(BACK_SLASH, FORWARD_SLASH).removePrefix(FORWARD_SLASH)
-               val entry = TarArchiveEntry(path.toFile(), name).also {
-                  log.trace("Adding tar entry: $name -> ${path.toAbsolutePath()} (${path.toFile().length()} bytes)")
-               }
-
-               if (Files.isDirectory(path)) {
-                  entry.size = 0
-                  entry.mode = TarArchiveEntry.DEFAULT_DIR_MODE
-               }
-
-               tarOutput.putArchiveEntry(entry)
-
-               if (Files.isRegularFile(path)) {
-                  Files.newInputStream(path).use { input ->
-                     totalBytes += input.transferTo(tarOutput)
-                  }
-               }
-
-               tarOutput.closeArchiveEntry()
+               val entry = prepareTarEntry(path, name)
+               totalBytes += writeToTarOutput(tarOutput, path, entry)
             }
          }
       }
       return totalBytes
+   }
+
+   private fun prepareTarEntry(path: Path, name: String): TarArchiveEntry {
+      val entry = TarArchiveEntry(path.toFile(), name).also {
+         log.trace("Adding tar entry: $name -> ${path.toAbsolutePath()} (${path.toFile().length()} bytes)")
+      }
+      if (Files.isDirectory(path)) {
+         entry.size = 0
+         entry.mode = TarArchiveEntry.DEFAULT_DIR_MODE
+      }
+      return entry
+   }
+
+   private fun writeToTarOutput(tarOutput: TarArchiveOutputStream, path: Path, entry: TarArchiveEntry): Long {
+      var totalBytesForEntry = 0L
+      tarOutput.putArchiveEntry(entry)
+      if (Files.isRegularFile(path)) {
+         Files.newInputStream(path).use { input ->
+            totalBytesForEntry += input.transferTo(tarOutput)
+         }
+      }
+      tarOutput.closeArchiveEntry()
+      return totalBytesForEntry
    }
 
    /**
