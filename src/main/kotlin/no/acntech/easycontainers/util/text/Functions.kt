@@ -29,8 +29,7 @@ fun String.truncate(length: Int, affix: String = "[..]", fromStart: Boolean = fa
       // Truncate from end
       if (length <= suffixLength) {
          affix.take(length)
-      }
-      else {
+      } else {
          this.take(length - suffixLength) + affix
       }
 
@@ -38,7 +37,7 @@ fun String.truncate(length: Int, affix: String = "[..]", fromStart: Boolean = fa
       // Truncate from start
       if (length <= suffixLength) {
          affix.take(length)
-      }  else {
+      } else {
          affix + this.takeLast(length - suffixLength)
       }
    }

@@ -1,15 +1,12 @@
 package test.acntech.easycontainers
 
-import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.util.io.toUtf8String
-import no.acntech.easycontainers.util.text.EMPTY_STRING
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.slf4j.LoggerFactory
-import test.acntech.easycontainers.TestSupport.monitorDeadlocks
 import test.acntech.easycontainers.TestSupport.startContainer
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit

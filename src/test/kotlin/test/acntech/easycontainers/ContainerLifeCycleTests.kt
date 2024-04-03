@@ -1,6 +1,5 @@
 package test.acntech.easycontainers
 
-import no.acntech.easycontainers.docker.DockerConstants
 import no.acntech.easycontainers.model.Container
 import no.acntech.easycontainers.model.ContainerPlatformType
 import no.acntech.easycontainers.model.ContainerState
@@ -15,7 +14,6 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import org.slf4j.LoggerFactory
-import test.acntech.easycontainers.TestSupport.dockerHostAddress
 import test.acntech.easycontainers.TestSupport.startContainer
 import java.util.concurrent.TimeUnit
 import java.util.stream.Stream

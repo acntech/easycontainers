@@ -49,7 +49,7 @@ class NativeK8sTests {
 
       val runtime = container.getRuntime() as K8sRuntime
 
-      log.debug( "Container started:$NEW_LINE$container")
+      log.debug("Container started:$NEW_LINE$container")
 
       val latch = CountDownLatch(1)
       val execIn = "Hello".byteInputStream()

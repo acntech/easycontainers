@@ -206,6 +206,7 @@ open class GenericContainer(
             log.debug("Waiting $timeout $unit for container '${getName()}' to reach state '$state'")
             latch.await(timeout, unit)
          }
+
          else -> {
             log.debug("Waiting indefinately for container '${getName()}' to reach state '$state'")
             latch.await().let { true }

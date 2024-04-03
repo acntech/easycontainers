@@ -1,9 +1,12 @@
 package test.acntech.easycontainers
 
-import no.acntech.easycontainers.model.*
+import no.acntech.easycontainers.model.ContainerPlatformType
+import no.acntech.easycontainers.model.ExecutionMode
+import no.acntech.easycontainers.model.UnixDir
 import no.acntech.easycontainers.util.lang.guardedExecution
 import no.acntech.easycontainers.util.text.FORWARD_SLASH
-import org.junit.jupiter.api.Assertions.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.slf4j.LoggerFactory.getLogger
@@ -136,8 +139,8 @@ class ContainerFileTransferTests {
          assertEquals(content2, Files.readString(receivedFile2))
 
       } finally {
-         guardedExecution( { tempSendDir.deleteRecursively() })
-         guardedExecution( { tempReceiveDir.deleteRecursively() })
+         guardedExecution({ tempSendDir.deleteRecursively() })
+         guardedExecution({ tempReceiveDir.deleteRecursively() })
 
 //         TimeUnit.SECONDS.sleep(60*10)
       }

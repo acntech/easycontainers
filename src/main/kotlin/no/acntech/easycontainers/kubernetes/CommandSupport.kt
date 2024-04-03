@@ -195,7 +195,7 @@ internal class CommandSupport(
             teeStream.flush()
 
             // Convert the captured input to a string and log it
-            logStream.toUtf8String().also {debugString ->
+            logStream.toUtf8String().also { debugString ->
                log.debug("Captured stdin data for command execution: ${debugString.truncate(1024)}")
             }
 
