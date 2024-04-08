@@ -101,12 +101,15 @@ abstract class AbstractContainerRuntime(
 
    override fun start() {
       container.builder.maxLifeTime?.let {
-         terminateFuture = SCHEDULER.schedule(TerminateTask(), it.toSeconds(), TimeUnit.SECONDS)
+         terminateFuture = SCHEDULER.schedule(TerminateTask(), it.toSeconds(), TimeUnit.SECONDS).also {
+            log.info("Container '${container.getName()}' will be terminated in ${it.getDelay(TimeUnit.SECONDS)} seconds")
+         }
       }
    }
 
    override fun stop() {
       terminateFuture?.cancel(false)
+      container.changeState(ContainerState.STOPPED)
    }
 
    internal abstract fun execute(

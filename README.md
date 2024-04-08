@@ -204,9 +204,10 @@ For issues and bugs please submit an issue on the [GitHub repository](https://gi
 TODO
 
 ## Roadmap
-- [ ] Add support for Kubernetes Jobs as a container runtime.
+- [x] Add support for Kubernetes Jobs as a container runtime.
 - [ ] Add conditional wait strategies for containers - similar to Testcontainers, see [here](https://java.testcontainers.org/features/startup_and_waits/).
 - [ ] Add specific container implementations for popular databases and services.
+- [ ] Add support for multi-pod/multi-container deployments in both Docker and Kubernetes.
 - [ ] Convert all tests to use [Testcontainers](https://testcontainers.com/) - using either the official [K3s module](https://java.testcontainers.org/modules/k3s/), or the community contributed [KinD module](https://testcontainers.com/modules/kindcontainer/).
 
 ## Contributing

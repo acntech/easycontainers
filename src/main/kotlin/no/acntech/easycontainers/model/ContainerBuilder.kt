@@ -64,7 +64,6 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
     */
    fun withLabel(key: LabelKey, value: LabelValue): SELF
 
-
    /**
     * Adds a label with the provided key-value pair to the container.
     *

@@ -5,6 +5,7 @@ import no.acntech.easycontainers.model.ContainerPlatformType
 import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.model.ExecutionMode
 import org.apache.commons.lang3.time.DurationFormatUtils
+import org.bouncycastle.crypto.util.JournaledAlgorithm.getState
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -27,26 +28,42 @@ class ContainerLifeCycleTests {
 
 
    @Test
-   fun startAndRunTestContainers() {
-      val dockerContainer = startContainer(ContainerPlatformType.DOCKER, ExecutionMode.SERVICE)
+   fun startAndRunServiceTestContainers() {
+//      val dockerContainer = startContainer(ContainerPlatformType.DOCKER, ExecutionMode.SERVICE)
       val k8sContainer = startContainer(ContainerPlatformType.KUBERNETES, ExecutionMode.SERVICE)
+      TimeUnit.SECONDS.sleep(10 * 60)
+   }
+
+   @Test
+   fun startAndRunTaskTestContainers() {
+//      val dockerContainer = startContainer(ContainerPlatformType.DOCKER, ExecutionMode.TASK)
+      try {
+         val k8sContainer = startContainer(ContainerPlatformType.KUBERNETES, ExecutionMode.TASK)
+      } catch (e: Exception) {
+         log.error("Error starting container", e)
+      }
+
       TimeUnit.SECONDS.sleep(10 * 60)
    }
 
    class LifeCycleTestArgumentsProvider : ArgumentsProvider {
       override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
          return Stream.of(
-            Arguments.of("DOCKER", mapOf(PARAM_GRACEFUL_SHUTDOWN to "true")),
-            Arguments.of("DOCKER", mapOf(PARAM_GRACEFUL_SHUTDOWN to "false")),
-            Arguments.of("KUBERNETES", mapOf(PARAM_GRACEFUL_SHUTDOWN to "true")),
-            Arguments.of("KUBERNETES", mapOf(PARAM_GRACEFUL_SHUTDOWN to "false"))
+            Arguments.of(ContainerPlatformType.DOCKER, ExecutionMode.SERVICE, mapOf(PARAM_GRACEFUL_SHUTDOWN to "true")),
+            Arguments.of(ContainerPlatformType.DOCKER, ExecutionMode.SERVICE, mapOf(PARAM_GRACEFUL_SHUTDOWN to "false")),
+            Arguments.of(ContainerPlatformType.KUBERNETES, ExecutionMode.SERVICE, mapOf(PARAM_GRACEFUL_SHUTDOWN to "true")),
+            Arguments.of(ContainerPlatformType.KUBERNETES, ExecutionMode.SERVICE, mapOf(PARAM_GRACEFUL_SHUTDOWN to "false"))
          )
       }
    }
 
    @ParameterizedTest
    @ArgumentsSource(LifeCycleTestArgumentsProvider::class)
-   fun `Test start-stop-kill-and-delete the test-container`(containerType: String, params: Map<String, String>) {
+   fun `Test start-stop-kill-and-delete the test-container`(
+      containerPlatformType: ContainerPlatformType,
+      executionMode: ExecutionMode,
+      params: Map<String, String>,
+   ) {
 
       fun gracefulShutdown(container: Container) {
          log.debug("Gracefully shutting down the container: ${container.getName()}")
@@ -66,24 +83,29 @@ class ContainerLifeCycleTests {
          assertEquals(ContainerState.DELETED, runtime.getContainer().getState())
       }
 
-      val platform = ContainerPlatformType.valueOf(containerType)
+      val container = startContainer(containerPlatformType, executionMode)
 
-      val container = startContainer(platform, ExecutionMode.SERVICE)
+      TimeUnit.SECONDS.sleep(2)
 
-      val stopGracefully = params["graceful-shutdown"]?.toBoolean() ?: true
+      val stopGracefully = params[PARAM_GRACEFUL_SHUTDOWN]?.toBoolean() ?: true
       if (stopGracefully) {
          gracefulShutdown(container)
       } else {
          forcefulShutdown(container)
       }
 
-      log.debug(
-         "Container duration: {}",
-         DurationFormatUtils.formatDuration(container.getDuration()!!.toMillis(), "mm'm:'ss's.'SSS'ms'", true)
-      )
+      assertEquals(ContainerState.DELETED, container.getState())
       assertNotNull(container.getDuration())
 
-      log.debug("Container exit code: {}", container.getExitCode())
+      log.debug(
+         "Container duration: {}",
+         DurationFormatUtils.formatDuration(
+            container.getDuration()!!.toMillis(),
+            "mm'm:'ss's.'SSS'ms'",
+            true)
+      )
+
+      log.debug("Container exit code: ${container.getExitCode()}")
    }
 
 }

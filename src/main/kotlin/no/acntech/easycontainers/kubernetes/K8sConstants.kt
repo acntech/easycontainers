@@ -16,4 +16,6 @@ object K8sConstants {
    const val DEFAULT_NAMESPACE = "default"
 
    const val MEDIUM_MEMORY_BACKED = "Memory"
+
+   const val REGISTRY_DEFAULT_PORT = 5000
 }

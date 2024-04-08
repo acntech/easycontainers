@@ -71,7 +71,6 @@ class NativeK8sTests {
 
       log.debug("Exec stdout: $execOut")
       log.debug("Exec stderr: $execErr")
-
    }
 
 }

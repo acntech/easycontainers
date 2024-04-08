@@ -2,12 +2,22 @@ package no.acntech.easycontainers.util.lang
 
 import com.google.common.base.CaseFormat
 import no.acntech.easycontainers.util.collections.prettyPrint
+import no.acntech.easycontainers.util.collections.toStringList
+import no.acntech.easycontainers.util.collections.toStringMap
 import no.acntech.easycontainers.util.text.NEW_LINE
 import java.beans.Introspector
+import java.beans.PropertyDescriptor
+import java.lang.reflect.Method
+import java.lang.reflect.Modifier
 import kotlin.reflect.KClass
-import kotlin.reflect.full.findAnnotation
 import kotlin.reflect.full.memberProperties
 import kotlin.reflect.jvm.isAccessible
+import kotlin.reflect.jvm.javaField
+
+private const val MAX_DEPTH = 5
+private const val ERROR_CIRCULAR_REF = "Circular reference detected"
+private const val ERROR_MAX_DEPTH = "Max depth reached"
+private const val ERROR_GETTER_INVOKATION = "Error calling getter: "
 
 /**
  * Converts an object to a Map representation, including its properties or Java bean properties.
@@ -15,41 +25,111 @@ import kotlin.reflect.jvm.isAccessible
  * @param defaultOverrides a map of default properties to override the retrieved properties
  * @return a map representation of the object, with property names as keys and property values as values
  */
-fun Any.toMap(defaultOverrides: Map<String, Any> = emptyMap()): Map<String, Any?> {
-   val props = mutableMapOf<String, Any?>()
-
-   // Check if it's a Kotlin class
-   if (this::class.findAnnotation<Metadata>() != null) {
-      // Handle Kotlin properties
-      this::class.memberProperties
-         .filter { it.getter.isAccessible }
-         .forEach { prop ->
-            try {
-               props[prop.name] = prop.call(this)
-            } catch (e: Exception) {
-               props[prop.name] = "Error calling getter (Kotlin): ${e.message}"
-            }
-         }
-   } else { // Otherwise, handle it as a Java bean
-      val beanInfo = Introspector.getBeanInfo(this.javaClass)
-      for (propertyDescriptor in beanInfo.propertyDescriptors) {
-         val name = propertyDescriptor.name
-         val getter = propertyDescriptor.readMethod
-         if (getter != null && !props.containsKey(name)) {
-            try {
-               props[name] = getter.invoke(this)
-            } catch (e: Exception) {
-               props[name] = "Error calling getter: ${e.message}"
-            }
-         }
-      }
+fun Any.asStringMap(
+   defaultOverrides: Map<String, Any?> = emptyMap(),
+   visited: MutableSet<Any> = mutableSetOf(),
+   depth: Int = 0,
+   maxDepth: Int = MAX_DEPTH,
+): Map<String, Any?> {
+   if (depth > maxDepth) {
+      return mapOf(ERROR_MAX_DEPTH to true)
    }
 
-   // Merge with defaultOverrides
+   val props = mutableMapOf<String, Any?>()
+
+   if (visited.contains(this)) {
+      return mapOf(ERROR_CIRCULAR_REF to true)
+   }
+   visited.add(this)
+
+   props["instance"] = "${javaClass.name}@${Integer.toHexString(System.identityHashCode(this))}"
+
+   processProperties(this, props, visited, defaultOverrides, depth, maxDepth)
+
    props.putAll(defaultOverrides)
 
    return props
 }
+
+private fun processProperties(
+   anyObj: Any,
+   props: MutableMap<String, Any?>,
+   visited: MutableSet<Any>,
+   defaultOverrides: Map<String, Any?>,
+   depth: Int,
+   maxDepth: Int
+) {
+
+   fun handleProperty(property: PropertyDescriptor) {
+      val method = property.readMethod
+      if (method != null && Modifier.isPublic(method.modifiers)) {
+         tryToInvokeGetter(anyObj, property.name, method, props, visited, defaultOverrides, depth, maxDepth)
+      }
+   }
+
+   // Java reflection
+   val beanInfo = Introspector.getBeanInfo(anyObj.javaClass)
+   for (propertyDescriptor in beanInfo.propertyDescriptors) {
+      handleProperty(propertyDescriptor)
+   }
+
+   // Kotlin reflection
+   for (property in anyObj::class.memberProperties) {
+      if (property.javaField != null && property.isAccessible) {
+         if (!props.containsKey(property.name)) {
+            val value = property.call(anyObj)
+            handlePropertyValue(props, property.name, value, visited, defaultOverrides, depth, maxDepth)
+         }
+      }
+   }
+}
+
+private fun tryToInvokeGetter(
+   anyObj: Any,
+   name: String,
+   method: Method,
+   props: MutableMap<String, Any?>,
+   visited: MutableSet<Any>,
+   defaultOverrides: Map<String, Any?>,
+   depth: Int,
+   maxDepth: Int
+) {
+   try {
+      val value = method.invoke(anyObj)
+      handlePropertyValue(props, name, value, visited, defaultOverrides, depth, maxDepth)
+   } catch (e: Exception) {
+      props[name] = "$ERROR_GETTER_INVOKATION ${e.message}"
+   }
+}
+
+private fun handlePropertyValue(
+   props: MutableMap<String, Any?>,
+   name: String,
+   value: Any?,
+   visited: MutableSet<Any>,
+   defaultOverrides: Map<String, Any?>,
+   depth: Int,
+   maxDepth: Int,
+) {
+   props[name] = when {
+      value == null -> null
+      visited.contains(value) -> ERROR_CIRCULAR_REF
+      value is Map<*, *> -> value.toStringMap()
+      value is List<*> -> value.toStringList()
+      shouldStringify(value) -> value.toString()
+      else -> value.asStringMap(defaultOverrides, visited, depth + 1, maxDepth)
+   }
+}
+
+private fun shouldStringify(value: Any): Boolean {
+   return value.javaClass.`package`?.name?.startsWith("java") == true ||
+      value.javaClass.`package`?.name?.startsWith("kotlin") == true ||
+      value.javaClass.isPrimitive ||
+      value is String ||
+      value is Number ||
+      value is Boolean
+}
+
 
 /**
  * Returns a string representation of the calling object in a pretty format.
@@ -58,19 +138,19 @@ fun Any.toMap(defaultOverrides: Map<String, Any> = emptyMap()): Map<String, Any?
  * @return the string representation of the object
  */
 fun Any.prettyPrintMe(fallbackMap: Map<String, Any> = emptyMap()): String {
-   val defaultToString = "${javaClass.name}@${Integer.toHexString(System.identityHashCode(this))}$NEW_LINE"
-   val map: Map<String, Any?> = this.toMap(fallbackMap)
+   val defaultToString = "${this.javaClass.name}@${Integer.toHexString(System.identityHashCode(this))}$NEW_LINE"
+   val map: Map<String, Any?> = this.asStringMap(fallbackMap)
    return defaultToString + map.prettyPrint()
 }
 
-val SNAKE_TO_CAMEL: TransformFunction<String, String> =
+typealias Transform<T, R> = (T) -> R
+
+val SNAKE_TO_CAMEL: Transform<String, String> =
    createCaseFormatTransformFunction(CaseFormat.LOWER_UNDERSCORE, CaseFormat.LOWER_CAMEL)
 
-typealias TransformFunction<T, R> = (T) -> R
+fun <T> identityTransform(): Transform<T, T> = { it } // it refers to the input itself
 
-fun <T> identityTransform(): TransformFunction<T, T> = { it } // it refers to the input itself
-
-fun createCaseFormatTransformFunction(fromFormat: CaseFormat, toFormat: CaseFormat): TransformFunction<String, String> {
+fun createCaseFormatTransformFunction(fromFormat: CaseFormat, toFormat: CaseFormat): Transform<String, String> {
    return { input: String ->
       fromFormat.to(toFormat, input)
    }
@@ -80,13 +160,11 @@ fun defaultOnError(e: Exception) {}
 fun defaultNoMatchHandler(e: Exception): Nothing = throw e
 fun defaultFinally() {}
 
-val DEFAULT_EXCEPTION_LIST: List<KClass<out Exception>> = listOf(Exception::class)
-
 /**
- * Guards a given block of code, and calls the onError function if any of the specified exceptions (or their subclasses) are thrown.
- * If the thrown exception is not one of the specified exceptions (or a subclass), the noMatchHandler function is called. The
- * finallyBlock is always executed, defaulting to an empty function.
- * *
+ * Guards a given block of code, and calls the onError function if any of the specified exceptions (or their subclasses) are
+ * thrown. If the thrown exception is not one of the specified exceptions (or a subclass), the noMatchHandler function is called.
+ * The finallyBlock is always executed, defaulting to an empty function.
+ * <p>
  * Example usage:
  * <pre><code>
  * guardedExecution(
@@ -109,7 +187,7 @@ val DEFAULT_EXCEPTION_LIST: List<KClass<out Exception>> = listOf(Exception::clas
  */
 inline fun guardedExecution(
    block: () -> Unit,
-   errors: List<KClass<out Exception>> = DEFAULT_EXCEPTION_LIST,
+   errors: List<KClass<out Exception>> = listOf(Exception::class),
    noinline onError: (Exception) -> Unit = { e -> defaultOnError(e) },
    noMatchHandler: (Exception) -> Unit = { e -> defaultNoMatchHandler(e) },
    finallyBlock: () -> Unit = { defaultFinally() },

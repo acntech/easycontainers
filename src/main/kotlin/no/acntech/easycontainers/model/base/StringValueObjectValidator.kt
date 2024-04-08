@@ -29,11 +29,15 @@ class StringValueObjectValidator(
 
       // Length checks
       minLength?.let { min ->
-         if (value.length < min) throw ValidationException("String length '${value.length}' below allowed minimum '$min'")
+         if (value.length < min) {
+            throw ValidationException("String length '${value.length}' below allowed minimum '$min' voa value '$value'")
+         }
       }
 
       maxLength?.let { max ->
-         if (value.length > max) throw ValidationException("String length '${value.length}' exceeds allowed maximum '$max'")
+         if (value.length > max) {
+            throw ValidationException("String length '${value.length}' exceeds allowed maximum '$max' for value '$value'")
+         }
       }
 
       // Lexical content checks

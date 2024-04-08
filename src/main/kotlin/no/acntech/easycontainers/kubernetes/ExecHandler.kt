@@ -15,6 +15,8 @@ import no.acntech.easycontainers.util.text.SPACE
 import no.acntech.easycontainers.util.text.truncate
 import no.acntech.easycontainers.util.time.WaitTimeCalculator
 import org.apache.commons.io.output.TeeOutputStream
+import org.awaitility.Awaitility
+import org.awaitility.core.ConditionTimeoutException
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.ByteArrayOutputStream
@@ -27,14 +29,21 @@ import java.util.concurrent.TimeoutException
 import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
 
-internal class CommandSupport(
+/**
+ * Handles executing commands within a Kubernetes pod's container.
+ *
+ * @property client the Kubernetes client
+ * @property pod the pod to execute the command in
+ * @property container the container to execute the command in
+ */
+internal class ExecHandler(
    private val client: KubernetesClient,
    private val pod: Pod,
    private val container: Container,
 ) {
 
    companion object {
-      private val log: Logger = LoggerFactory.getLogger(CommandSupport::class.java)
+      private val log: Logger = LoggerFactory.getLogger(ExecHandler::class.java)
    }
 
    /**
@@ -348,4 +357,37 @@ internal class CommandSupport(
          // Command
          .exec(*command.toTypedArray())
    }
+
+   private fun execPollWait(
+      waitTimeValue: Long?,
+      waitTimeUnit: TimeUnit?,
+      alive: AtomicBoolean,
+      stdErr: ByteArrayOutputStream,
+      stdOut: ByteArrayOutputStream,
+   ) {
+      log.trace("Poll-waiting for command execution to finish...")
+      try {
+         Awaitility.await()
+            .atMost(waitTimeValue ?: 30, waitTimeUnit ?: TimeUnit.SECONDS)
+            .pollInterval(500, TimeUnit.MILLISECONDS)
+            .until {
+               log.trace("Polling... alive=${alive.get()}")
+               !alive.get()
+            }
+      } catch (e: ConditionTimeoutException) {
+         val errorOut = stdErr.toString()
+         if (errorOut.isNotEmpty()) {
+            log.error("Error executing command: $errorOut")
+            throw ContainerException("Error executing command: ${errorOut.truncate(32)}")
+         }
+
+         val standardOut = stdOut.toString()
+         if (standardOut.isNotEmpty()) {
+            log.info("Command execution timed out, but std output was captured: ${standardOut.truncate(32)}")
+         } else {
+            log.warn("Command execution timed out and no std output was captured")
+         }
+      }
+   }
+
 }

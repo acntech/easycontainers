@@ -29,7 +29,7 @@ open class GenericContainer(
    internal val builder: GenericContainerBuilder,
 ) : Container {
 
-   class GenericContainerBuilder : BaseContainerBuilder<GenericContainerBuilder>() {
+   open class GenericContainerBuilder : BaseContainerBuilder<GenericContainerBuilder>() {
 
       override fun self(): GenericContainerBuilder {
          return this
@@ -42,12 +42,24 @@ open class GenericContainer(
    }
 
    companion object {
-      private val log: Logger = LoggerFactory.getLogger(GenericContainer::class.java)
+
+      private val LEGAL_STATE_TRANSITIONS: Map<ContainerState, Set<ContainerState>> = mapOf(
+         ContainerState.UNINITIATED to setOf(ContainerState.INITIALIZING),
+         ContainerState.INITIALIZING to setOf(ContainerState.RUNNING, ContainerState.FAILED),
+         ContainerState.RUNNING to setOf(ContainerState.TERMINATING, ContainerState.STOPPED, ContainerState.FAILED),
+         ContainerState.TERMINATING to setOf(ContainerState.STOPPED, ContainerState.DELETED, ContainerState.FAILED),
+         ContainerState.STOPPED to setOf(ContainerState.DELETED, ContainerState.FAILED),
+         ContainerState.DELETED to emptySet(),
+         ContainerState.FAILED to emptySet(),
+         ContainerState.UNKNOWN to ContainerState.entries.toSet()
+      )
 
       fun builder(): ContainerBuilder<*> {
          return GenericContainerBuilder()
       }
    }
+
+   protected val log: Logger = LoggerFactory.getLogger(javaClass)
 
    private var runtime: AbstractContainerRuntime = when (builder.containerPlatformType) {
       ContainerPlatformType.DOCKER -> DockerRuntime(this)
@@ -253,24 +265,14 @@ open class GenericContainer(
    internal fun requireOneOfStates(vararg states: ContainerState) {
       if (states.isNotEmpty() && !states.contains(state)) {
          throw ContainerException(
-            "Illegal state: container '${getName()}' is in state '${getState()}'" +
-               ", but required one of '${states.joinToString()}'"
+            "Illegal state: container '${getName()}' is in state '${getState()}', " +
+               "but required one of '${states.joinToString()}'"
          )
       }
    }
 
-   @Synchronized
    internal fun isLegalStateChange(oldState: ContainerState = getState(), newState: ContainerState): Boolean {
-      return when (oldState) {
-         ContainerState.UNINITIATED -> newState == ContainerState.INITIALIZING
-         ContainerState.INITIALIZING -> newState == ContainerState.RUNNING || newState == ContainerState.FAILED
-         ContainerState.RUNNING -> newState == ContainerState.TERMINATING || newState == ContainerState.FAILED
-         ContainerState.TERMINATING -> newState == ContainerState.STOPPED || newState == ContainerState.DELETED || newState == ContainerState.FAILED
-         ContainerState.STOPPED -> newState == ContainerState.DELETED || newState == ContainerState.FAILED
-         ContainerState.DELETED -> false
-         ContainerState.FAILED -> false
-         ContainerState.UNKNOWN -> true
-      }
+      return newState in (LEGAL_STATE_TRANSITIONS[oldState] ?: emptySet())
    }
 
 }

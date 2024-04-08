@@ -12,11 +12,15 @@ value class Host(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
+      const val MIN_LENGTH: Int = 1
+
+      const val MAX_LENGTH: Int = 63
+
       private val REGEXP: Regex = "^(?:[a-zA-Z0-9.-]+|\\[[a-fA-F0-9:]+])\$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(
-         minLength = 1,
-         maxLength = 63,
+         minLength = MIN_LENGTH,
+         maxLength = MAX_LENGTH,
          lexicalValidator = RegexValidator(REGEXP)
       )
 

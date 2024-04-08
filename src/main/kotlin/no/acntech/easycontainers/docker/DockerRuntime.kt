@@ -56,7 +56,7 @@ internal class DockerRuntime(
    private val dockerClient: DockerClient = DockerClientFactory.createDefaultClient(),
 ) : AbstractContainerRuntime(container) {
 
-   private inner class LogWatcher : Runnable {
+   private inner class EventSubscriber : Runnable {
       override fun run() {
          dockerClient.logContainerCmd(containerId.get())
             .withStdOut(true)
@@ -73,10 +73,25 @@ internal class DockerRuntime(
 
                override fun onError(throwable: Throwable) {
                   log.warn("Container '${getDisplayName()}' output error", throwable)
+                  container.changeState(ContainerState.FAILED)
                }
 
                override fun onComplete() {
                   log.info("Container '${getDisplayName()}' output complete")
+                  container.changeState(ContainerState.STOPPED)
+
+                  guardedExecution({
+                     val containerInfo = dockerClient.inspectContainerCmd(containerId.get()).exec()
+                     setFinishedTime(containerInfo)
+                     setExitCode(containerInfo)
+                     log.info("Container '${getDisplayName()}' finished at $finishedAt with exit code: $exitCode")
+                  })
+
+                  if (container.isEphemeral()) {
+                     cleanUpResources()
+                     container.changeState(ContainerState.DELETED)
+                  }
+
                }
 
             }).awaitCompletion()
@@ -85,7 +100,9 @@ internal class DockerRuntime(
 
    private val containerId: AtomicReference<String> = AtomicReference()
 
-   private var exitCode: Int? = null
+   private val exitCode: AtomicReference<Int> = AtomicReference()
+
+   private val finishedAt: AtomicReference<Instant> = AtomicReference()
 
    private var ipAddress: InetAddress? = null
 
@@ -94,8 +111,6 @@ internal class DockerRuntime(
    private var networkName: NetworkName? = null
 
    private var startedAt: Instant? = null
-
-   private var finishedAt: Instant? = null
 
    override fun getType(): ContainerPlatformType {
       return ContainerPlatformType.DOCKER
@@ -112,12 +127,16 @@ internal class DockerRuntime(
       container.changeState(ContainerState.INITIALIZING, ContainerState.UNINITIATED)
       pullImage()
       createAndStartContainer()
-      GENERAL_EXECUTOR_SERVICE.submit(LogWatcher())
+      GENERAL_EXECUTOR_SERVICE.submit(EventSubscriber())
       super.start()
       container.changeState(ContainerState.RUNNING, ContainerState.INITIALIZING)
    }
 
    override fun stop() {
+      if (container.getState() == ContainerState.STOPPED || container.getState() == ContainerState.TERMINATING) {
+         log.debug("Container is already stopped: ${getDisplayName()}")
+         return
+      }
       container.changeState(ContainerState.TERMINATING, ContainerState.RUNNING)
 
       val callback = object : WaitContainerResultCallback() {
@@ -130,7 +149,6 @@ internal class DockerRuntime(
 
       guardedExecution(
          {
-
             dockerClient.stopContainerCmd(containerId.get()).exec()
             dockerClient.waitContainerCmd(containerId.get()).exec(callback).awaitCompletion().also {
                log.info("Container successfully stopped: ${getDisplayName()}")
@@ -182,6 +200,11 @@ internal class DockerRuntime(
    }
 
    override fun delete(force: Boolean) {
+      if (container.getState() == ContainerState.DELETED) {
+         log.debug("Container is already deleted: ${getDisplayName()}")
+         return
+      }
+
       if (container.getState() == ContainerState.RUNNING) {
          kill()
       }
@@ -364,20 +387,20 @@ internal class DockerRuntime(
 
    override fun getDuration(): Duration? {
       return startedAt?.let { start ->
-         if (finishedAt == null) {
+         if (finishedAt.get() == null) {
             setFinishedTime(inspectContainer())
          }
-         val end = finishedAt ?: Instant.now()
+         val end = finishedAt.get() ?: Instant.now()
          Duration.between(start, end)
       }
    }
 
    override fun getExitCode(): Int? {
-      if (exitCode == null && containerId.get() != null && !container.isEphemeral()) {
+      if (exitCode.get() == null && containerId.get() != null && !container.isEphemeral()) {
          val containerInfo = dockerClient.inspectContainerCmd(containerId.get()).exec()
-         exitCode = containerInfo.state.exitCodeLong?.toInt()
+         setExitCode(containerInfo)
       }
-      return exitCode
+      return exitCode.get()
    }
 
    override fun getHost(): Host? {
@@ -494,7 +517,7 @@ internal class DockerRuntime(
          setFinishedTime(info)
          setExitCode(info)
       } else {
-         finishedAt = Instant.now()
+         finishedAt.compareAndSet(null, Instant.now())
       }
    }
 
@@ -546,12 +569,12 @@ internal class DockerRuntime(
 
    private fun setFinishedTime(containerInfo: InspectContainerResponse) {
       containerInfo.state.finishedAt?.let {
-         finishedAt = Instant.parse(it)
+         finishedAt.set(Instant.parse(it))
       }
    }
 
    private fun setExitCode(containerInfo: InspectContainerResponse) {
-      exitCode = containerInfo.state.exitCodeLong?.toInt()
+      exitCode.set(containerInfo.state.exitCodeLong?.toInt())
    }
 
    private fun createContainerCommand(image: String, hostConfig: HostConfig): CreateContainerCmd {

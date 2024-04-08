@@ -83,7 +83,7 @@ object TestSupport {
    ): Container {
       val imageName = "container-test"
 
-      log.info("Testing the $imageName container with container type: $platform")
+      log.info("Testing the image '$imageName' on '$platform' with '$executionMode' mode")
 
       val mappedLocalHttpPort = when (platform) {
          ContainerPlatformType.DOCKER -> 8080
@@ -96,13 +96,14 @@ object TestSupport {
       }
 
       val container = GenericContainer.builder().apply {
-         withName(ContainerName.of("$imageName-test"))
+         withName(ContainerName.of("easycontainers-$imageName"))
          withNamespace(Namespace.TEST)
          withImage(ImageURL.of("$registry/test/$imageName:latest"))
 
          withExecutionMode(executionMode)
 
          when (executionMode) {
+
             ExecutionMode.SERVICE -> {
                withEnv("LOG_TIME_SLEEP", "1")
                withEnv("LOG_TIME_EXIT_FLAG", "false")
@@ -112,6 +113,7 @@ object TestSupport {
                withEnv("LOG_TIME_SLEEP", "1")
                withEnv("LOG_TIME_EXIT_FLAG", "true")
                withEnv("LOG_TIME_EXIT_CODE", "10")
+               withEnv("LOG_TIME_ITERATIONS", "5")
             }
          }
 
@@ -134,15 +136,16 @@ object TestSupport {
       log.debug("Container runtime: $runtime")
 
       runtime.start()
+
       Assertions.assertTrue(container.getState() == ContainerState.INITIALIZING || container.getState() == ContainerState.RUNNING)
 
+      // Wait for the container to be in the running state
       container.waitForState(ContainerState.RUNNING, 30, TimeUnit.SECONDS)
 
       Assertions.assertEquals(ContainerState.RUNNING, runtime.getContainer().getState())
+
       Assertions.assertTrue(NetworkUtils.isPortOpen("localhost", mappedLocalHttpPort))
       Assertions.assertTrue(NetworkUtils.isPortOpen("localhost", mappedLocalSshPort))
-
-      TimeUnit.SECONDS.sleep(1)
 
       return container
    }

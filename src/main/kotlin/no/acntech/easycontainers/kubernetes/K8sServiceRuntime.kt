@@ -9,6 +9,7 @@ import no.acntech.easycontainers.GenericContainer
 import no.acntech.easycontainers.kubernetes.ErrorSupport.handleK8sException
 import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.model.Host
+import no.acntech.easycontainers.util.lang.prettyPrintMe
 import no.acntech.easycontainers.util.text.NEW_LINE
 import org.awaitility.Awaitility
 import java.time.Instant
@@ -34,62 +35,15 @@ class K8sServiceRuntime(
          null
       }
 
-   override fun start() {
-      container.changeState(ContainerState.INITIALIZING, ContainerState.UNINITIATED)
-
-      log.info("Starting container: ${container.getName()}")
-      log.debug("Using container config$NEW_LINE${container.builder}")
-
-      try {
-         createNamespaceIfAllowedAndNotExists()
-         deleteServiceIfExists()
-         deleteDeploymentIfExists()
-
-         deployment = client.apps().deployments()
-            .inNamespace(container.getNamespace().value)
-            .resource(deployment)
-            .create().also {
-               log.info("Created k8s deployment: $it")
-            }
-
-         service?.let {
-            service = client.services().inNamespace(container.getNamespace().value).resource(service).create().also {
-               log.info("Deployed k8s service: $it")
-            }
-         }
-
-         extractPodsAndContainers()
-
-         // INVARIANT: podsBackingField/pods is not empty
-
-         watchPods()
-
-         containerLogStreamer = ContainerLogStreamer(
-            this.pods.first().first.metadata.name,
-            container.getNamespace().value,
-            client,
-            container.builder.outputLineCallback
-         )
-
-         GENERAL_EXECUTOR_SERVICE.execute(containerLogStreamer!!)
-
-      } catch (e: Exception) {
-         handleK8sException(e, log)
-      }
-
-      service?.let {
-         val serviceName = service!!.metadata.name
-         val namespace = service!!.metadata.namespace
+   init {
+      service?.let { nonNullService ->
+         val serviceName = nonNullService.metadata.name
+         val namespace = nonNullService.metadata.namespace
          host = Host.of("$serviceName.$namespace.svc.cluster.local").also {
             log.info("Container (service) host: $it")
          }
       }
-
-      super.start()
-
-      // Note: We're not changing state here since this is handled by the PodWatcher started in watchPods()
    }
-
    override fun stop() {
       log.debug("Stopping container: ${container.getName()}")
 
@@ -98,15 +52,16 @@ class K8sServiceRuntime(
       val exists = client.apps()
          .deployments()
          .inNamespace(container.getNamespace().value)
-         .withName(getDeploymentName())
+         .withName(getResourceName())
          .get() != null
 
       if (exists) {
-         log.debug("Scaling deployment to 0: ${container.getName()}")
+         log.debug("Scaling Deployment for pod/container to 0: ${container.getName()}")
+
          client.apps()
             .deployments()
             .inNamespace(container.getNamespace().value)
-            .withName(getDeploymentName())
+            .withName(getResourceName())
             .scale(0)
 
          // Await all pods to be removed
@@ -116,19 +71,17 @@ class K8sServiceRuntime(
             .until {
                client.pods()
                   .inNamespace(container.getNamespace().value)
-                  .withLabels(selectorLabels)
-                  .list().items.isEmpty()
+                  .withName(pod.get().metadata.name)
+                  .get() == null
             }
 
          finishedAt.compareAndSet(null, Instant.now())
 
       } else {
-         log.warn("Deployment to stop (scale to 0) not found: ${getDeploymentName()}")
+         log.warn("Deployment to stop (scale to 0) not found: ${getResourceName()}")
       }
 
-      containerLogStreamer?.stop()
       super.stop()
-      container.changeState(ContainerState.STOPPED)
    }
 
    override fun kill() {
@@ -137,31 +90,45 @@ class K8sServiceRuntime(
       container.requireOneOfStates(ContainerState.RUNNING, ContainerState.FAILED)
       deleteDeploymentIfExists(true)
       finishedAt.compareAndSet(null, Instant.now())
-      containerLogStreamer?.stop()
       container.changeState(ContainerState.STOPPED)
    }
 
-   override fun delete(force: Boolean) {
-      log.debug("Deleting container (force=$force): ${container.getName()}")
+   override fun deploy() {
+      log.debug("Creating Deployment '${getResourceName()}' in namespace '${getNamespace()}'")
 
-      if (!force) {
-         container.requireOneOfStates(ContainerState.STOPPED, ContainerState.FAILED)
+      createNamespaceIfAllowedAndNotExists()
+      deleteService()
+      deleteDeploymentIfExists()
+
+      deployment = client.apps()
+         .deployments()
+         .inNamespace(container.getNamespace().value)
+         .resource(deployment)
+         .create().also {
+            log.info("Created k8s deployment: ${it.prettyPrintMe()}")
+         }
+
+      service?.let {
+         service = client.services()
+            .inNamespace(getNamespace())
+            .resource(service)
+            .create().also {
+            log.info("Deployed k8s service: ${it.prettyPrintMe()}")
+         }
       }
-
-      deleteDeploymentIfExists(true) // Forceful deletion ensures that the deployment is deleted even if it's not stopped
-      finishedAt.compareAndSet(null, Instant.now())
-      deleteServiceIfExists()
-      super.delete(force)
-      container.changeState(ContainerState.DELETED)
    }
 
-   private fun createDeployment(): Deployment {
-      val k8sContainer = createContainer()
-      val (volumes, volumeMounts) = createVolumes()
-      k8sContainer.volumeMounts = volumeMounts
+   override fun getResourceName(): String {
+      return container.getName().value + DEPLOYMENT_NAME_SUFFIX
+   }
 
+   override fun deleteResources() {
+      deleteDeploymentIfExists(true) // Forceful deletion ensures that the deployment is deleted even if it's not stopped
+      deleteService()
+   }
+
+   override fun configure(k8sContainer: Container) {
       val containerPort = container.getExposedPorts().firstOrNull()?.value
-
       containerPort?.let { port ->
          log.info("Exposed port '$port' found for container '${container.getName()}' - creating probes for liveness and readiness")
       }
@@ -169,60 +136,37 @@ class K8sServiceRuntime(
       val (livenessProbe, readinessProbe) = createProbes(containerPort)
       k8sContainer.livenessProbe = livenessProbe
       k8sContainer.readinessProbe = readinessProbe
-
-      val podSpec = createPodSpec(k8sContainer, volumes)
-
-      // Create the deployment
-      return createDeploymentFromPodSpec(podSpec)
    }
 
-   private fun createDeploymentFromPodSpec(podSpec: PodSpec): Deployment {
-      val podTemplateMetadata = ObjectMeta().apply {
-         this.labels = selectorLabels + createDefaultLabels()
-         name = container.getName().value + POD_NAME_SUFFIX
-      }
+   override fun configure(podSpec: PodSpec) {
+      podSpec.restartPolicy = "Always"
+   }
 
-      val podTemplateSpec = PodTemplateSpec().apply {
-         metadata = podTemplateMetadata
-         spec = podSpec
-      }
+   private fun createDeployment(): Deployment {
+      val podTemplateSpec = createPodTemplateSpec()
 
       val deploymentSpec = DeploymentSpec().apply {
          replicas = 1
-         template = podTemplateSpec
          selector = LabelSelector(null, selectorLabels)
-      }
-
-      val deploymentMetadata = ObjectMeta().apply {
-         name = getDeploymentName()
-         namespace = container.getNamespace().value
-         val stringLabels: Map<String, String> = container.getLabels().flatMap { (key, value) ->
-            listOf(key.value to value.value)
-         }.toMap()
-
-         labels = stringLabels + createDefaultLabels()
+         template = podTemplateSpec
       }
 
       return Deployment().apply {
          apiVersion = "apps/v1"
          kind = "Deployment"
-         metadata = deploymentMetadata
+         metadata = getResourceMetaData()
          spec = deploymentSpec
       }.also {
-         log.debug("Created deployment: $it")
+         log.debug("Created Deployment: ${it.prettyPrintMe()}")
          log.debug("Deployment YAML:$NEW_LINE${Serialization.asYaml(it)}")
       }
-   }
-
-   private fun getDeploymentName(): String {
-      return container.getName().value + DEPLOYMENT_NAME_SUFFIX
    }
 
    private fun createService(isNodePort: Boolean = false): Service {
       // Manually creating the service metadata
       val serviceMetadata = ObjectMeta()
       serviceMetadata.name = container.getName().value + SERVICE_NAME_SUFFIX
-      serviceMetadata.namespace = container.getNamespace().value
+      serviceMetadata.namespace = getNamespace()
       serviceMetadata.labels = createDefaultLabels()
 
       // Manually creating the service ports
@@ -260,7 +204,7 @@ class K8sServiceRuntime(
          metadata = serviceMetadata
          spec = serviceSpec
       }.also {
-         log.debug("Created service: $it")
+         log.debug("Created service: ${it.prettyPrintMe()}")
          log.info("Service YAML:$NEW_LINE${Serialization.asYaml(it)}")
       }
    }
@@ -287,76 +231,73 @@ class K8sServiceRuntime(
          initialDelaySeconds = 5
          periodSeconds = 5
       }.also {
-         log.info("Readiness probe created: $it")
+         log.info("Readiness probe created$NEW_LINE${it.prettyPrintMe()}")
       }
 
       return Pair(livenessProbe, readinessProbe)
    }
 
    private fun deleteDeploymentIfExists(force: Boolean = false) {
-      val namespaceName = container.getNamespace().value
-      val deploymentName = getDeploymentName()
-      val deployment = client.apps().deployments().inNamespace(namespaceName).withName(deploymentName).get()
-
-      deployment?.let {
-         log.info("Deleting deployment: $deploymentName")
-         client.apps().deployments()
-            .inNamespace(namespaceName)
-            .withName(deploymentName)
-            .apply {
-               if (force) {
-                  this@K8sServiceRuntime.log.info("Delete : $deploymentName")
-                  withPropagationPolicy(DeletionPropagation.FOREGROUND)
-                  withGracePeriod(0L)
-               }
-            }
-            .delete()
-
-         if (force) { // Tear down all pods
-            for (pod in client.pods().inNamespace(namespaceName).withLabels(selectorLabels).list().items) {
-               client.pods().inNamespace(namespaceName).withName(pod.metadata.name).delete()
-            }
+      findDeployment(getNamespace(), getResourceName())?.let {
+         log.info("Deleting deployment: ${getResourceName()}")
+         deleteDeployment(force)
+         // Tear down all pods if force deletion
+         if (force) {
+            deletePods()
          }
 
          // Wait for the deployment to be removed
          Awaitility.await()
             .atMost(60, TimeUnit.SECONDS)
-            .pollInterval(1, TimeUnit.SECONDS)
-            .until {
-               client.apps().deployments()
-                  .inNamespace(namespaceName)
-                  .withName(deploymentName)
-                  .get() == null
-            }
+            .pollInterval(500, TimeUnit.MILLISECONDS)
+            .until { findDeployment(getNamespace(), getResourceName()) == null }
 
-         log.info("Deployment deleted: $deploymentName")
-
-      } ?: log.warn("Cannot delete non-existing deployment: $deploymentName")
+         log.info("Deployment deleted: ${getResourceName()}")
+      } ?: log.warn("Cannot delete non-existing deployment: ${getResourceName()}")
    }
 
-   private fun deleteServiceIfExists() {
-      val namespaceName = container.getNamespace().value
+   private fun findDeployment(namespaceName: String, deploymentName: String): Deployment? =
+      client.apps().deployments().inNamespace(namespaceName).withName(deploymentName).get()
+
+   private fun deleteDeployment(force: Boolean) {
+      client.apps().deployments()
+         .inNamespace(getNamespace())
+         .withName(getResourceName())
+         .apply {
+            if (force) {
+               this@K8sServiceRuntime.log.info("Force delete : $${getResourceName()}")
+               withPropagationPolicy(DeletionPropagation.FOREGROUND)
+               withGracePeriod(0L)
+            }
+         }
+         .delete()
+   }
+
+   private fun deletePods() {
+      for (pod in client.pods().inNamespace(getNamespace()).withLabels(podLabels).list().items) {
+         client.pods().inNamespace(getNamespace()).withName(pod.metadata.name).delete()
+      }
+   }
+
+   private fun deleteService() {
       val serviceName = container.getName().value + SERVICE_NAME_SUFFIX
 
-      client.services().inNamespace(namespaceName).withName(serviceName).get()?.let {
+      if (isServiceExisting(serviceName)) {
          log.info("Deleting service: $serviceName")
-
-         client.services()
-            .inNamespace(namespaceName)
-            .withName(serviceName)
+         getServiceClient(serviceName)
             .delete()
-
          // Wait for the service to be removed
          Awaitility.await()
             .atMost(30, TimeUnit.SECONDS)
             .pollInterval(500, TimeUnit.MILLISECONDS)
-            .until {
-               client.services().inNamespace(namespaceName).withName(serviceName).get() == null
-            }
-
+            .until { !isServiceExisting(serviceName) }
          log.info("Service successfully deleted: $serviceName")
 
-      } ?: log.warn("Service does not exist - nothing to delete: $serviceName")
+      } else log.warn("Service does not exist - nothing to delete: $serviceName")
    }
+
+   private fun isServiceExisting(serviceName: String) = getServiceClient(serviceName).get() != null
+
+   private fun getServiceClient(serviceName: String) = client.services().inNamespace(getNamespace()).withName(serviceName)
 
 }

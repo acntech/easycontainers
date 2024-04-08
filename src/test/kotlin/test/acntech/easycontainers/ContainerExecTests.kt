@@ -2,6 +2,7 @@ package test.acntech.easycontainers
 
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.util.io.toUtf8String
+import no.acntech.easycontainers.util.text.FORWARD_SLASH
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
@@ -36,7 +37,7 @@ class ContainerExecTests {
          Executable.of("echo"),
          Args.of(msg),
          false,
-         UnixDir.of("/"),
+         UnixDir.of(FORWARD_SLASH),
          null,
          output,
          10,
@@ -77,7 +78,7 @@ class ContainerExecTests {
          Executable.of("df"),
          Args.of("-h"),
          false,
-         UnixDir.of("/"),
+         UnixDir.of(FORWARD_SLASH),
          null,
          output,
          10,
@@ -125,7 +126,7 @@ class ContainerExecTests {
          Executable.of("cat"),
          null,
          true,
-         UnixDir.of("/"),
+         UnixDir.of(FORWARD_SLASH),
          input,
          output,
          20,
@@ -170,7 +171,7 @@ class ContainerExecTests {
                Executable.of("nonexistentcommand"),
                null,
                false,
-               UnixDir.of("/"),
+               UnixDir.of(FORWARD_SLASH),
                null,
                output,
                10,
@@ -196,7 +197,7 @@ class ContainerExecTests {
                   Executable.of("nonexistentcommand"),
                   null,
                   false,
-                  UnixDir.of("/"),
+                  UnixDir.of(FORWARD_SLASH),
                   null,
                   output,
                   10,

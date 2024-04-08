@@ -3,6 +3,7 @@ package no.acntech.easycontainers.kubernetes
 import io.fabric8.kubernetes.api.model.HasMetadata
 import io.fabric8.kubernetes.client.Watcher
 import io.fabric8.kubernetes.client.WatcherException
+import no.acntech.easycontainers.util.lang.prettyPrintMe
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -17,23 +18,16 @@ internal class LoggingWatcher<Any>(
 ) : Watcher<Any> {
 
    override fun eventReceived(action: Watcher.Action?, resource: Any?) {
-      log.debug("LoggingWatcher: received event [${action?.name}] on [${getResourceInfo(resource)}]")
+      val actionName = action?.name ?: "UNKNOWN"
+      val resourceInfo = resource?.prettyPrintMe() ?: "null"
+      log.debug("LoggingWatcher: received event [$actionName] on resource: $resourceInfo")
    }
 
    override fun onClose(cause: WatcherException?) {
-      cause?.let {
-         log.error("LoggingWatcher closed with exception", it)
-      } ?: log.debug("LoggingWatcher closed")
-   }
-
-   private fun getResourceInfo(resource: Any?): String {
-      return when (resource) {
-         is HasMetadata -> {
-            val metadata = resource.metadata
-            "Kind: ${resource.kind}, Name: ${metadata.name}, Namespace: ${metadata.namespace}"
-         }
-
-         else -> resource?.toString() ?: "Unknown resource"
+      if (cause != null) {
+         log.debug("LoggingWatcher: closed due to an exception: ${cause.message}", cause)
+      } else {
+         log.debug("LoggingWatcher: closed without any exception")
       }
    }
 

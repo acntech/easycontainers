@@ -3,6 +3,7 @@ package no.acntech.easycontainers.util.io
 import no.acntech.easycontainers.util.text.BACK_SLASH
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import no.acntech.easycontainers.util.text.FORWARD_SLASH
+import org.apache.commons.compress.archivers.ArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveEntry
 import org.apache.commons.compress.archivers.tar.TarArchiveInputStream
 import org.apache.commons.compress.archivers.tar.TarArchiveOutputStream
@@ -135,12 +136,14 @@ object FileUtils {
     * will be extracted to the destination file.
     *
     * @param tarFile The TAR file to extract.
-    * @param destination The destination to extract the TAR file to.
+    * @param destination The destination to extract the TAR file to - either a directory or a file.
     */
    @Throws(IOException::class)
    fun untarFile(tarFile: File, destination: Path = Files.createTempDirectory("untar-").toAbsolutePath()): Path {
       require(tarFile.exists() && tarFile.isFile) { "The provided file '$tarFile' is not a valid file." }
-      require(destination.exists() && Files.isDirectory(destination)) { "The provided path '$destination' is not a directory." }
+//      require(Files.isDirectory(destination) || (!Files.exists(destination) && destination.parent.toFile().canWrite())) {
+//         "The provided destination '$destination' must be an existing directory or a non-existing file that can be written to."
+//      }
 
       TarArchiveInputStream(BufferedInputStream(FileInputStream(tarFile))).use { tis ->
          val entry = tis.nextEntry
@@ -194,32 +197,46 @@ object FileUtils {
       require(destination.exists() && Files.isDirectory(destination)) {
          "The provided destination '$destination' is not a directory."
       }
+
       log.trace("Untaring input to: $destination")
 
       val bufferedInput = if (input is BufferedInputStream) input else BufferedInputStream(input)
-
       val files: MutableList<Path> = mutableListOf()
+      processArchiveEntries(bufferedInput, destination, files)
+      return Pair(destination, files.toList())
+   }
 
+   private fun processArchiveEntries(bufferedInput: BufferedInputStream, destination: Path, files: MutableList<Path>) {
       TarArchiveInputStream(bufferedInput).use { tarInput ->
          var entry = tarInput.nextEntry
          while (entry != null) {
-            val destFile = destination.resolve(entry.name)
-            if (entry.isDirectory) {
-               Files.createDirectories(destFile).also {
-                  log.trace("Untaring - creating directory: $destFile")
-               }
-            } else {
-               Files.createDirectories(destFile.parent)
-               Files.copy(tarInput, destFile, StandardCopyOption.REPLACE_EXISTING).also {
-                  log.trace("Untaring - creating file: $destFile")
-               }
-               files.add(destFile)
-            }
+            processEntry(entry, destination, tarInput, files)
             entry = tarInput.nextEntry
          }
       }
+   }
 
-      return Pair(destination, files.toList())
+   private fun processEntry(
+      entry: ArchiveEntry,
+      destination: Path,
+      tarInput: TarArchiveInputStream,
+      files: MutableList<Path>,
+   ) {
+      val destFile = destination.resolve(entry.name)
+      if (entry.isDirectory) {
+         Files.createDirectories(destFile).also {
+            log.trace("Untaring - creating directory: $destFile")
+         }
+      } else {
+         Files.createDirectories(destFile.parent)
+         Files.copy(
+            tarInput, destFile,
+            StandardCopyOption.REPLACE_EXISTING
+         ).also {
+            log.trace("Untaring - creating file: $destFile")
+         }
+         files.add(destFile)
+      }
    }
 
 }

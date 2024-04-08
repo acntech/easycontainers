@@ -11,27 +11,33 @@ import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.AbstractContainerRuntime
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.GenericContainer
+import no.acntech.easycontainers.kubernetes.K8sConstants.APP_LABEL
 import no.acntech.easycontainers.kubernetes.K8sConstants.MEDIUM_MEMORY_BACKED
 import no.acntech.easycontainers.kubernetes.K8sUtils.normalizeLabelValue
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.model.ContainerState
-import no.acntech.easycontainers.util.collections.prettyPrint
-import no.acntech.easycontainers.util.io.FileUtils
-import no.acntech.easycontainers.util.text.*
-import org.apache.commons.compress.utils.CountingInputStream
+import no.acntech.easycontainers.util.lang.guardedExecution
+import no.acntech.easycontainers.util.lang.prettyPrintMe
+import no.acntech.easycontainers.util.text.NEW_LINE
+import no.acntech.easycontainers.util.text.SPACE
 import org.awaitility.Awaitility
 import org.awaitility.core.ConditionTimeoutException
-import java.io.*
+import java.io.File
+import java.io.FileNotFoundException
+import java.io.InputStream
+import java.io.OutputStream
 import java.net.InetAddress
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Duration
 import java.time.Instant
-import java.util.concurrent.CopyOnWriteArrayList
+import java.util.*
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
-import java.util.concurrent.atomic.AtomicBoolean
 import java.util.concurrent.atomic.AtomicReference
+import kotlin.collections.component1
+import kotlin.collections.component2
+import kotlin.collections.set
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
 
@@ -62,20 +68,7 @@ abstract class K8sRuntime(
    private inner class PodWatcher : Watcher<Pod> {
 
       override fun eventReceived(action: Watcher.Action?, pod: Pod?) {
-         val podInfo = mutableMapOf<String, Any?>()
-
-         podInfo["PodWatcher eventReceived"] = action
-         podInfo["Pod phase"] = pod?.status?.phase
-         podInfo["Pod status"] = pod?.status?.containerStatuses?.joinToString { it.state.toString() }
-
-         pod?.status?.conditions?.forEach { condition ->
-            podInfo["${condition.type} Condition Type"] = condition.type
-            podInfo["${condition.type} Condition Status"] = condition.status
-            podInfo["${condition.type} Condition Last Probe Time"] = condition.lastProbeTime
-            podInfo["${condition.type} Condition Last Transition Time"] = condition.lastTransitionTime
-         }
-
-         log.debug("Pod Information:$NEW_LINE${podInfo.prettyPrint()}")
+         log.trace("PodWatcher '$this' eventReceived on pod '${pod?.metadata?.name}': $action")
 
          val podPhase = pod?.status?.phase?.uppercase()?.let {
             PodPhase.valueOf(it)
@@ -86,11 +79,12 @@ abstract class K8sRuntime(
             podPhaseLatches[it]?.countDown()
          }
 
-         refreshPodsAndCheckStatus()
+         refreshPod()
       }
 
       override fun onClose(cause: WatcherException?) {
-         refreshPodsAndCheckStatus()
+         log.info("PodWatcher closed: ${cause?.message}", cause)
+         refreshPod()
       }
 
    }
@@ -102,21 +96,19 @@ abstract class K8sRuntime(
       const val SERVICE_NAME_SUFFIX = "-service"
       const val PV_NAME_SUFFIX = "-pv"
       const val PVC_NAME_SUFFIX = "-pvc"
-
-      private const val FILE_TRANSFER_NOT_SUPPORTED_MSG = "Direct file transfer not supported for Kubernetes containers"
    }
 
    protected val accessChecker = AccessChecker(client)
 
-   protected val pods: MutableList<Pair<Pod, List<Container>>> = CopyOnWriteArrayList()
+   protected val pod: AtomicReference<Pod> = AtomicReference()
+
+   protected val k8sContainer: AtomicReference<Container> = AtomicReference()
 
    protected val configMaps: MutableList<ConfigMap> = mutableListOf()
 
-   protected val selectorLabels: Map<String, String> = mapOf(K8sConstants.APP_LABEL to container.getName().value)
+   protected val selectorLabels: Map<String, String> = mapOf(APP_LABEL to container.getName().value)
 
    protected val ourDeploymentName: String? = extractOurDeploymentName()
-
-   protected var containerLogStreamer: ContainerLogStreamer? = null
 
    protected var host: Host? = null
 
@@ -135,15 +127,67 @@ abstract class K8sRuntime(
       PodPhase.SUCCEEDED to CountDownLatch(1),
    )
 
+   protected val podId = UUID.randomUUID().toString()
+
+   protected val podLabels: Map<String, String> = mapOf(
+      "app.kubernetes.io/instance" to podId,
+   )
+
+   private var containerLogStreamer: ContainerLogStreamer? = null
+
+   private var execHandler = AtomicReference<ExecHandler>()
+
    /**
     * Returns the name of the (first) Kubernetes container associated with the (first) pod.
     */
    override fun getName(): ContainerName {
-      return pods.firstOrNull()?.second?.firstOrNull().let { k8sContainer -> k8sContainer?.name?.let { ContainerName.of(it) } }
-         ?: throw IllegalStateException("No pod/container present")
+      return k8sContainer.get()?.name?.let { ContainerName(it) } ?: throw IllegalStateException("No container present")
+   }
+
+   override fun start() {
+      container.changeState(ContainerState.INITIALIZING, ContainerState.UNINITIATED)
+      log.info("Starting container: ${container.getName()}")
+      log.debug("Using container config$NEW_LINE${container.builder}")
+
+      try {
+         deploy()
+         waitForPod()
+      } catch (e: Exception) {
+         container.changeState(ContainerState.FAILED)
+         ErrorSupport.handleK8sException(e, log)
+      }
+   }
+
+   override fun stop() {
+      log.trace("Stopping container '${container.getName()}'")
+
+      stopStreamingContainerLog()
+      super.stop()
    }
 
    override fun delete(force: Boolean) {
+      log.trace("Deleting container '${container.getName()}' with force: $force")
+
+      if (force) {
+         guardedExecution(
+            { deleteResources() },
+            listOf(Exception::class),
+            { log.warn("Error stopping container '${container.getName()}': ${it.message}", it) }
+         )
+      } else {
+         container.changeState(
+            ContainerState.TERMINATING,
+            ContainerState.RUNNING,
+            ContainerState.STOPPED,
+            ContainerState.FAILED
+         )
+         deleteResources()
+      }
+
+      finishedAt.compareAndSet(null, Instant.now())
+
+      stopStreamingContainerLog()
+
       val configMapsExists = client.configMaps()
          .inNamespace(getNamespace())
          .list()
@@ -152,16 +196,14 @@ abstract class K8sRuntime(
 
       if (configMapsExists) {
          configMaps.forEach { configMap ->
-            try {
-               client.configMaps()
-                  .inNamespace(getNamespace())
-                  .withName(configMap.metadata.name)
-                  .delete()
-            } catch (e: Exception) {
-               log.error("Error deleting config map '${configMap.metadata.name}': ${e.message}", e)
-            }
+            guardedExecution(
+               { client.configMaps().inNamespace(getNamespace()).withName(configMap.metadata.name).delete() },
+               listOf(Exception::class),
+               { log.warn("Error deleting config map '${configMap.metadata.name}': ${it.message}", it) }
+            )
          }
       }
+      container.changeState(ContainerState.DELETED)
    }
 
    override fun execute(
@@ -174,162 +216,46 @@ abstract class K8sRuntime(
       waitTimeValue: Long?,
       waitTimeUnit: TimeUnit?,
    ): Pair<Int?, String?> {
-      val (pod, container) = prepareCommandExecution()
-      val command = listOf(executable.unwrap()) + args?.toStringList().orEmpty()
+      refreshPod()
+      execHandler.get()?.let {
+         val command = listOf(executable.unwrap()) + args?.toStringList().orEmpty()
 
-      val cmdSupport = CommandSupport(client, pod, container)
-
-      return cmdSupport.execute(
-         command,
-         useTty,
-         input,
-         output,
-         waitTimeValue,
-         waitTimeUnit
-      )
+         return it.execute(
+            command,
+            useTty,
+            input,
+            output,
+            waitTimeValue,
+            waitTimeUnit
+         )
+      } ?: run {
+         throw ContainerException("ExecHandler is not initialized")
+      }
    }
 
    override fun putFile(localFile: Path, remoteDir: UnixDir, remoteFilename: String?): Long {
-      // Checking if the local file exists or not
       if (!Files.exists(localFile)) {
-         throw FileNotFoundException("The local file $localFile does not exist")
+         throw FileNotFoundException("The local file '$localFile' does not exist")
       }
-
-      // Getting the absolute path of the remote file inside the pod
-      val remotePath = "${remoteDir.unwrap()}/${remoteFilename ?: localFile.fileName.toString()}"
-
-      log.debug("Transferring local file '$localFile' to remote path '$remotePath'")
-
-      val command = listOf("sh", "-c", "cat > $remotePath")
-      val (pod, container) = prepareCommandExecution()
-      // Prepare the execution of the command with the file's content piped into stdin
-      val input = BufferedInputStream(FileInputStream(localFile.toFile()))
-
-      val cmdSupport = CommandSupport(client, pod, container)
-
-      val (exitCode, stdErr) = cmdSupport.execute(
-         command,
-         false,
-         input,
-         OutputStream.nullOutputStream(),
-         60L,
-         TimeUnit.SECONDS
-      )
-
-      if ((exitCode != null && exitCode != 0) || stdErr != null) {
-         val msg = "Transferring file '$localFile' to '$remotePath' failed with code $exitCode and error msg: $stdErr"
-         log.error(msg)
-         throw ContainerException(msg)
-      }
-
-      return localFile.toFile().length()
+      refreshPod()
+      return FileTransferHandler(client, pod.get(), k8sContainer.get()).putFile(localFile, remoteDir.unwrap(), remoteFilename)
    }
 
    override fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path?): Path {
-      val remotePath = "${remoteDir.unwrap()}/$remoteFilename"
-      val targetPath = localPath ?: Files.createTempFile("k8s-file-transfer-", ".tmp")
-
-//      val command = listOf("sh", "-c", "cat", remotePath)
-      val command = listOf("cat", remotePath)
-      val output = BufferedOutputStream(FileOutputStream(targetPath.toFile()))
-
-      val (pod, container) = prepareCommandExecution()
-      val cmdSupport = CommandSupport(client, pod, container)
-
-      val (exitCode, stdErr) = cmdSupport.execute(
-         command,
-         false,
-         null,
-         output,
-         60L,
-         TimeUnit.SECONDS
-      )
-
-      if ((exitCode != null && exitCode != 0) || stdErr != null) {
-         val msg = "Transferring file '$localPath' to '$remotePath' failed with code $exitCode and error msg: $stdErr"
-         log.error(msg)
-         throw ContainerException(msg)
-      }
-
-      return targetPath
+      refreshPod()
+      return FileTransferHandler(client, pod.get(), k8sContainer.get()).getFile(remoteDir.unwrap(), remoteFilename, localPath)
    }
 
    override fun putDirectory(localDir: Path, remoteDir: UnixDir): Long {
       require(localDir.exists() && localDir.isDirectory()) { "Local directory '$localDir' does not exist" }
-      log.debug("Transferring local directory '$localDir' to remote path '$remoteDir'")
-
-      val tarInput = FileUtils.tar(localDir, true)
-      val countingInput = CountingInputStream(tarInput)
-      val remotePath = remoteDir.unwrap()
-      val command = listOf("sh", "-c", "tar -xf - -C $remotePath")
-      val (pod, container) = prepareCommandExecution()
-
-      // Prepare the execution of the command with the tar file's content piped into the container's stdin
-      val cmdSupport = CommandSupport(client, pod, container)
-
-      val (exitCode, stdErr) = cmdSupport.execute(
-         command,
-         false,
-         countingInput,
-         OutputStream.nullOutputStream(),
-         20L,
-         TimeUnit.SECONDS
-      )
-
-      if ((exitCode != null && exitCode != 0) || stdErr != null) {
-         val msg = "Transferring directory '$localDir' to '$remotePath' failed with code $exitCode and error msg: $stdErr"
-         log.error(msg)
-         throw ContainerException(msg)
-      }
-
-      return countingInput.bytesRead
+      refreshPod()
+      return FileTransferHandler(client, pod.get(), k8sContainer.get()).putDirectory(localDir, remoteDir.unwrap())
    }
 
    override fun getDirectory(remoteDir: UnixDir, localDir: Path): Pair<Path, List<Path>> {
       require(localDir.exists() && Files.isDirectory(localDir)) { "The provided path is not a directory." }
-
-      // Define the remote directory path
-      val remotePath = remoteDir.unwrap()
-
-      // Split the remote path into parent directory and target directory
-      val parentDir = remotePath.substringBeforeLast(FORWARD_SLASH, EMPTY_STRING)
-      val targetDir = remotePath.substringAfterLast(FORWARD_SLASH)
-
-      // Prepare the execution of the tar command to create a tar file of the directory inside the container
-      // Change to the parent directory and specify the target directory as the source files
-      val command = listOf("sh", "-c", "tar -cf - -C $parentDir $targetDir")
-
-      val pipedInput = PipedInputStream()
-      val pipedOutput = PipedOutputStream(pipedInput)
-
-      val (pod, container) = prepareCommandExecution()
-      val cmdSupport = CommandSupport(client, pod, container)
-
-      // Execute the command and capture the output, which is the tar file
-      val (exitCode, stdErr) = cmdSupport.execute(
-         command,
-         false,
-         null,
-         pipedOutput,
-         15L,
-         TimeUnit.SECONDS
-      )
-
-      if ((exitCode != null && exitCode != 0) || stdErr != null) {
-         val msg =
-            "Transferring directory '$remotePath' to local path '$localDir' failed with code $exitCode and error msg: $stdErr"
-         log.error(msg)
-         throw ContainerException(msg)
-      }
-
-      // Create the local directory if it doesn't exist
-      if (!Files.exists(localDir)) {
-         Files.createDirectories(localDir).also {
-            log.debug("Untar prep - creating directory: $localDir")
-         }
-      }
-
-      return FileUtils.untar(pipedInput, localDir)
+      refreshPod()
+      return FileTransferHandler(client, pod.get(), k8sContainer.get()).getDirectory(remoteDir.unwrap(), localDir)
    }
 
    override fun getDuration(): Duration? {
@@ -358,14 +284,7 @@ abstract class K8sRuntime(
    // Extra methods
 
    fun getPodName(): String {
-      return pods.firstOrNull()?.first?.metadata?.name ?: throw IllegalStateException("No pod present")
-   }
-
-   protected fun watchPods() {
-      client.pods()
-         .inNamespace(container.getNamespace().value)
-         .withLabels(selectorLabels)
-         .watch(PodWatcher())
+      return pod.get()?.metadata?.name ?: throw IllegalStateException("No pod present")
    }
 
    protected fun createNamespaceIfAllowedAndNotExists() {
@@ -384,7 +303,135 @@ abstract class K8sRuntime(
       }
    }
 
-   protected fun createContainer(): io.fabric8.kubernetes.api.model.Container {
+   protected fun getNamespace(): String = container.getNamespace().value
+
+   protected abstract fun deploy()
+
+   protected abstract fun configure(k8sContainer: Container)
+
+   protected abstract fun configure(podSpec: PodSpec)
+
+   protected abstract fun getResourceName(): String
+
+   protected abstract fun deleteResources()
+
+   protected fun getResourceMetaData(): ObjectMeta {
+      return ObjectMeta().apply {
+         name = getResourceName()
+         namespace = container.getNamespace().value
+         val stringLabels: Map<String, String> = container.getLabels().flatMap { (key, value) ->
+            listOf(key.value to value.value)
+         }.toMap()
+
+         labels = stringLabels + createDefaultLabels()
+      }
+   }
+
+   protected fun createPodTemplateSpec(): PodTemplateSpec {
+      val k8sContainer = createK8sContainer()
+      val (volumes, volumeMounts) = createVolumes()
+
+      k8sContainer.volumeMounts = volumeMounts
+      configure(k8sContainer)
+
+      val podSpec = PodSpec().apply {
+         containers = listOf(k8sContainer)
+         this.volumes = volumes
+      }
+
+      configure(podSpec)
+
+      val podTemplateMetadata = ObjectMeta().apply {
+         name = container.getName().value + POD_NAME_SUFFIX
+         this.labels = selectorLabels + createDefaultLabels() + podLabels
+      }
+
+      val podTemplateSpec = PodTemplateSpec().apply {
+         metadata = podTemplateMetadata
+         spec = podSpec
+      }
+
+      return podTemplateSpec
+   }
+
+   protected fun createDefaultLabels(): Map<String, String> {
+      val defaultLabels: MutableMap<String, String> = mutableMapOf()
+
+      val parentAppName = normalizeLabelValue(
+         System.getProperty("spring.application.name")
+            ?: "${System.getProperty("java.vm.name")}-${ProcessHandle.current().pid()}"
+      )
+
+      defaultLabels["app.kubernetes.io/managed-by"] = "Easycontainers"
+      defaultLabels["app.kubernetes.io/timestamp"] = K8sUtils.instantToLabelValue(Instant.now())
+      defaultLabels["app.kubernetes.io/part-of"] = parentAppName
+      defaultLabels["app.kubernetes.io/ephemeral"] = container.isEphemeral().toString()
+
+      container.getMaxLifeTime()?.let {
+         defaultLabels["app.kubernetes.io/lifetime"] = it.toString()
+      }
+
+      if (K8sUtils.isRunningInsideCluster()) {
+         defaultLabels["app.kubernetes.io/inside-cluster"] = "true"
+         defaultLabels["app.kubernetes.io/parent-deployment"] = ourDeploymentName!!
+      } else {
+         defaultLabels["app.kubernetes.io/inside-cluster"] = "false"
+      }
+
+      return defaultLabels.toMap()
+   }
+
+   private fun waitForPod(maxWaitTimeSeconds: Long = 60L) {
+      var pods: List<Pod> = emptyList()
+
+      // Wait for it...
+      try {
+         Awaitility.await()
+            .atMost(maxWaitTimeSeconds, TimeUnit.SECONDS)
+            .pollInterval(500, TimeUnit.MILLISECONDS)
+            .until {
+               pods = client
+                  .pods()
+                  .inNamespace(getNamespace())
+                  .withLabels(podLabels)
+                  .list()
+                  .items
+
+               pods.isNotEmpty()
+            }
+      } catch(e: ConditionTimeoutException) {
+         val msg = "Timed out waiting for pod for ${container.getName()}"
+         log.error(msg)
+         throw ContainerException(msg)
+      }
+
+      // INVARIANT: There is at least one matching pod in the list
+
+      if (pods.size > 1) {
+         val msg = "More than one pod found when waiting for pod: ${container.getName()}"
+         log.warn(msg)
+         pods.forEach {
+            log.info("Pod: ${it.prettyPrintMe()}")
+         }
+         throw ContainerException(msg)
+      }
+
+      // Set the pod once and for all
+      pod.set(pods.first())
+
+      // Set the container if present
+      refreshContainer()
+
+      ipAddress.set(InetAddress.getByName(pod.get().status.podIP))
+
+      // Subscribe to pod events
+      watchPod()
+
+      // Stream logs to whatever output is configured
+      startStreamingContainerLog()
+   }
+
+   private fun createK8sContainer(): Container {
       val requests = mutableMapOf<String, Quantity>()
       val limits = mutableMapOf<String, Quantity>()
 
@@ -422,10 +469,11 @@ abstract class K8sRuntime(
             args = it.toStringList()
          }
          resources = resourceRequirements
+
       }
    }
 
-   protected fun createVolumes(): Pair<List<Volume>, List<VolumeMount>> {
+   private fun createVolumes(): Pair<List<Volume>, List<VolumeMount>> {
       val volumes = mutableListOf<Volume>()
       val volumeMounts = mutableListOf<VolumeMount>()
 
@@ -437,90 +485,48 @@ abstract class K8sRuntime(
 
       // Handle memory-backed volumes
       handleMemoryBackedVolumes(volumes, volumeMounts)
+      handleMemoryBackedVolumes(volumes, volumeMounts)
 
       return Pair(volumes, volumeMounts)
    }
 
-   protected fun createDefaultLabels(): Map<String, String> {
-      val defaultLabels: MutableMap<String, String> = mutableMapOf()
+   private fun watchPod() {
+      val pods = client.pods()
+         .inNamespace(getNamespace())
+         .withLabels(podLabels)
+         .list().items
 
-      val parentAppName = normalizeLabelValue(
-         System.getProperty("spring.application.name")
-            ?: "${System.getProperty("java.vm.name")}-${ProcessHandle.current().pid()}"
-      )
-
-      defaultLabels["acntech.no/created-by"] = "Easycontainers"
-      defaultLabels["easycontainers.acntech.no/created-at"] = K8sUtils.instantToLabelValue(Instant.now())
-      defaultLabels["easycontainers.acntech.no/parent-application"] = parentAppName
-      defaultLabels["easycontainers.acntech.no/is-ephemeral"] = container.isEphemeral().toString()
-
-      container.getMaxLifeTime()?.let {
-         defaultLabels["easycontainers.acntech.no/max-life-time"] = it.toString()
+      if (pods.size > 1) {
+         throw ContainerException("Multiple matching pods found ${pods.size} for pod labels: $podLabels")
       }
 
-      if (K8sUtils.isRunningInsideCluster()) {
-         defaultLabels["easycontainers.acntech.no/parent-running-inside-cluster"] = "true"
-         defaultLabels["easycontainers.acntech.no/parent-deployment"] = ourDeploymentName!!
-      } else {
-         defaultLabels["easycontainers.acntech.no/parent-running-inside-cluster"] = "false"
-      }
-
-      return defaultLabels.toMap()
-   }
-
-
-   protected fun createPodSpec(container: Container, volumes: List<Volume>): PodSpec {
-      return PodSpec().apply {
-         containers = listOf(container)
-         this.volumes = volumes
-      }
-   }
-
-   protected fun extractPodsAndContainers(maxWaitTimeSeconds: Long = 30L) {
-      var extractedPods: List<Pod> = emptyList()
-
-      Awaitility.await()
-         .atMost(maxWaitTimeSeconds, TimeUnit.SECONDS)
-         .pollInterval(500, TimeUnit.MILLISECONDS)
-         .until {
-            extractedPods = client.pods().inNamespace(container.getNamespace().value).withLabels(selectorLabels).list().items
-            extractedPods.isNotEmpty()
-         }
-
-      if (extractedPods.isEmpty()) {
-         throw ContainerException(
-            "Timer expired ($maxWaitTimeSeconds seconds) waiting for pods"
-         )
-      }
-
-      // INVARIANT: pods is not empty
-      if (extractedPods.size > 1) {
-         log.warn("Multiple pods found: ${extractedPods.joinToString { it.metadata.name }}")
-      }
-
-      // Get the IP address of the first pod in the list (most likely the only one)
-      ipAddress.set(InetAddress.getByName(extractedPods.first().status.podIP))
-
-      // Add a debug/logging watcher for the pods
       client.pods()
          .inNamespace(getNamespace())
-         .withLabels(selectorLabels)
+         .withLabels(podLabels)
+         .watch(PodWatcher())
+
+      // Add a debug/logging watcher for the pod
+      client.pods()
+         .inNamespace(getNamespace())
+         .withLabels(podLabels)
          .watch(LoggingWatcher())
-
-      // Pair each pod with its list of containers
-      extractedPods.forEach { pod ->
-         pods.add(Pair(pod, pod.spec.containers))
-      }
-
-      pods.forEach { (pod, containers) ->
-         log.info("Pod: ${pod.metadata.name}")
-         containers.forEach { container ->
-            log.info("Container: ${container.name}")
-         }
-      }
    }
 
-   protected fun getNamespace(): String = container.getNamespace().value
+   private fun startStreamingContainerLog() {
+      containerLogStreamer = ContainerLogStreamer(
+         podName = pod.get().metadata.name,
+         namespace = getNamespace(),
+         client = client,
+         outputLineCallback = container.getOutputLineCallback()
+      )
+
+      // Start the log streamer in a separate (virtual) thread
+      GENERAL_EXECUTOR_SERVICE.execute(containerLogStreamer!!)
+   }
+
+   private fun stopStreamingContainerLog() {
+      containerLogStreamer?.stop()
+   }
 
    private fun handleContainerFiles(
       volumes: MutableList<Volume>,
@@ -645,7 +651,8 @@ abstract class K8sRuntime(
       val podName = System.getenv(K8sConstants.ENV_HOSTNAME)  // Pod name from the HOSTNAME environment variable
 
       // Get the current pod based on the pod name and namespace
-      val pod = client.pods()
+      val pod = client
+         .pods()
          .inNamespace(getNamespace())
          .withName(podName)
          .get()
@@ -668,133 +675,58 @@ abstract class K8sRuntime(
       return deployment?.metadata?.name ?: "unknown"
    }
 
-   private fun prepareCommandExecution(): Pair<Pod, Container> {
-      refreshAllPods()
-      val (pod, containers) = pods.firstOrNull()
-         ?: throw IllegalArgumentException("No available pods to execute command")
-
-      if (containers.size > 1) {
-         println("Warning: The selected pod has more than one container. The command will be executed in the first container.")
-      }
-
-      val container = containers.first()
-      return Pair(pod, container)
-   }
-
-   private fun execPollWait(
-      waitTimeValue: Long?,
-      waitTimeUnit: TimeUnit?,
-      alive: AtomicBoolean,
-      stdErr: ByteArrayOutputStream,
-      stdOut: ByteArrayOutputStream,
-   ) {
-      log.trace("Poll-waiting for command execution to finish...")
-      try {
-         Awaitility.await()
-            .atMost(waitTimeValue ?: 30, waitTimeUnit ?: TimeUnit.SECONDS)
-            .pollInterval(500, TimeUnit.MILLISECONDS)
-            .until {
-               log.trace("Polling... alive=${alive.get()}")
-               !alive.get()
-            }
-      } catch (e: ConditionTimeoutException) {
-         val errorOut = stdErr.toString()
-         if (errorOut.isNotEmpty()) {
-            log.error("Error executing command: $errorOut")
-            throw ContainerException("Error executing command: ${errorOut.truncate(32)}")
-         }
-
-         val standardOut = stdOut.toString()
-         if (standardOut.isNotEmpty()) {
-            log.info("Command execution timed out, but std output was captured: ${standardOut.truncate(32)}")
-         } else {
-            log.warn("Command execution timed out and no std output was captured")
-         }
-      }
-   }
-
-   @Synchronized
-   private fun refreshPodsAndCheckStatus() {
-      log.trace("Refreshing pods and checking status")
-      val refreshedPods = refreshAllPods()
-
-      pods.clear()
-
-      if (refreshedPods.isNotEmpty()) {
-         handleRefreshedPods(refreshedPods)
-      } else {
-         log.warn("No pods found when refreshing container: ${container.getName()}")
-      }
-   }
-
-   private fun refreshAllPods(): MutableList<Pair<Pod, List<Container>>> {
-      val refreshedPods = mutableListOf<Pair<Pod, List<Container>>>()
-      pods.forEach { (pod, containers) ->
-         val refreshedPod = refreshPod(pod)
-         refreshedPod?.let {
-            refreshedPods.add(Pair(it, containers))
-         }
-      }
-      return refreshedPods
-   }
-
-   private fun refreshPod(pod: Pod): Pod? {
-      val refreshedPod = client.pods()
+   private fun refreshPod() {
+      val refreshedPod = client
+         .pods()
          .inNamespace(getNamespace())
-         .withName(pod.metadata.name)
+         .withName(pod.get().metadata.name)
          .get()
 
-      refreshedPod?.let {
-         log.debug("Pod refreshed: ${it.metadata.name} - current phase: ${it.status?.phase}")
-         updatePodState(it)
+      if (refreshedPod == null) {
+         log.warn("Pod '${pod.get().metadata.name}' not found in the cluster, refreshing failed.")
+//         throw ContainerException("Pod '${pod.get().metadata.name}' not found in the cluster")
+         return
       }
 
-      return refreshedPod
+      pod.set(refreshedPod)
+      refreshContainer()
+      updatePodState()
    }
 
-   private fun updatePodState(refreshedPod: Pod) {
+   private fun refreshContainer() {
+      val containers = pod.get().spec.containers
 
+      if (containers.isEmpty()) {
+         log.warn("No containers found in pod '${pod.get().metadata.name}'")
+         return
+      }
+
+      if (containers.size > 1) {
+         val msg = "More than one container (${containers.size}) found in pod '${pod.get().metadata.name}'"
+         log.warn(msg)
+         containers.forEach {
+            log.warn("Container: ${it.prettyPrintMe()}")
+         }
+         throw ContainerException(msg)
+      }
+
+      k8sContainer.set(containers.first())
+
+      execHandler.compareAndSet(null, ExecHandler(client, pod.get(), k8sContainer.get()))
+   }
+
+   private fun updatePodState() {
       // Determine the pod phase and update newState accordingly
-      val podPhase = refreshedPod.status?.phase?.uppercase()?.let {
-         PodPhase.valueOf(it)
-      }
-
-      var newState = when (podPhase) {
-         PodPhase.PENDING -> ContainerState.INITIALIZING
-         PodPhase.RUNNING -> ContainerState.RUNNING
-         PodPhase.FAILED -> ContainerState.FAILED
-         PodPhase.SUCCEEDED -> ContainerState.STOPPED
-         PodPhase.UNKNOWN -> ContainerState.UNKNOWN
-         else -> ContainerState.UNKNOWN // Ensures newState has a default value even if podPhase is null
-      }
-
-      // Check each container status within the pod
-      refreshedPod.status?.containerStatuses?.forEach { containerStatus ->
-         // Update start time if the container is running
-         containerStatus.state.running?.startedAt?.let {
-            startedAt.set(Instant.parse(it))
-         }
-
-         // Handle container termination information
-         containerStatus.state.terminated?.let { state ->
-            log.info(
-               "Container ${containerStatus.name} terminated with signal '${state.signal}', " +
-                  "reason: ${state.reason}, message: '${state.message}'"
-            )
-
-            // Update finish time and exit code upon termination
-            state.finishedAt?.let {
-               finishedAt.set(Instant.parse(it))
-            }
-
-            state.exitCode?.let {
-               exitCode.set(it)
-            }
-
-            // When a container is terminated, we consider the pod to be STOPPED
-            newState = ContainerState.STOPPED
+      val podPhase = pod.get().status?.phase?.uppercase()?.let { phase ->
+         PodPhase.valueOf(phase).also {
+            log.debug("Current pod phase: $it")
          }
       }
+
+      var newState = mapPodPhaseToContainerState(podPhase)
+      val containerStatuses = pod.get()?.status?.containerStatuses
+
+      handleContainerStatuses(containerStatuses, newState)?.also { updatedState -> newState = updatedState }
 
       // Apply the new state to the container object (assuming 'container' is accessible and represents the current container)
       if (container.isLegalStateChange(newState = newState)) {
@@ -802,27 +734,70 @@ abstract class K8sRuntime(
       } else {
          log.warn("Illegal state change attempt in container '${container.getName()}': ${container.getState()} -> $newState")
       }
-
-      // Log pod refreshment details
-      log.debug("Pod '${refreshedPod.metadata.name}' - new state: $newState")
    }
 
-   private fun handleRefreshedPods(refreshedPods: MutableList<Pair<Pod, List<Container>>>) {
-      if (refreshedPods.size > 1) {
-         log.warn("More than one pod (${refreshedPods.size}) found when refreshing Easycontainer: ${container.getName()}")
+   private fun mapPodPhaseToContainerState(podPhase: PodPhase?): ContainerState {
+      return when (podPhase) {
+         PodPhase.PENDING -> ContainerState.INITIALIZING
+         PodPhase.RUNNING -> ContainerState.RUNNING
+         PodPhase.FAILED -> ContainerState.FAILED
+         PodPhase.SUCCEEDED -> ContainerState.STOPPED
+         PodPhase.UNKNOWN -> ContainerState.UNKNOWN
+         else -> ContainerState.UNKNOWN // Ensures newState has a default value even if podPhase is null
+      }
+   }
+
+   private fun handleContainerStatuses(containerStatuses: List<ContainerStatus>?, newState: ContainerState): ContainerState? {
+      if (containerStatuses.isNullOrEmpty()) {
+         log.warn("No container statuses found in pod '${pod.get().metadata.name}'")
+         return null
       }
 
-      pods.addAll(refreshedPods)
-      ipAddress.set(InetAddress.getByName(pods.first().first.status.podIP))
+      if (containerStatuses.size > 1) {
+         val msg = "More than one container status (${containerStatuses.size}) found in pod '${pod.get().metadata.name}'"
+         log.warn(msg)
+         containerStatuses.forEach {
+            log.warn("Container status: ${it.prettyPrintMe()}")
+         }
+         throw ContainerException(msg)
+      }
 
-//      val stringVal = pods.joinToString(", ") { (pod, containers) ->
-//         "$pod.metadata.name -> ${containers.joinToString { it.name }}"
-//      }
-//      log.trace("Pods and containers refreshed: $stringVal")
+      // Check the container status
+      val containerStatus = containerStatuses.first()
+      // Update start time if the container is running
+      containerStatus.state.running?.startedAt?.let {
+         startedAt.set(Instant.parse(it))
+      }
 
-      log.trace("Pods and containers refreshed")
+      // Handle container termination information
+      return handleTerminatedContainerState(containerStatus, newState)
+   }
 
+   private fun handleTerminatedContainerState(containerStatus: ContainerStatus, newState: ContainerState): ContainerState {
+      containerStatus.state.terminated?.let { terminatedState ->
+         log.info(
+            "Container ${containerStatus.name} terminated with signal '${terminatedState.signal}', " +
+               "reason: ${terminatedState.reason}, message: '${terminatedState.message}'"
+         )
 
+         // Update finish time and exit code upon termination
+         terminatedState.finishedAt?.let {
+            finishedAt.set(Instant.parse(it))
+         }
+
+         log.debug("Exit code: ${terminatedState.exitCode}")
+
+         terminatedState.exitCode?.let {code ->
+            exitCode.set(code).also {
+               log.info("Container ${getName()} exited with code $code")
+            }
+         }
+
+         // When a container is terminated, we consider the pod to be STOPPED
+         return ContainerState.STOPPED
+      }
+
+      return newState
    }
 
 }

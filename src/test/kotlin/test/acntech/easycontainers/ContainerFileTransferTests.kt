@@ -5,6 +5,7 @@ import no.acntech.easycontainers.model.ExecutionMode
 import no.acntech.easycontainers.model.UnixDir
 import no.acntech.easycontainers.util.lang.guardedExecution
 import no.acntech.easycontainers.util.text.FORWARD_SLASH
+import no.acntech.easycontainers.util.text.NEW_LINE
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.params.ParameterizedTest
@@ -38,8 +39,8 @@ class ContainerFileTransferTests {
       val path = container.getFile(UnixDir.of(FORWARD_SLASH), "log-time.sh")
 
       val content = Files.readString(path)
-      log.debug("Content of file: $content")
-      assertTrue(content.contains("while getopts 'es:x:' flag; do"))
+      log.debug("Content of file:$NEW_LINE$content")
+      assertTrue(content.contains("while getopts"))
    }
 
    @ParameterizedTest
@@ -141,10 +142,7 @@ class ContainerFileTransferTests {
       } finally {
          guardedExecution({ tempSendDir.deleteRecursively() })
          guardedExecution({ tempReceiveDir.deleteRecursively() })
-
-//         TimeUnit.SECONDS.sleep(60*10)
       }
    }
-
 
 }

@@ -48,7 +48,7 @@ import java.time.Instant
  *          // other properties
  * </code></pre>
  * <p>
- * For kind k8s the shared folder can be anywhere on the host file system, but the kind cluster must be configured
+ * For KinD k8s the shared folder can be anywhere on the host file system, but the kind cluster must be configured
  * using a custom config applied at cluster startup in order for containers to mount the shared folder.
  * <p>
  * Example:

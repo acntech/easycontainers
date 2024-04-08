@@ -10,6 +10,7 @@ import io.fabric8.kubernetes.client.WatcherException
 import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.ImageBuilder
+import no.acntech.easycontainers.kubernetes.K8sConstants.REGISTRY_DEFAULT_PORT
 import no.acntech.easycontainers.model.ImageTag
 import no.acntech.easycontainers.util.platform.PlatformUtils
 import no.acntech.easycontainers.util.text.COLON
@@ -279,10 +280,10 @@ internal class K8sImageBuilder(
 
       try {
          FileUtils.copyDirectory(dockerContextDir.toFile(), uniqueContextDir.toFile()).also {
-            log.debug("Dockerfile and context copied OK to '$uniqueContextDir'")
+            log.debug("Dockerfile and context successfully copied to '$uniqueContextDir'")
          }
       } catch (e: IOException) {
-         throw ContainerException("Error copying Docker context dir '$dockerContextDir' to '$uniqueContextDir'", e)
+         throw ContainerException("Error copying Docker context dir '$dockerContextDir' to '$uniqueContextDir': ${e.message}", e)
       }
 
       return uniqueContextDir.toString()
@@ -353,10 +354,10 @@ internal class K8sImageBuilder(
       }
    }
 
-   private fun createInsecureRegistryConfigVolumeMount(): VolumeMount? {
+   private fun createInsecureRegistryConfigVolumeMount(): VolumeMount {
       val registryVal = registry.unwrap()
       val host = if (registryVal.contains(COLON)) registryVal.substringBefore(COLON) else registryVal
-      val port = if (registryVal.contains(COLON)) registryVal.substringAfter(COLON).toInt() else 5000
+      val port = if (registryVal.contains(COLON)) registryVal.substringAfter(COLON).toInt() else REGISTRY_DEFAULT_PORT
       createConfigMap(listOf(Pair(host, port)))
       return createVolumeMount(KANIKO_DOCKER_CONFIG_VOLUME_NAME, KANIKO_DOCKER_PATH)
    }
