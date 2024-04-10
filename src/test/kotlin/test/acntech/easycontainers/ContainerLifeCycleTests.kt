@@ -36,9 +36,9 @@ class ContainerLifeCycleTests {
 
    @Test
    fun startAndRunTaskTestContainers() {
-//      val dockerContainer = startContainer(ContainerPlatformType.DOCKER, ExecutionMode.TASK)
       try {
          val k8sContainer = startContainer(ContainerPlatformType.KUBERNETES, ExecutionMode.TASK)
+         //      val dockerContainer = startContainer(ContainerPlatformType.DOCKER, ExecutionMode.TASK)
       } catch (e: Exception) {
          log.error("Error starting container", e)
       }

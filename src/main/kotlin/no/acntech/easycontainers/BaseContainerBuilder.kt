@@ -191,7 +191,8 @@ abstract class BaseContainerBuilder<SELF : BaseContainerBuilder<SELF>> : Contain
    override fun withContainerFile(
       name: ContainerFileName,
       path: UnixDir,
-      data: Map<String, String>, keyValSeparator: String,
+      data: Map<String, String>,
+      keyValSeparator: String,
    ): SELF {
       val content = data.entries.joinToString(NEW_LINE) { (key, value) -> "$key$keyValSeparator$value" }
       containerFiles[name] = ContainerFile(name, path, content)

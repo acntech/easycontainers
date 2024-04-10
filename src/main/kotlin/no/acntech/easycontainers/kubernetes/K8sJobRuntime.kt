@@ -1,22 +1,23 @@
 package no.acntech.easycontainers.kubernetes
 
 import io.fabric8.kubernetes.api.model.Container
-import io.fabric8.kubernetes.api.model.ObjectMeta
 import io.fabric8.kubernetes.api.model.PodSpec
-import io.fabric8.kubernetes.api.model.PodTemplateSpec
 import io.fabric8.kubernetes.api.model.batch.v1.Job
+import io.fabric8.kubernetes.api.model.batch.v1.JobCondition
 import io.fabric8.kubernetes.api.model.batch.v1.JobSpec
 import io.fabric8.kubernetes.client.KubernetesClient
+import io.fabric8.kubernetes.client.Watcher
+import io.fabric8.kubernetes.client.WatcherException
 import io.fabric8.kubernetes.client.utils.Serialization
-import net.bytebuddy.build.Plugin.Engine.ErrorHandler
+import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.GenericContainer
 import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.model.Host
 import no.acntech.easycontainers.util.lang.prettyPrintMe
-import no.acntech.easycontainers.util.text.EMPTY_STRING
 import no.acntech.easycontainers.util.text.NEW_LINE
-import no.acntech.easycontainers.util.text.truncate
-import java.util.*
+import org.apache.commons.lang3.time.DurationFormatUtils
+import java.time.Instant
+import java.util.concurrent.CountDownLatch
 
 /**
  * Represents a Kubernetes Job runtime for a given container.
@@ -31,12 +32,19 @@ class K8sJobRuntime(
 
    private var job: Job = createJob()
 
+   private val jobName
+      get() = job.metadata.name
+
+   private val completionLatch = CountDownLatch(1)
+
    override fun start() {
       super.start()
 
+      createWatcher()
+
       pod.get().let { k8sPod ->
-         host = Host.of("${k8sPod.metadata.name}.${getNamespace()}.pod.cluster.local").also {
-            log.info("Host for pod: $it")
+         host = Host.of("${k8sPod.metadata.name}.$namespace.pod.cluster.local").also {
+            log.debug("Host for pod: $it")
          }
       }
    }
@@ -49,8 +57,8 @@ class K8sJobRuntime(
 
       val existingJob = client.batch().v1()
          .jobs()
-         .inNamespace(getNamespace())
-         .withName(job.metadata.name)
+         .inNamespace(namespace)
+         .withName(jobName)
          .get()
 
       if (existingJob != null) {
@@ -63,14 +71,14 @@ class K8sJobRuntime(
    }
 
    override fun deploy() {
-      log.debug("Deploying job '${job.metadata.name}' in namespace '${getNamespace()}'")
+      log.debug("Deploying job '${job.metadata.name}' in namespace '$namespace'")
 
       job = client.batch().v1()
          .jobs()
-         .inNamespace(getNamespace())
+         .inNamespace(namespace)
          .resource(job)
          .create().also {
-            log.info("Job '${job.metadata.name}' deployed in namespace '${getNamespace()}'$NEW_LINE${it.prettyPrintMe()}")
+            log.info("Job '${job.metadata.name}' deployed in namespace '$namespace'$NEW_LINE${it.prettyPrintMe()}")
          }
    }
 
@@ -81,6 +89,7 @@ class K8sJobRuntime(
    override fun configure(k8sContainer: Container) {
       // No-op
    }
+
    override fun configure(podSpec: PodSpec) {
       podSpec.restartPolicy = "Never"
    }
@@ -89,7 +98,7 @@ class K8sJobRuntime(
       try {
          client.batch().v1()
             .jobs()
-            .inNamespace(getNamespace())
+            .inNamespace(namespace)
             .withName(job.metadata.name)
             .delete()
       } catch (e: Exception) {
@@ -115,6 +124,87 @@ class K8sJobRuntime(
       }.also {
          log.debug("Created job:${it.prettyPrintMe()}")
          log.debug("Job YAML:$NEW_LINE${Serialization.asYaml(it)}")
+      }
+   }
+
+   private fun createWatcher() {
+
+      // Lambda for changing the Container state
+      val jobWatcher = object : Watcher<Job> {
+
+         override fun eventReceived(action: Watcher.Action, job: Job) {
+            log.debug("Received event '${action.name}' on job with status '${job.status}'")
+
+            if (job.status != null && job.status.startTime != null) {
+               startedAt.set(Instant.parse(job.status.startTime))
+            }
+
+            if (job.status != null && job.status.conditions != null) {
+               for (condition in job.status.conditions) {
+                  handleJobCondition(condition)
+               }
+            }
+         }
+
+         override fun onClose(cause: WatcherException?) {
+            cause?.let { nonNullCause ->
+               log.error("Job '$jobName' watcher closed due to error: ${nonNullCause.message}", nonNullCause)
+               container.changeState(ContainerState.FAILED)
+            } ?: run {
+               log.info("Job '$jobName' watcher closed")
+               container.changeState(ContainerState.STOPPED)
+            }
+         }
+
+      }
+
+      try {
+         client.batch().v1()
+            .jobs()
+            .inNamespace(namespace)
+            .withName(jobName)
+            .watch(jobWatcher)
+
+      } catch (e: Exception) {
+         log.error("Error watching job: ${e.message}", e)
+         container.changeState(ContainerState.FAILED)
+         throw ContainerException("Error watching job: ${e.message}", e)
+      }
+   }
+
+   private fun handleJobCondition(condition: JobCondition) {
+      when (condition.type) {
+         "Complete" -> handleJobCompletion(condition)
+         "Failed" -> handleJobFailure(condition)
+      }
+   }
+
+   private fun handleJobCompletion(condition: JobCondition) {
+      if ("True" == condition.status) {
+         val completionDateTimeVal = job.status.completionTime
+         completionDateTimeVal?.let {
+            finishedAt.set(Instant.parse(completionDateTimeVal))
+
+            DurationFormatUtils.formatDurationWords(
+               finishedAt.get().toEpochMilli() - startedAt.get().toEpochMilli(),
+               true,
+               true
+            ).let { duration ->
+               log.info("Job '$jobName' took approximately: $duration")
+            }
+         }
+         container.changeState(ContainerState.STOPPED)
+         completionLatch.countDown()
+         log.trace("Latch decremented, job '$jobName' completed")
+      }
+   }
+
+   private fun handleJobFailure(condition: JobCondition) {
+      if ("True" == condition.status) {
+         log.error("Job '$jobName' failed with reason: ${condition.reason}")
+         container.changeState(ContainerState.FAILED)
+         completionLatch.countDown()
+         log.trace("Latch decremented, job '$jobName' failed")
       }
    }
 

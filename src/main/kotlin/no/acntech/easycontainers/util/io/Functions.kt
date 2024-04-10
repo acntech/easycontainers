@@ -34,6 +34,7 @@ fun ByteArrayOutputStream.toUtf8String(): String {
  *                  The default operation is a no-op.
  * @return An [InputStream] that reads from the output of the operation.
  */
+@Suppress("UNCHECKED_CAST")
 fun <T> pipe(
    operation: (OutputStream) -> T = { _: OutputStream -> null as T },
 ): InputStream {
@@ -50,6 +51,7 @@ fun <T> pipe(
  * @param buffered Specifies whether the [InputStream] and [OutputStream] should be buffered. Default is true.
  * @return An [InputStream] that reads from the output of the operation.
  */
+@Suppress("UNCHECKED_CAST")
 fun <T> pipe(
    operation: (OutputStream) -> T = { _: OutputStream -> null as T },
    buffered: Boolean = true,

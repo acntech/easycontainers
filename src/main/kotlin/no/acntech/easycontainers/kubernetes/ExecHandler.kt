@@ -34,12 +34,12 @@ import java.util.concurrent.atomic.AtomicReference
  *
  * @property client the Kubernetes client
  * @property pod the pod to execute the command in
- * @property container the container to execute the command in
+ * @property k8sContainer the container to execute the command in
  */
 internal class ExecHandler(
    private val client: KubernetesClient,
    private val pod: Pod,
-   private val container: Container,
+   private val k8sContainer: Container,
 ) {
 
    companion object {
@@ -48,6 +48,13 @@ internal class ExecHandler(
 
    /**
     * Executes a command in the container.
+    *
+    * @param command the command to execute
+    * @param useTty whether to use a TTY for the command execution
+    * @param stdIn the input stream to use for the command
+    * @param stdOut the output stream to write the command output to
+    * @param waitTimeValue the time value to wait for the command to complete
+    * @param waitTimeUnit the time unit to wait for the command to complete
     * @return a pair containing the exit code and the error output of the command
     */
    fun execute(
@@ -58,7 +65,7 @@ internal class ExecHandler(
       waitTimeValue: Long? = null,
       waitTimeUnit: TimeUnit? = null,
    ): Pair<Int?, String?> {
-      log.debug("Executing command '${command.joinToString(SPACE)}' in pod '${pod.metadata.name}' / container '${container.name}'")
+      log.debug("Executing command '${command.joinToString(SPACE)}' in pod '${pod.metadata.name}' / container '${k8sContainer.name}'")
 
       val waitTimeCalculator = if (waitTimeValue != null && waitTimeUnit != null) {
          WaitTimeCalculator(waitTimeValue, waitTimeUnit)
@@ -77,7 +84,7 @@ internal class ExecHandler(
       try {
          execWatch = executeCommand(
             pod,
-            container,
+            k8sContainer,
             command,
             useTty,
             stdIn,

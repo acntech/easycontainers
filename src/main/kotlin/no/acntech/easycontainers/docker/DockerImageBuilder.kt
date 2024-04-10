@@ -10,8 +10,6 @@ import com.github.dockerjava.api.model.PushResponseItem
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.ImageBuilder
 import no.acntech.easycontainers.model.ImageTag
-import no.acntech.easycontainers.util.collections.prettyPrint
-import no.acntech.easycontainers.util.lang.asStringMap
 import no.acntech.easycontainers.util.lang.prettyPrintMe
 import no.acntech.easycontainers.util.text.NEW_LINE
 import java.nio.file.Path

@@ -1,6 +1,5 @@
 package no.acntech.easycontainers.kubernetes
 
-import io.fabric8.kubernetes.api.model.HasMetadata
 import io.fabric8.kubernetes.client.Watcher
 import io.fabric8.kubernetes.client.WatcherException
 import no.acntech.easycontainers.util.lang.prettyPrintMe

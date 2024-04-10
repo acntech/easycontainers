@@ -22,7 +22,6 @@ class NativeK8sTests {
 
    companion object {
       private val log: Logger = LoggerFactory.getLogger(NativeK8sTests::class.java)
-
    }
 
    private var client = KubernetesClientBuilder().build()
@@ -51,7 +50,6 @@ class NativeK8sTests {
 
       log.debug("Container started:$NEW_LINE$container")
 
-      val latch = CountDownLatch(1)
       val execIn = "Hello".byteInputStream()
       val execOut: OutputStream = ByteArrayOutputStream()
       val execErr: OutputStream = ByteArrayOutputStream()

@@ -79,8 +79,8 @@ internal class K8sImageBuilder(
    override fun buildImage(): Boolean {
       checkPreconditionsAndInitialize()
 
-      val contextDir = createActualDockerContextDir().also {
-         log.info("Using '$it' as the actual Docker context dir")
+      val contextDir = createActualDockerContextDir().also { dir ->
+         log.info("Using '$dir' as the actual Docker context dir")
       }
 
       Thread.sleep(1000) // Sleep for 1 second to allow the context dir to be created and visible to the pod
@@ -208,7 +208,7 @@ internal class K8sImageBuilder(
          } else if (PlatformUtils.isLinux() || PlatformUtils.isMac()) {
             localKanikoPath = File(localKanikoPath).also {
                if (!(it.exists() || it.mkdirs())) {
-                  log.warn("Unable to create/non-existing local Kaniko-data directory: $it")
+                  log.warn("Unable to create or non-existing local Kaniko-data directory: $it")
                }
             }.absolutePath
          }
@@ -291,7 +291,8 @@ internal class K8sImageBuilder(
 
    private fun createAndDeployKanikoJob(contextDir: String) {
       job = createKanikoJob(contextDir)
-      job = client.batch().v1().jobs()
+      job = client.batch().v1()
+         .jobs()
          .inNamespace(namespace.unwrap())
          .resource(job)
          .create().also {
@@ -512,8 +513,8 @@ internal class K8sImageBuilder(
 
          override fun onClose(cause: WatcherException?) {
             log.info("Watcher closed")
-            if (cause != null) {
-               log.error("Due to error: ${cause.message}", cause)
+            cause?.let { nonNullCause ->
+               log.error("Due to error: ${nonNullCause.message}", nonNullCause)
                changeState(State.FAILED)
             }
             latch.countDown()

@@ -220,7 +220,7 @@ open class GenericContainer(
          }
 
          else -> {
-            log.debug("Waiting indefinately for container '${getName()}' to reach state '$state'")
+            log.debug("Waiting indefinitely for container '${getName()}' to reach state '$state'")
             latch.await().let { true }
          }
       }

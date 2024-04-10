@@ -19,8 +19,8 @@ class ContainerTaskTests {
    @ParameterizedTest
    @ValueSource(
       strings = [
-         "DOCKER",
-//         "KUBERNETES"
+//         "DOCKER",
+         "KUBERNETES"
       ]
    )
    fun `Test task`(containerType: String) {

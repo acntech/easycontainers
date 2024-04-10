@@ -57,7 +57,7 @@ private fun processProperties(
    visited: MutableSet<Any>,
    defaultOverrides: Map<String, Any?>,
    depth: Int,
-   maxDepth: Int
+   maxDepth: Int,
 ) {
 
    fun handleProperty(property: PropertyDescriptor) {
@@ -92,7 +92,7 @@ private fun tryToInvokeGetter(
    visited: MutableSet<Any>,
    defaultOverrides: Map<String, Any?>,
    depth: Int,
-   maxDepth: Int
+   maxDepth: Int,
 ) {
    try {
       val value = method.invoke(anyObj)

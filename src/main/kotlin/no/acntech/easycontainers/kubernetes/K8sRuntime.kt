@@ -18,6 +18,8 @@ import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.util.lang.guardedExecution
 import no.acntech.easycontainers.util.lang.prettyPrintMe
+import no.acntech.easycontainers.util.text.BACK_SLASH
+import no.acntech.easycontainers.util.text.FORWARD_SLASH
 import no.acntech.easycontainers.util.text.NEW_LINE
 import no.acntech.easycontainers.util.text.SPACE
 import org.awaitility.Awaitility
@@ -96,11 +98,24 @@ abstract class K8sRuntime(
       const val SERVICE_NAME_SUFFIX = "-service"
       const val PV_NAME_SUFFIX = "-pv"
       const val PVC_NAME_SUFFIX = "-pvc"
+
+      private fun mapPodPhaseToContainerState(podPhase: PodPhase?): ContainerState {
+         return when (podPhase) {
+            PodPhase.PENDING -> ContainerState.INITIALIZING
+            PodPhase.RUNNING -> ContainerState.RUNNING
+            PodPhase.FAILED -> ContainerState.FAILED
+            PodPhase.SUCCEEDED -> ContainerState.STOPPED
+            PodPhase.UNKNOWN -> ContainerState.UNKNOWN
+            else -> ContainerState.UNKNOWN // Ensures newState has a default value even if podPhase is null
+         }
+      }
    }
 
    protected val accessChecker = AccessChecker(client)
 
    protected val pod: AtomicReference<Pod> = AtomicReference()
+   protected val containerName
+      get() = k8sContainer.get()?.name ?: throw IllegalStateException("No container present")
 
    protected val k8sContainer: AtomicReference<Container> = AtomicReference()
 
@@ -133,6 +148,10 @@ abstract class K8sRuntime(
       "app.kubernetes.io/instance" to podId,
    )
 
+   protected val namespace: String
+      get() = container.getNamespace().value
+
+
    private var containerLogStreamer: ContainerLogStreamer? = null
 
    private var execHandler = AtomicReference<ExecHandler>()
@@ -146,6 +165,7 @@ abstract class K8sRuntime(
 
    override fun start() {
       container.changeState(ContainerState.INITIALIZING, ContainerState.UNINITIATED)
+
       log.info("Starting container: ${container.getName()}")
       log.debug("Using container config$NEW_LINE${container.builder}")
 
@@ -189,7 +209,7 @@ abstract class K8sRuntime(
       stopStreamingContainerLog()
 
       val configMapsExists = client.configMaps()
-         .inNamespace(getNamespace())
+         .inNamespace(namespace)
          .list()
          .items
          .any { item -> configMaps.any { backItem -> backItem.metadata.name == item.metadata.name } }
@@ -197,7 +217,7 @@ abstract class K8sRuntime(
       if (configMapsExists) {
          configMaps.forEach { configMap ->
             guardedExecution(
-               { client.configMaps().inNamespace(getNamespace()).withName(configMap.metadata.name).delete() },
+               { client.configMaps().inNamespace(namespace).withName(configMap.metadata.name).delete() },
                listOf(Exception::class),
                { log.warn("Error deleting config map '${configMap.metadata.name}': ${it.message}", it) }
             )
@@ -293,17 +313,20 @@ abstract class K8sRuntime(
          return
       }
 
-      val namespaceExists = client.namespaces().list().items.any { it.metadata.name == container.getNamespace().value }
+      val namespaceExists = client.namespaces().list().items.any { it.metadata.name == namespace }
       if (!namespaceExists) {
-         val namespaceResource =
-            NamespaceBuilder().withNewMetadata().withName(container.getNamespace().value).endMetadata().build()
-         client.namespaces().resource(namespaceResource).create().also {
-            log.info("Created k8s namespace: $it")
-         }
+         val namespaceResource = NamespaceBuilder()
+            .withNewMetadata()
+            .withName(namespace)
+            .endMetadata().build()
+
+         client.namespaces()
+            .resource(namespaceResource)
+            .create().also {
+               log.info("Created k8s namespace: $it")
+            }
       }
    }
-
-   protected fun getNamespace(): String = container.getNamespace().value
 
    protected abstract fun deploy()
 
@@ -318,7 +341,7 @@ abstract class K8sRuntime(
    protected fun getResourceMetaData(): ObjectMeta {
       return ObjectMeta().apply {
          name = getResourceName()
-         namespace = container.getNamespace().value
+         namespace = this@K8sRuntime.namespace
          val stringLabels: Map<String, String> = container.getLabels().flatMap { (key, value) ->
             listOf(key.value to value.value)
          }.toMap()
@@ -392,14 +415,14 @@ abstract class K8sRuntime(
             .until {
                pods = client
                   .pods()
-                  .inNamespace(getNamespace())
+                  .inNamespace(namespace)
                   .withLabels(podLabels)
                   .list()
                   .items
 
                pods.isNotEmpty()
             }
-      } catch(e: ConditionTimeoutException) {
+      } catch (e: ConditionTimeoutException) {
          val msg = "Timed out waiting for pod for ${container.getName()}"
          log.error(msg)
          throw ContainerException(msg)
@@ -492,7 +515,7 @@ abstract class K8sRuntime(
 
    private fun watchPod() {
       val pods = client.pods()
-         .inNamespace(getNamespace())
+         .inNamespace(namespace)
          .withLabels(podLabels)
          .list().items
 
@@ -501,13 +524,13 @@ abstract class K8sRuntime(
       }
 
       client.pods()
-         .inNamespace(getNamespace())
+         .inNamespace(namespace)
          .withLabels(podLabels)
          .watch(PodWatcher())
 
       // Add a debug/logging watcher for the pod
       client.pods()
-         .inNamespace(getNamespace())
+         .inNamespace(namespace)
          .withLabels(podLabels)
          .watch(LoggingWatcher())
    }
@@ -515,7 +538,7 @@ abstract class K8sRuntime(
    private fun startStreamingContainerLog() {
       containerLogStreamer = ContainerLogStreamer(
          podName = pod.get().metadata.name,
-         namespace = getNamespace(),
+         namespace = namespace,
          client = client,
          outputLineCallback = container.getOutputLineCallback()
       )
@@ -533,59 +556,90 @@ abstract class K8sRuntime(
       volumeMounts: MutableList<VolumeMount>,
    ) {
       container.builder.containerFiles.forEach { (name, configFile) ->
-         log.trace("Creating name -> config map mapping: $name -> $configFile")
-
-         // Extract directory and filename from mountPath, ensuring forward slashes
-         val mountPath = File(configFile.mountPath.value).parent?.replace("\\", "/") ?: "/"
-         val fileName = File(configFile.mountPath.value).name
-
-         // Create a ConfigMap object with a single entry
-         val configMap = ConfigMapBuilder()
-            .withNewMetadata()
-            .withName(name.value)
-            .withNamespace(getNamespace())
-            .addToLabels(createDefaultLabels())
-            .endMetadata()
-            .addToData(fileName, configFile.content) // fileName as the key
-            .build()
-
-         val configMapResource: Resource<ConfigMap> =
-            client.configMaps()
-               .inNamespace(getNamespace())
-               .resource(configMap)
-
-         configMapResource.get()?.let {
-            configMapResource
-               .withTimeout(30, TimeUnit.SECONDS)
-               .delete()
-               .also {
-                  log.info("Deleted existing k8s config map: $it")
-               }
-         }
-
-         configMapResource.create().also {
-            configMaps.add(it)
-            log.info("Created a k8s config map: $it")
-            log.debug("ConfigMap YAML: ${Serialization.asYaml(configMap)}")
-         }
-
-         // Create the corresponding Volume
-         val volume = VolumeBuilder()
-            .withName(name.value)
-            .withNewConfigMap()
-            .withName(name.value)
-            .endConfigMap()
-            .build()
-         volumes.add(volume)
-
-         // Create the corresponding VolumeMount
-         val volumeMount = VolumeMountBuilder()
-            .withName(name.value)
-            .withMountPath(mountPath)
-            .withSubPath(fileName) // Mount only the specific file within the directory
-            .build()
-         volumeMounts.add(volumeMount)
+         handleContainerFile(name, configFile, volumes, volumeMounts)
       }
+   }
+
+   private fun handleContainerFile(
+      name: ContainerFileName,
+      configFile: ContainerFile,
+      volumes: MutableList<Volume>,
+      volumeMounts: MutableList<VolumeMount>,
+   ) {
+      log.trace("Creating name -> config map mapping: $name -> $configFile")
+      val (mountPath, fileName) = extractMountPathAndFileName(configFile)
+
+      val configMap = createConfigMap(name, fileName, configFile)
+      handleConfigMapCreation(configMap)
+
+      val volume = createVolume(name)
+      volumes.add(volume)
+
+      val volumeMount = createVolumeMount(name, mountPath, fileName)
+      volumeMounts.add(volumeMount)
+   }
+
+   private fun extractMountPathAndFileName(configFile: ContainerFile): Pair<String, String> {
+      val mountPath = File(configFile.mountPath.value).parent?.replace(BACK_SLASH, FORWARD_SLASH) ?: FORWARD_SLASH
+      val fileName = File(configFile.mountPath.value).name
+
+      return Pair(mountPath, fileName)
+   }
+
+   private fun createConfigMap(name: ContainerFileName, fileName: String, configFile: ContainerFile): ConfigMap {
+      val configMap = ConfigMapBuilder()
+         .withNewMetadata()
+         .withName(name.value)
+         .withNamespace(namespace)
+         .addToLabels(createDefaultLabels())
+         .endMetadata()
+         .addToData(fileName, configFile.content) // fileName as the key
+         .build()
+
+      return configMap
+   }
+
+   private fun handleConfigMapCreation(configMap: ConfigMap) {
+      val configMapResource: Resource<ConfigMap> =
+         client.configMaps()
+            .inNamespace(namespace)
+            .resource(configMap)
+
+      configMapResource.get()?.let {
+         configMapResource
+            .withTimeout(30, TimeUnit.SECONDS)
+            .delete()
+            .also {
+               log.info("Deleted existing k8s config map: $it")
+            }
+      }
+
+      configMapResource.create().also {
+         configMaps.add(it)
+         log.info("Created a k8s config map: $it")
+         log.debug("ConfigMap YAML: ${Serialization.asYaml(configMap)}")
+      }
+   }
+
+   private fun createVolume(name: ContainerFileName): Volume {
+      val volume = VolumeBuilder()
+         .withName(name.value)
+         .withNewConfigMap()
+         .withName(name.value)
+         .endConfigMap()
+         .build()
+
+      return volume
+   }
+
+   private fun createVolumeMount(name: ContainerFileName, mountPath: String, fileName: String): VolumeMount {
+      val volumeMount = VolumeMountBuilder()
+         .withName(name.value)
+         .withMountPath(mountPath)
+         .withSubPath(fileName) // Mount only the specific file within the directory
+         .build()
+
+      return volumeMount
    }
 
    private fun handlePersistentVolumes(
@@ -653,7 +707,7 @@ abstract class K8sRuntime(
       // Get the current pod based on the pod name and namespace
       val pod = client
          .pods()
-         .inNamespace(getNamespace())
+         .inNamespace(namespace)
          .withName(podName)
          .get()
 
@@ -662,7 +716,7 @@ abstract class K8sRuntime(
 
       // Query all deployments in the namespace
       val deployments = client.apps().deployments()
-         .inNamespace(getNamespace())
+         .inNamespace(namespace)
          .list().items
 
       // Find the deployment whose selector matches the pod's labels
@@ -678,7 +732,7 @@ abstract class K8sRuntime(
    private fun refreshPod() {
       val refreshedPod = client
          .pods()
-         .inNamespace(getNamespace())
+         .inNamespace(namespace)
          .withName(pod.get().metadata.name)
          .get()
 
@@ -697,7 +751,7 @@ abstract class K8sRuntime(
       val containers = pod.get().spec.containers
 
       if (containers.isEmpty()) {
-         log.warn("No containers found in pod '${pod.get().metadata.name}'")
+         log.warn("No containers found in pod: ${pod.get().metadata.name}")
          return
       }
 
@@ -733,17 +787,6 @@ abstract class K8sRuntime(
          container.changeState(newState)
       } else {
          log.warn("Illegal state change attempt in container '${container.getName()}': ${container.getState()} -> $newState")
-      }
-   }
-
-   private fun mapPodPhaseToContainerState(podPhase: PodPhase?): ContainerState {
-      return when (podPhase) {
-         PodPhase.PENDING -> ContainerState.INITIALIZING
-         PodPhase.RUNNING -> ContainerState.RUNNING
-         PodPhase.FAILED -> ContainerState.FAILED
-         PodPhase.SUCCEEDED -> ContainerState.STOPPED
-         PodPhase.UNKNOWN -> ContainerState.UNKNOWN
-         else -> ContainerState.UNKNOWN // Ensures newState has a default value even if podPhase is null
       }
    }
 
@@ -787,7 +830,7 @@ abstract class K8sRuntime(
 
          log.debug("Exit code: ${terminatedState.exitCode}")
 
-         terminatedState.exitCode?.let {code ->
+         terminatedState.exitCode?.let { code ->
             exitCode.set(code).also {
                log.info("Container ${getName()} exited with code $code")
             }
@@ -799,5 +842,6 @@ abstract class K8sRuntime(
 
       return newState
    }
+
 
 }

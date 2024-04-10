@@ -6,7 +6,6 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentSpec
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.GenericContainer
-import no.acntech.easycontainers.kubernetes.ErrorSupport.handleK8sException
 import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.model.Host
 import no.acntech.easycontainers.util.lang.prettyPrintMe
@@ -44,6 +43,7 @@ class K8sServiceRuntime(
          }
       }
    }
+
    override fun stop() {
       log.debug("Stopping container: ${container.getName()}")
 
@@ -94,7 +94,7 @@ class K8sServiceRuntime(
    }
 
    override fun deploy() {
-      log.debug("Creating Deployment '${getResourceName()}' in namespace '${getNamespace()}'")
+      log.debug("Creating Deployment '${getResourceName()}' in namespace '$namespace'")
 
       createNamespaceIfAllowedAndNotExists()
       deleteService()
@@ -110,11 +110,11 @@ class K8sServiceRuntime(
 
       service?.let {
          service = client.services()
-            .inNamespace(getNamespace())
+            .inNamespace(namespace)
             .resource(service)
             .create().also {
-            log.info("Deployed k8s service: ${it.prettyPrintMe()}")
-         }
+               log.info("Deployed k8s service: ${it.prettyPrintMe()}")
+            }
       }
    }
 
@@ -166,7 +166,7 @@ class K8sServiceRuntime(
       // Manually creating the service metadata
       val serviceMetadata = ObjectMeta()
       serviceMetadata.name = container.getName().value + SERVICE_NAME_SUFFIX
-      serviceMetadata.namespace = getNamespace()
+      serviceMetadata.namespace = namespace
       serviceMetadata.labels = createDefaultLabels()
 
       // Manually creating the service ports
@@ -238,7 +238,7 @@ class K8sServiceRuntime(
    }
 
    private fun deleteDeploymentIfExists(force: Boolean = false) {
-      findDeployment(getNamespace(), getResourceName())?.let {
+      findDeployment(namespace, getResourceName())?.let {
          log.info("Deleting deployment: ${getResourceName()}")
          deleteDeployment(force)
          // Tear down all pods if force deletion
@@ -250,7 +250,7 @@ class K8sServiceRuntime(
          Awaitility.await()
             .atMost(60, TimeUnit.SECONDS)
             .pollInterval(500, TimeUnit.MILLISECONDS)
-            .until { findDeployment(getNamespace(), getResourceName()) == null }
+            .until { findDeployment(namespace, getResourceName()) == null }
 
          log.info("Deployment deleted: ${getResourceName()}")
       } ?: log.warn("Cannot delete non-existing deployment: ${getResourceName()}")
@@ -261,7 +261,7 @@ class K8sServiceRuntime(
 
    private fun deleteDeployment(force: Boolean) {
       client.apps().deployments()
-         .inNamespace(getNamespace())
+         .inNamespace(namespace)
          .withName(getResourceName())
          .apply {
             if (force) {
@@ -274,8 +274,8 @@ class K8sServiceRuntime(
    }
 
    private fun deletePods() {
-      for (pod in client.pods().inNamespace(getNamespace()).withLabels(podLabels).list().items) {
-         client.pods().inNamespace(getNamespace()).withName(pod.metadata.name).delete()
+      for (pod in client.pods().inNamespace(namespace).withLabels(podLabels).list().items) {
+         client.pods().inNamespace(namespace).withName(pod.metadata.name).delete()
       }
    }
 
@@ -298,6 +298,10 @@ class K8sServiceRuntime(
 
    private fun isServiceExisting(serviceName: String) = getServiceClient(serviceName).get() != null
 
-   private fun getServiceClient(serviceName: String) = client.services().inNamespace(getNamespace()).withName(serviceName)
+   private fun getServiceClient(serviceName: String) = client
+      .services()
+      .inNamespace(namespace)
+      .withName(serviceName)
+
 
 }

@@ -2,7 +2,6 @@ package no.acntech.easycontainers.util.collections
 
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import no.acntech.easycontainers.util.text.NEW_LINE
-import java.util.*
 
 /**
  * Returns a string representation of the map in a pretty format.
@@ -48,7 +47,7 @@ fun Map<*, *>.prettyPrint(
  */
 fun List<*>.prettyPrint(
    offset: Int = 2,
-   paddingChar: Char = ' '
+   paddingChar: Char = ' ',
 ): String {
    val padding = EMPTY_STRING.padStart(offset, paddingChar)
 
@@ -74,7 +73,8 @@ fun List<*>.prettyPrint(
  */
 fun Map<*, *>.toStringMap(): Map<String, String> {
    return this.mapValues {
-      it.value?.toString() ?: "null" }
+      it.value?.toString() ?: "null"
+   }
       .mapKeys { it.key?.toString() ?: "null" }
 }
 

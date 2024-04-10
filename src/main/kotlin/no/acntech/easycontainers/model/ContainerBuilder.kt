@@ -1,6 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.output.OutputLineCallback
+import no.acntech.easycontainers.util.text.COLON
+import no.acntech.easycontainers.util.text.SPACE
 import java.math.BigInteger
 import java.time.Duration
 import java.time.temporal.ChronoUnit
@@ -360,7 +362,12 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
     * @param keyValSeparator The separator between the key and value in the content of the file (default is ": ")
     * @return The updated ContainerBuilder instance.
     */
-   fun withContainerFile(name: ContainerFileName, path: UnixDir, data: Map<String, String>, keyValSeparator: String = ": "): SELF
+   fun withContainerFile(
+      name: ContainerFileName,
+      path: UnixDir,
+      data: Map<String, String>,
+      keyValSeparator: String = "$COLON$SPACE",
+   ): SELF
 
    /**
     * Adds a file to the container with the specified name, path, and content.
