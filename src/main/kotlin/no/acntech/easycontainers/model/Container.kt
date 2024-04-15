@@ -167,6 +167,7 @@ interface Container {
     * @param args the arguments to pass to the command
     * @param workingDir the working directory for the command
     * @param input the input stream to pass to the command
+    *
     * @param waitTimeValue the time to wait for the command to complete
     * @param waitTimeUnit the time unit for the wait time
     * @return a pair of the exit code and the std error output
@@ -181,6 +182,26 @@ interface Container {
       waitTimeValue: Long? = null,
       waitTimeUnit: TimeUnit? = null,
    ): Pair<Int?, String?>
+
+   fun execute(
+      command: List<String>,
+      useTty: Boolean = false,
+      workingDir: String? = null,
+      input: InputStream? = null,
+      output: OutputStream = OutputStream.nullOutputStream(),
+      waitTimeValue: Long? = null,
+      waitTimeUnit: TimeUnit? = null,
+   ): Pair<Int?, String?> {
+      return execute(
+         Executable.of(command.first()),
+         Args.of(command.drop(1)),
+         useTty,
+         workingDir?.let { UnixDir.of(it) },
+         input,
+         output,
+         waitTimeValue,
+         waitTimeUnit)
+   }
 
    /**
     * Uploads a file to the container.
@@ -207,7 +228,8 @@ interface Container {
    fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path? = null): Path
 
    /**
-    * Uploads a directory to the container.
+    * Uploads a directory to the container. Note that the uploaded files and directoroes include the
+    * the directory itself and all its contents.
     *
     * @param localDir the path of the directory to upload
     * @param remoteDir the path where the directory will be uploaded in the container
@@ -215,16 +237,43 @@ interface Container {
     */
    fun putDirectory(localDir: Path, remoteDir: UnixDir): Long
 
+
    /**
-    * Downloads a directory from the container.
+    * Uploads a directory to the container. Note that the uploaded files and directories include the
+    * the directory itself and all its contents.
+    *
+    * @param localDir the path of the directory to upload
+    * @param remoteDir the path where the directory will be uploaded in the container
+    * @return the size of the transferred directory in bytes
+    */
+   fun putDirectory(localDir: String, remoteDir: String): Long {
+      return putDirectory(Path.of(localDir), UnixDir.of(remoteDir))
+   }
+
+   /**
+    * Downloads a directory from the container. Note that the downloaded files and directories include
+    * the directory itself and all its contents.
     *
     * @param remoteDir the path of the directory to download
-    * @param localDir the path where the directory will be downloaded to
+    * @param localDir the path where the directory will be downloaded to, defaults to a temporary directory
+    * @return a pair of the path of the downloaded directory and a list of the paths of the downloaded files
     */
    fun getDirectory(
       remoteDir: UnixDir,
       localDir: Path = Files.createTempDirectory("container-download-tar").toAbsolutePath(),
    ): Pair<Path, List<Path>>
+
+   /**
+    * Downloads a directory from the container. Note that the downloaded files and directories include
+    * the directory itself and all its contents.
+    *
+    * @param remoteDir the path of the directory to download
+    * @param localDir the path where the directory will be downloaded to, defaults to a temporary directory
+    * @return a pair of the path of the downloaded directory and a list of the paths of the downloaded files
+    */
+   fun getDirectory(remoteDir: String, localDir: String): Pair<Path, List<Path>> {
+      return getDirectory(UnixDir.of(remoteDir), Path.of(localDir))
+   }
 
    /**
     * Retrieves the state of the container.

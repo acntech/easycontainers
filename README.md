@@ -6,6 +6,8 @@
 2. [Getting Started](#Getting-Started)
    1. [Starting a container](#Starting-a-container)
    2. [Building and deploying a custom container](#Building-and-deploying-a-custom-container)
+   3. [Transferring files to and from a container](#Transferring-files-to-and-from-a-container)
+   4. [Running commands in a running container](#Running-commands-in-a-running-container)
 3. [Requirements](#Requirements)
    1. [Docker](#Docker)
    2. [Kubernetes](#Kubernetes)
@@ -115,8 +117,7 @@ private val logTimeScriptContent = """
 fun buildAndRunCustomContainer() {
     val imageNameVal = "simple-alpine"
     
-    DockerRegistryUtils.deleteImage("http://$REGISTRY/test", imageNameVal)
-    [ContainerExecTests.kt](src%2Ftest%2Fkotlin%2Ftest%2Facntech%2Feasycontainers%2FContainerExecTests.kt)
+    DockerRegistryUtils.deleteImage("http://$REGISTRY/test", imageNameVal)   
     val tempDir = Files.createTempDirectory("dockercontext-").toString()
     log.debug("Temp [.gitignore](.gitignore)dir for docker-context created: {}", tempDir)
     val dockerfile = File(tempDir, "Dockerfile")
@@ -148,16 +149,92 @@ fun buildAndRunCustomContainer() {
         withLogLineCallback { line -> println("SIMPLE-ALPINE-OUTPUT: $line") }
     }.build()
     
-    container.getRuntime().start()
+    val runtime = container.getRuntime()
+    runtime.start()
     
     TimeUnit.SECONDS.sleep(120) // Lean back and watch the time being logged every 2 seconds
     
-    container.stop()
-    container.delete()
+    runtime.stop()
+    runtime.delete()
 }
    ```
 
 To run the above example in Kubernetes, just replace the `withContainerPlatformType(ContainerPlatformType.DOCKER)` with `withContainerPlatformType(ContainerPlatformType.KUBERNETES)`. This will build the image using a Kubernetes Kaniko-job and then deploy the image as a single container service in Kubernetes.
+
+### Transferring files to and from a container
+
+The following example shows how to transfer a file from the local file system to a running container:
+
+```kotlin
+   val localFile = File("hello.txt")
+   localFile.writeText("Hello, world!")
+   container.putFile(localFile, UnixDir.of("/tmp"))
+```
+
+The following example shows how to transfer a (remote) file from a running container to the local file system:
+
+```kotlin
+   val path = container.getFile(UnixDir.of("/tmp"), "hello.txt")
+   val content = Files.readString(path)
+   log.debug("Content of file:\n$content")
+```
+
+In order to specify a target file, just specify it as an argument:
+
+```kotlin
+    val path = container.getFile(UnixDir.of("/tmp"), "hello.txt", Path.of("./hello-local.txt"))
+    val content = Files.readString(path)
+    log.debug("Content of file:\n$content")
+```
+
+The following example shows how to transfer a directory from the local file system to a running container:
+```kotlin
+    val size = container.putDirectory(Path.of("./resources"), UnixDir.of("/tmp"))
+```
+
+The following example shows how to transfer a directory from a running container to the local file system:
+```kotlin
+    val (parentPath, paths) = container.getDirectory(UnixDir.of("/tmp/resources"), Files.createTempDirectory("container-resources"))
+    for (path in paths) {
+      if (Files.isRegularFile(path)) {
+         val content = Files.readString(path)
+         log.debug("Content of file $path is :\n$content")
+      }
+    }
+```   
+
+### Running commands in a running container
+
+The following example shows how to run a command in a running container and capture the output:
+
+```kotlin
+    val input = ByteArrayOutputStream()
+    val (exitCode, stdErr) = container.execute(
+       command = List.of("ls","-la", "/"),
+       output = output)
+    log.debug("Result of command:\n${output.toString(StandardCharsets.UTF_8)}")
+```
+
+The following example shows how to run a command with input in a running container, and capture the output:
+
+```kotlin
+    val inputString = "Hello, world!"
+    val input = inputString.byteInputStream()
+    val output = ByteArrayOutputStream() // Output stream to capture the output - should be the same as the input
+   
+    val (exitCode, stderr) = container.execute(
+       Executable.of("cat"),
+       null,
+       true,
+       UnixDir.of(FORWARD_SLASH),
+       input,
+       output,
+       20,
+       TimeUnit.SECONDS
+    )
+
+    val stdout = output.toUtf8String()
+```
 
 ## Requirements
 
