@@ -242,4 +242,14 @@ interface Container {
     */
    fun waitForState(state: ContainerState, timeout: Long = 0, unit: TimeUnit = TimeUnit.SECONDS): Boolean
 
+   /**
+    * Wait for the container to stop. The default implementation waits indefinitely for the ContainerState.STOPPED state.
+    *
+    * @param timeout the maximum time to wait for the container to stop, default is 0 which means indefinite wait
+    * @param unit the time unit of the timeout, default is seconds
+    */
+   fun waitForCompletion(timeout: Long = 0, unit: TimeUnit = TimeUnit.SECONDS): Boolean {
+      return waitForState(ContainerState.STOPPED, timeout, unit)
+   }
+
 }

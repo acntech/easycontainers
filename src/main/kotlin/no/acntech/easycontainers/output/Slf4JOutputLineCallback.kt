@@ -24,6 +24,7 @@ class Slf4JOutputLineCallback(
       val logLine = prefix + (line ?: "<EOF>")
 
       when (level) {
+
          Level.TRACE -> {
             if (marker != null) {
                logger.trace(marker, logLine)
@@ -63,6 +64,7 @@ class Slf4JOutputLineCallback(
                logger.error(logLine)
             }
          }
+
       }
    }
 }

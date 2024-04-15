@@ -21,7 +21,7 @@ fun String.splitOnWhites() = split(WHITESPACE_REGEX)
  *                 the end. Default value is false.
  * @return The truncated string with the specified affix appended.
  */
-fun String.truncate(length: Int, affix: String = "[..]", fromStart: Boolean = false): String {
+fun String.truncate(length: Int, affix: String = EMPTY_STRING, fromStart: Boolean = false): String {
    if (this.length <= length) return this
    val suffixLength = affix.length
 

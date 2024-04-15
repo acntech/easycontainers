@@ -6,6 +6,7 @@ import no.acntech.easycontainers.util.text.SPACE
 import java.math.BigInteger
 import java.time.Duration
 import java.time.temporal.ChronoUnit
+import java.util.concurrent.TimeUnit
 
 /**
  * A builder interface for creating container configurations.
@@ -14,9 +15,6 @@ import java.time.temporal.ChronoUnit
  */
 interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
 
-   /**
-    *
-    */
    fun withContainerPlatformType(type: ContainerPlatformType): SELF
 
    /**
@@ -28,12 +26,18 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
    fun withExecutionMode(executionMode: ExecutionMode): SELF
 
    /**
+    * Returns a new instance of the container object with the specified name.
     *
+    * @param name the name of the container
+    * @return a new instance of the container object with the specified name
     */
    fun withName(name: ContainerName): SELF
 
    /**
+    * Sets the name of the container.
     *
+    * @param name The name of the container.
+    * @return The updated ContainerBuilder instance.
     */
    fun withName(name: String): SELF {
       return withName(ContainerName.of(name))
@@ -381,7 +385,11 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
    fun withContainerFile(name: ContainerFileName, path: UnixDir, content: String): SELF
 
    /**
+    * Sets the volume name and mount path for the current instance of the object.
     *
+    * @param name The name of the volume to be set.
+    * @param mountPath The mount path to be set as the mount point for the volume.
+    * @return An instance of the object with the volume name and mount path set.
     */
    fun withVolume(name: VolumeName, mountPath: UnixDir): SELF
 
@@ -408,7 +416,20 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
     * @param unit The unit of time for the maximum lifetime.
     * @return The updated ContainerBuilder instance.
     */
-   fun withMaxLifeTime(value: Long, unit: ChronoUnit): SELF
+   fun withMaxLifeTime(value: Long, unit: ChronoUnit): SELF {
+      return withMaxLifeTime(Duration.of(value, unit))
+   }
+
+   /**
+    * Sets the maximum life time for the object.
+    *
+    * @param value the value of the maximum life time
+    * @param unit the time unit of the maximum life time
+    * @return this object with the maximum life time set
+    */
+   fun withMaxLifeTime(value: Long, unit: TimeUnit): SELF {
+      return withMaxLifeTime(value, unit.toChronoUnit())
+   }
 
    /**
     * Adds a custom property to the container.

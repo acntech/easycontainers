@@ -19,7 +19,7 @@ class ContainerTaskTests {
    @ParameterizedTest
    @ValueSource(
       strings = [
-//         "DOCKER",
+         "DOCKER",
          "KUBERNETES"
       ]
    )
@@ -29,7 +29,9 @@ class ContainerTaskTests {
 
       val container = TestSupport.startContainer(containerPlatformType, ExecutionMode.TASK, true)
 
-      TimeUnit.SECONDS.sleep(5)
+      val completed = container.waitForCompletion(10, TimeUnit.SECONDS)
+
+      assertTrue(completed, "Task did not complete within the time limit")
 
       val exitCode = container.getExitCode()
 

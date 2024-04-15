@@ -16,6 +16,7 @@ import no.acntech.easycontainers.util.platform.PlatformUtils
 import no.acntech.easycontainers.util.text.COLON
 import no.acntech.easycontainers.util.text.FORWARD_SLASH
 import no.acntech.easycontainers.util.text.NEW_LINE
+import no.acntech.easycontainers.util.text.truncate
 import org.apache.commons.io.FileUtils
 import org.awaitility.Awaitility.await
 import java.io.File
@@ -44,10 +45,10 @@ internal class K8sImageBuilder(
 
       private const val DEFAULT_KANIKO_IMAGE = "gcr.io/kaniko-project/executor:latest"
       private const val KANIKO_CONTAINER_NAME = "kaniko-container"
-      private const val KANIKO_DATA_VOLUME_NAME = "kaniko-data-pv"
       private const val KANIKO_DOCKER_CONFIG_VOLUME_NAME = "kaniko-docker-config-volume"
-      private const val KANIKO_DATA_VOLUME_CLAIM_NAME = "kaniko-data-pvc"
-      private const val KANIKO_DATA_VOLUME_K8S_MOUNT_PATH = "/mnt/kaniko-data"
+      private const val DEFAULT_KANIKO_DATA_PERSISTENT_VOLUME_NAME = "kaniko-data-pv"
+      private const val DEFAULT_KANIKO_DATA_PERSISTENT_VOLUME_CLAIM_NAME = "kaniko-data-pvc"
+      private const val KANIKO_DATA_VOLUME_MOUNT_PATH = "/mnt/kaniko-data"
       private const val KANIKO_DOCKER_PATH = "/kaniko/.docker"
       private const val KANIKO_CONFIG_FILE = "config.json"
 
@@ -59,9 +60,14 @@ internal class K8sImageBuilder(
 
    private val uuid: String = UUID.randomUUID().toString()
 
-   private val jobName = "kaniko-job-$uuid"
+   private val jobName = "kaniko-job-$uuid".truncate(15)
 
-   private var job: Job? = null
+   private val _job: AtomicReference<Job> = AtomicReference<Job>()
+   private var job: Job
+      get() = _job.get()
+      set(value) {
+         _job.set(value)
+      }
 
    private var deleteContextDir = false
 
@@ -89,13 +95,13 @@ internal class K8sImageBuilder(
 
       changeState(State.IN_PROGRESS)
 
-      val podName = getPodNameForJob().also {
+      val podName = getPodNameForJob()?.let {
          log.info("Pod name for Kaniko job '$jobName': $it")
-         if (it == null) {
-            log.error("Unable to retrieve pod name for job '$jobName'")
-            changeState(State.FAILED)
-            return false
-         }
+         it
+      } ?: run {
+         log.error("Unable to retrieve pod name for job '$jobName'")
+         changeState(State.FAILED)
+         return false
       }
 
       // INVARIANT: A pod exists for the job
@@ -105,7 +111,7 @@ internal class K8sImageBuilder(
 
       // Stream the logs from the pod
       val containerLogStreamer = ContainerLogStreamer(
-         podName = podName!!,
+         podName = podName,
          namespace = namespace.unwrap(),
          outputLineCallback = outputLineCallback
       )
@@ -164,14 +170,13 @@ internal class K8sImageBuilder(
       log.info("Using registry '$registry'")
       log.info("Using repository '$repository'")
       log.info("Using tags: $tags")
-
    }
 
    private fun createActualDockerContextDir(): String {
       return if (K8sUtils.isRunningOutsideCluster()) {
          handleRunningOutsideCluster()
       } else {
-         handleRunningInsideCluster()
+         processInsideCluster()
       }
    }
 
@@ -189,59 +194,74 @@ internal class K8sImageBuilder(
    }
 
    private fun processOutsideCluster(): String {
-      var localKanikoPath = customProperties[PROP_LOCAL_KANIKO_DATA_PATH].also {
-         log.debug("localKanikoPath: $it")
+      var updatedLocalKanikoPath: String? = null
+
+      customProperties[PROP_LOCAL_KANIKO_DATA_PATH]?.let { localKanikoPath ->
+         log.debug("Using local Kaniko data path: $localKanikoPath")
+         updatedLocalKanikoPath = processLocalKanikoPath(localKanikoPath)
       }
 
-      return if (localKanikoPath != null) {
-         log.debug("Using local Kaniko data path: $localKanikoPath")
+      return processDockerContextDir(updatedLocalKanikoPath)
+   }
 
-         if (PlatformUtils.isWindows() && PlatformUtils.getDefaultWslDistro() != null) {
-            if (localKanikoPath.startsWith(FORWARD_SLASH)) { // Unix-dir, i.e. inside WSL
-               // Return the directory as the $WSL share
-               localKanikoPath = PlatformUtils.createDirectoryInWsl(localKanikoPath)
-            } else if (!localKanikoPath.startsWith("\\\\wsl\$")) {
-               // Otherwise it needs to be in the \\wsl$ share
-               throw ContainerException("Invalid local Kaniko path: $localKanikoPath")
-            }
-
-         } else if (PlatformUtils.isLinux() || PlatformUtils.isMac()) {
-            localKanikoPath = File(localKanikoPath).also {
-               if (!(it.exists() || it.mkdirs())) {
-                  log.warn("Unable to create or non-existing local Kaniko-data directory: $it")
-               }
-            }.absolutePath
-         }
-
-         if (dockerContextDir.startsWith(localKanikoPath)) {
-            log.trace("Docker context dir '$dockerContextDir' is already under the Kaniko data path")
-            requireDockerfile()
-            KANIKO_DATA_VOLUME_K8S_MOUNT_PATH + dockerContextDir.absolutePathString().substring(localKanikoPath!!.length).also {
-               log.info("Using '$it' as the Docker context dir (present on local WSL filesystem)")
-            }
-
-         } else {
-            log.trace("Docker context dir '$dockerContextDir' is not under the local Kaniko data volume, preparing to copy it")
-            copyDockerContextDirToUniqueSubDir(localKanikoPath!!)
-            "$KANIKO_DATA_VOLUME_K8S_MOUNT_PATH/${uuid}".also {
-               log.info("Using '$it' as the Docker context dir")
-            }
-         }
-
-      } else {
-         // Running on Linux or Mac - or Windows without WSL2 - we just have to assume that the Dockerfile and the context is
-         // already present in the shared Kaniko data volume
-         dockerContextDirBelowMountPath()
+   private fun processLocalKanikoPath(localKanikoPath: String): String {
+      return when {
+         PlatformUtils.isWindows() && PlatformUtils.getDefaultWslDistro() != null -> processWindowsLocalKanikoPath(localKanikoPath)
+         PlatformUtils.isLinux() || PlatformUtils.isMac() -> processUnixLocalKanikoPath(localKanikoPath)
+         else -> localKanikoPath
       }
    }
 
-   private fun handleRunningInsideCluster(): String {
+   private fun processWindowsLocalKanikoPath(localKanikoPath: String): String {
+      return when {
+         localKanikoPath.startsWith(FORWARD_SLASH) -> PlatformUtils.createDirectoryInWsl(localKanikoPath) // Unix-dir, i.e. inside WSL
+         !localKanikoPath.startsWith("\\\\wsl\$") -> throw ContainerException("Invalid local Kaniko path: $localKanikoPath") // Otherwise it needs to be in the \\wsl$ share
+         else -> localKanikoPath
+      }
+   }
+
+   private fun processUnixLocalKanikoPath(localKanikoPath: String): String {
+      return File(localKanikoPath).apply {
+         if (!exists() && !mkdirs()) {
+            log.warn("Unable to create or non-existing local Kaniko-data directory: $this")
+         }
+      }.absolutePath
+   }
+
+   private fun processDockerContextDir(updatedLocalKanikoPath: String?): String {
+      return when {
+         dockerContextDir.startsWith(
+            updatedLocalKanikoPath ?: return dockerContextDirBelowMountPath()
+         ) -> processDockerContextDirUnderKanikoDataPath(updatedLocalKanikoPath)
+
+         else -> processDockerContextDirNotUnderKanikoDataVolume(updatedLocalKanikoPath)
+      }
+   }
+
+   private fun processDockerContextDirUnderKanikoDataPath(updatedLocalKanikoPath: String): String {
+      log.trace("Docker context dir '$dockerContextDir' is already under the Kaniko data path")
+      requireDockerfile()
+      return (KANIKO_DATA_VOLUME_MOUNT_PATH + dockerContextDir.absolutePathString()
+         .substring(updatedLocalKanikoPath.length)).also {
+         log.info("Using '$it' as the Docker context dir (present on local WSL filesystem)")
+      }
+   }
+
+   private fun processDockerContextDirNotUnderKanikoDataVolume(updatedLocalKanikoPath: String): String {
+      log.trace("Docker context dir '$dockerContextDir' is not under the local Kaniko data volume, preparing to copy it")
+      copyDockerContextDirToUniqueSubDir(updatedLocalKanikoPath)
+      return "$KANIKO_DATA_VOLUME_MOUNT_PATH/${uuid}".also {
+         log.info("Using '$it' as the Docker context dir")
+      }
+   }
+
+   private fun processInsideCluster(): String {
       log.debug("Running INSIDE a k8s cluster")
       if (Files.exists(dockerContextDir)) {
          throw IllegalStateException("Docker context dir '$dockerContextDir' is not a directory on the local filesystem")
       }
 
-      return if (dockerContextDir.toString().startsWith(KANIKO_DATA_VOLUME_K8S_MOUNT_PATH)) {
+      return if (dockerContextDir.toString().startsWith(KANIKO_DATA_VOLUME_MOUNT_PATH)) {
          log.trace("Docker context dir '$dockerContextDir' is already under the mounted Kaniko data volume")
          requireDockerfile()
          dockerContextDir.toString().also { resultContextDir ->
@@ -249,7 +269,7 @@ internal class K8sImageBuilder(
          }
       } else { // Otherwise copy it to a unique directory under the Kaniko data volume
          log.trace("Docker context dir '$dockerContextDir' is not under the mounted Kaniko data volume, preparing to copy it")
-         copyDockerContextDirToUniqueSubDir(KANIKO_DATA_VOLUME_K8S_MOUNT_PATH)
+         copyDockerContextDirToUniqueSubDir(KANIKO_DATA_VOLUME_MOUNT_PATH)
       }
    }
 
@@ -260,7 +280,7 @@ internal class K8sImageBuilder(
    }
 
    private fun dockerContextDirBelowMountPath(): String =
-      Paths.get(KANIKO_DATA_VOLUME_K8S_MOUNT_PATH, dockerContextDir.toString().trim('/'))
+      Paths.get(KANIKO_DATA_VOLUME_MOUNT_PATH, dockerContextDir.toString().trim('/'))
          .toString().also { resultContextDir ->
             log.info("Using '$resultContextDir' as the Docker context dir (not present on local filesystem)")
          }
@@ -291,23 +311,23 @@ internal class K8sImageBuilder(
 
    private fun createAndDeployKanikoJob(contextDir: String) {
       job = createKanikoJob(contextDir)
-      job = client.batch().v1()
+
+      job = (client.batch().v1()
          .jobs()
          .inNamespace(namespace.unwrap())
          .resource(job)
          .create().also {
             log.info("Kaniko job '$it' deployed in namespace '$namespace'")
-         }
+         })
    }
 
    private fun createKanikoJob(dockerContextPath: String): Job {
       val args = prepareArguments(dockerContextPath)
 
+      val pvName = customProperties[PROP_KANIKO_K8S_PV_NAME] ?: DEFAULT_KANIKO_DATA_PERSISTENT_VOLUME_NAME
+
       val volumeMounts: MutableList<VolumeMount> = mutableListOf(
-         createVolumeMount(
-            KANIKO_DATA_VOLUME_NAME,
-            KANIKO_DATA_VOLUME_K8S_MOUNT_PATH
-         )
+         createVolumeMount(pvName, KANIKO_DATA_VOLUME_MOUNT_PATH)
       )
 
       val configVolumeMount = if (isInsecureRegistry) createInsecureRegistryConfigVolumeMount() else null
@@ -329,10 +349,9 @@ internal class K8sImageBuilder(
 
       // Now we have the container and the volume(s) - create the job
       return createJob(container, volumes).also {
-         log.debug("Created Kaniko job: {}", it.metadata.name)
+         log.debug("Created Kaniko job: ${it.metadata.name}")
          log.info("${NEW_LINE}Kaniko job YAML:$NEW_LINE${Serialization.asYaml(it)}")
       }
-
    }
 
    private fun prepareArguments(dockerContextPath: String): MutableList<String> {
@@ -351,7 +370,7 @@ internal class K8sImageBuilder(
       }
 
       return args.also {
-         log.debug("Kaniko build arguments: {}", it)
+         log.debug("Kaniko build arguments: $it")
       }
    }
 
@@ -368,7 +387,7 @@ internal class K8sImageBuilder(
          .withName(name)
          .withMountPath(mountPath)
          .build().also {
-            log.debug("Created volume mount: {}", it)
+            log.debug("Created volume mount: $it")
          }
    }
 
@@ -392,11 +411,14 @@ internal class K8sImageBuilder(
    }
 
    private fun createDataVolume(): Volume {
+      val pvName = customProperties[PROP_KANIKO_K8S_PV_NAME] ?: DEFAULT_KANIKO_DATA_PERSISTENT_VOLUME_NAME
+      val pvcName = customProperties[PROP_KANIKO_K8S_PVC_NAME] ?: DEFAULT_KANIKO_DATA_PERSISTENT_VOLUME_CLAIM_NAME
+
       return VolumeBuilder()
-         .withName(KANIKO_DATA_VOLUME_NAME)
+         .withName(pvName)
          .withPersistentVolumeClaim(
             PersistentVolumeClaimVolumeSourceBuilder()
-               .withClaimName(KANIKO_DATA_VOLUME_CLAIM_NAME)
+               .withClaimName(pvcName)
                .build()
          )
          .build().also {
@@ -415,7 +437,7 @@ internal class K8sImageBuilder(
          }
    }
 
-   private fun createJob(container: Container, volumes: List<Volume>): Job {
+   private fun createJob(k8sContainer: Container, volumes: List<Volume>): Job {
       return JobBuilder()
          .withApiVersion("batch/v1")
          .withNewMetadata()
@@ -428,7 +450,7 @@ internal class K8sImageBuilder(
                .withNewMetadata()
                .endMetadata()
                .withNewSpec()
-               .withContainers(container)
+               .withContainers(k8sContainer)
                .withVolumes(volumes)
                .withRestartPolicy("Never")
                .endSpec()
@@ -460,7 +482,10 @@ internal class K8sImageBuilder(
       log.debug("Created Kaniko config map: {}", kanikoConfigMap)
       log.debug("ConfigMap YAML:$NEW_LINE${Serialization.asYaml(kanikoConfigMap)}")
 
-      kanikoConfigMap = client.configMaps().inNamespace(namespace.unwrap()).resource(kanikoConfigMap).create()
+      kanikoConfigMap = client.configMaps()
+         .inNamespace(namespace.unwrap())
+         .resource(kanikoConfigMap)
+         .create()
    }
 
    private fun getPodNameForJob(maxWaitTimeSeconds: Long = 100L): String? {
@@ -501,12 +526,17 @@ internal class K8sImageBuilder(
 
          override fun eventReceived(action: Watcher.Action, job: Job) {
             log.debug("Received event '${action.name}' on job with status '${job.status}'")
-            if (job.status != null && job.status.startTime != null) {
-               startTime.set(Instant.parse(job.status.startTime))
-            }
-            if (job.status != null && job.status.conditions != null) {
-               for (condition in job.status.conditions) {
-                  handleJobCondition(condition, job, latch)
+
+            // Update the job reference
+            this@K8sImageBuilder.job = job
+
+            job.status?.let { status ->
+               status.startTime?.let {
+                  startTime.set(Instant.parse(it))
+               }
+
+               status.conditions?.forEach { condition ->
+                  handleJobCondition(condition, latch)
                }
             }
          }
@@ -522,8 +552,14 @@ internal class K8sImageBuilder(
       }
 
       try {
-         client.batch().v1().jobs().inNamespace(namespace.unwrap()).withName(jobName).watch(jobWatcher)
+         client.batch().v1()
+            .jobs()
+            .inNamespace(namespace.unwrap())
+            .withName(jobName)
+            .watch(jobWatcher)
+
          latch.await(timeoutValue, timeoutUnit)
+
       } catch (e: Exception) {
          log.error("Error watching job: ${e.message}", e)
          changeState(State.UNKNOWN)
@@ -531,14 +567,14 @@ internal class K8sImageBuilder(
       }
    }
 
-   private fun handleJobCondition(condition: JobCondition, job: Job, latch: CountDownLatch) {
+   private fun handleJobCondition(condition: JobCondition, latch: CountDownLatch) {
       when (condition.type) {
-         "Complete" -> handleJobCompletion(condition, job, latch)
-         "Failed" -> handleJobFailure(condition, job, latch)
+         "Complete" -> handleJobCompletion(condition, latch)
+         "Failed" -> handleJobFailure(condition, latch)
       }
    }
 
-   private fun handleJobCompletion(condition: JobCondition, job: Job, latch: CountDownLatch) {
+   private fun handleJobCompletion(condition: JobCondition, latch: CountDownLatch) {
       if ("True" == condition.status) {
          val completionDateTimeVal = job.status.completionTime
          if (completionDateTimeVal != null) {
@@ -557,7 +593,7 @@ internal class K8sImageBuilder(
       }
    }
 
-   private fun handleJobFailure(condition: JobCondition, job: Job, latch: CountDownLatch) {
+   private fun handleJobFailure(condition: JobCondition, latch: CountDownLatch) {
       if ("True" == condition.status) {
          log.error("Job '$jobName' failed with reason: ${condition.reason}")
          changeState(State.FAILED)

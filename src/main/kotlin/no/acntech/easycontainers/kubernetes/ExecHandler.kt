@@ -11,6 +11,7 @@ import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.kubernetes.ErrorSupport.handleK8sException
 import no.acntech.easycontainers.util.io.closeQuietly
 import no.acntech.easycontainers.util.io.toUtf8String
+import no.acntech.easycontainers.util.text.NEW_LINE
 import no.acntech.easycontainers.util.text.SPACE
 import no.acntech.easycontainers.util.text.truncate
 import no.acntech.easycontainers.util.time.WaitTimeCalculator
@@ -238,7 +239,7 @@ internal class ExecHandler(
 
             // Convert the captured output to a string and log it
             logStream.toUtf8String().also { debugString ->
-               log.debug("Captured output data for command execution: ${debugString.truncate(1024)}")
+               log.debug("Captured output data for command execution:$NEW_LINE${debugString.truncate(1024)}")
             }
 
          } ?: log.warn("The container output is not available for command execution")

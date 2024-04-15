@@ -28,50 +28,6 @@ object TestSupport {
 
    val localKanikoPath = PlatformUtils.convertLinuxPathToWindowsWslPath("/home/thomas/kind/kaniko-data")
 
-   private val DOCKERFILE_CONTENT = """       
-         # Use Alpine Linux as the base image
-         FROM alpine:latest
-
-         # Install dependencies
-         # RUN apk add --no-cache curl netcat-openbsd openssh
-         RUN apk add --no-cache openssh
-
-         # Additional setup SSH
-         RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
-             && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
-             && echo "root:root" | chpasswd \
-             && ssh-keygen -A
-         
-         # Copy the log-time.sh script to the container
-         COPY log-time.sh /usr/local/bin/log-time.sh
-         
-         # Make the log-time.sh script executable
-         RUN chmod +x /usr/local/bin/log-time.sh
-         
-         # Create a startup script directly in the Dockerfile
-         RUN echo '#!/bin/sh' > /start.sh \
-            && echo '/usr/sbin/sshd &' >> /start.sh \
-            && echo '/usr/local/bin/log-time.sh' >> /start.sh \
-            && chmod +x /start.sh
-
-         # Expose necessary ports (the SSH port)
-         EXPOSE 22
-         
-         # Define the container's default behavior
-         CMD ["/start.sh"]
-
-    """.trimIndent()
-
-   private val LOG_TIME_SCRIPT_CONTENT = """
-         count=1
-         while true
-         do
-           echo "${'$'}{count}: ${'$'}(date)"
-           count=${'$'}((count+1))
-           sleep 1
-         done
-      """.trimIndent()
-
    init {
       System.setProperty(DockerConstants.PROP_DOCKER_HOST, "tcp://$dockerHostAddress:2375")
    }
@@ -96,6 +52,7 @@ object TestSupport {
       }
 
       val container = GenericContainer.builder().apply {
+         withContainerPlatformType(platform)
          withName(ContainerName.of("easycontainers-$imageName"))
          withNamespace(Namespace.TEST)
          withImage(ImageURL.of("$registry/test/$imageName:latest"))
@@ -127,7 +84,6 @@ object TestSupport {
 
          withIsEphemeral(ephemeral)
          withOutputLineCallback { line -> println("$platform-'${imageName.uppercase()}'-CONTAINER-OUTPUT: $line") }
-         withContainerPlatformType(platform)
       }.build()
 
       log.debug("Container created: $container")

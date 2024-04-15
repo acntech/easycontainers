@@ -198,7 +198,7 @@ object PlatformUtils {
    }
 
    @Throws(IOException::class)
-   fun createDirectoryInWsl(linuxPath: String, distroName: String? = getDefaultWslDistro()): String? {
+   fun createDirectoryInWsl(linuxPath: String, distroName: String? = getDefaultWslDistro()): String {
       val wslPath = convertLinuxPathToWindowsWslPath(linuxPath, distroName)
 
       // Create directory and parent directories if they do not exist

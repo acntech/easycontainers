@@ -43,7 +43,7 @@ import java.time.Instant
  * <p>
  * When creating and configuring the ImageBuilder, this path must be used as the local path.
  * <pre><code>
- *    val imageBuilder = ContainerFactory.imageBuilder(ContainerType.KUBERNETES)
+ *    val imageBuilder = ImageBuilder.of(ContainerPlatformType.KUBERNETES)
  *          .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/mnt/wsl/kaniko-data")
  *          // other properties
  * </code></pre>
@@ -64,14 +64,14 @@ import java.time.Instant
  * nodes:
  * - role: control-plane
  *   extraMounts:
- *     - hostPath: /home/user/k8s-share/kaniko-data
- *       containerPath: /data
+ *     - hostPath: /home/[user]/kaniko-data
+ *       containerPath: /kaniko-data
  * </pre></code>
  * <p>
  * When creating and configuring the ImageBuilder (for kubernetes), this path must be used as the local path.
  * <pre><code>
- *    val imageBuilder = ContainerFactory.imageBuilder(ContainerType.KUBERNETES)
- *          .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/home/user/k8s-share/kaniko-data")
+ *    val imageBuilder = ImageBuilder.of(ContainerPlatformType.KUBERNETES)
+ *          .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/home/[user]/kaniko-data")
  *          // other properties
  * </code></pre>
  */
@@ -87,6 +87,8 @@ abstract class ImageBuilder {
 
    companion object {
       const val PROP_LOCAL_KANIKO_DATA_PATH = "kaniko-data.local.path"
+      const val PROP_KANIKO_K8S_PVC_NAME = "kaniko-data.k8s.pvc.name"
+      const val PROP_KANIKO_K8S_PV_NAME = "kaniko-data.k8s.pv.name"
 
       /**
        * Creates and returns of ImageBuilder based on the provided container type.

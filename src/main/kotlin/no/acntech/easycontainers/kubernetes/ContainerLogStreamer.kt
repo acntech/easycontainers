@@ -2,8 +2,11 @@ package no.acntech.easycontainers.kubernetes
 
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.fabric8.kubernetes.client.KubernetesClientBuilder
+import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.output.LineReader
 import no.acntech.easycontainers.output.OutputLineCallback
+import java.io.IOException
+import java.util.concurrent.CancellationException
 
 /**
  * Stream logs from a container in a Kubernetes pod. Implements [Runnable] and can be used in a [Thread].
@@ -23,7 +26,16 @@ class ContainerLogStreamer(
    }
 
    override fun run() {
-      lineReader.read()
+      try {
+         lineReader.read()
+      } catch(e: IOException) {
+         when (e.cause) {
+            is InterruptedException, is CancellationException -> {
+               // The thread was interrupted or cancelled, so we can ignore this exception
+            }
+            else -> throw ContainerException("Failed to read log stream for pod '$podName' in namespace '$namespace'", e)
+         }
+      }
    }
 
    fun stop() {

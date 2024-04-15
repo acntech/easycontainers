@@ -57,7 +57,7 @@ class NativeK8sTests {
       val exec: ExecWatch = client
          .pods()
          .inNamespace(container.getNamespace().value)
-         .withName(runtime.getPodName())
+         .withName("to compile"/*runtime.getPodName()*/)
          .inContainer(runtime.getName().value)
          .readingInput(execIn)
          .writingOutput(execOut)

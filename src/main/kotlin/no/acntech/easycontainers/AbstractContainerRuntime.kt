@@ -191,4 +191,6 @@ abstract class AbstractContainerRuntime(
     * @return the IP address of the container as an InetAddress object, or null if the IP address is not available
     */
    internal abstract fun getIpAddress(): InetAddress?
+
+//   internal abstract fun waitForCompletion(timeout: Long = 0, unit: TimeUnit = TimeUnit.SECONDS): Boolean
 }

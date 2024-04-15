@@ -157,12 +157,12 @@ fun buildAndRunCustomContainer() {
 }
    ```
 
-To run the above example in Kubernetes, just replace the `withContainerPlatformType(ContainerPlatformType.DOCKER)` with `withContainerPlatformType(ContainerPlatformType.KUBERNETES)`.
+To run the above example in Kubernetes, just replace the `withContainerPlatformType(ContainerPlatformType.DOCKER)` with `withContainerPlatformType(ContainerPlatformType.KUBERNETES)`. This will build the image using a Kubernetes Kaniko-job and then deploy the image as a single container service in Kubernetes.
 
 ## Requirements
 
 ### Docker
-Developed using Docker [version 24.0.5](https://docs.docker.com/engine/release-notes/24.0/).
+Developed using Docker [version 26.0](https://docs.docker.com/engine/release-notes/26.0/).
 
 ### Kubernetes
 Developed using Kubernetes [version 1.29.2](https://kubernetes.io/releases/)  on Kind [version 0.22](https://github.com/kubernetes-sigs/kind/releases).
@@ -206,6 +206,7 @@ TODO
 ## Roadmap
 - [x] Add support for Kubernetes Jobs as a container runtime.
 - [ ] Add conditional wait strategies for containers - similar to Testcontainers, see [here](https://java.testcontainers.org/features/startup_and_waits/).
+- [ ] Add support for binary (frame-by-frame) log output from containers.
 - [ ] Add specific container implementations for popular databases and services.
 - [ ] Add support for multi-pod/multi-container deployments in both Docker and Kubernetes.
 - [ ] Convert all tests to use [Testcontainers](https://testcontainers.com/) - using either the official [K3s module](https://java.testcontainers.org/modules/k3s/), or the community contributed [KinD module](https://testcontainers.com/modules/kindcontainer/).

@@ -82,6 +82,8 @@ open class GenericContainer(
       ContainerState.FAILED to CountDownLatch(1)
    )
 
+   private val completionLatch: CountDownLatch = CountDownLatch(1)
+
    override fun getRuntime(): ContainerRuntime {
       return runtime
    }
@@ -226,6 +228,15 @@ open class GenericContainer(
       }
    }
 
+   override fun waitForCompletion(timeout: Long, unit: TimeUnit): Boolean {
+      return if (timeout > 0)
+         completionLatch.await(timeout, unit)
+      else {
+         completionLatch.await()
+         true
+      }
+   }
+
    override fun toString(): String {
       return ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
          .append("state", state)
@@ -254,6 +265,10 @@ open class GenericContainer(
 
       // Notify waiting threads
       stateLatches[newState]?.countDown()
+
+      if (isInOneOfStates(ContainerState.STOPPED, ContainerState.DELETED, ContainerState.FAILED)) {
+         completionLatch.countDown()
+      }
    }
 
    @Synchronized

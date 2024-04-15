@@ -64,18 +64,18 @@ class K8sServiceRuntime(
             .withName(getResourceName())
             .scale(0)
 
-         // Await all pods to be removed
+         // Await the pod to be removed
          Awaitility.await()
             .atMost(120, TimeUnit.SECONDS)
             .pollInterval(1, TimeUnit.SECONDS)
             .until {
                client.pods()
                   .inNamespace(container.getNamespace().value)
-                  .withName(pod.get().metadata.name)
+                  .withName(podName)
                   .get() == null
             }
 
-         finishedAt.compareAndSet(null, Instant.now())
+         finishedAt = Instant.now()
 
       } else {
          log.warn("Deployment to stop (scale to 0) not found: ${getResourceName()}")
@@ -89,7 +89,7 @@ class K8sServiceRuntime(
 
       container.requireOneOfStates(ContainerState.RUNNING, ContainerState.FAILED)
       deleteDeploymentIfExists(true)
-      finishedAt.compareAndSet(null, Instant.now())
+      finishedAt = Instant.now()
       container.changeState(ContainerState.STOPPED)
    }
 
@@ -275,7 +275,7 @@ class K8sServiceRuntime(
 
    private fun deletePods() {
       for (pod in client.pods().inNamespace(namespace).withLabels(podLabels).list().items) {
-         client.pods().inNamespace(namespace).withName(pod.metadata.name).delete()
+         client.pods().inNamespace(namespace).withName(podName).delete()
       }
    }
 

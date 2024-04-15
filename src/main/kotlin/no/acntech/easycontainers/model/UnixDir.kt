@@ -5,7 +5,7 @@ import no.acntech.easycontainers.model.base.StringValueObjectValidator
 import no.acntech.easycontainers.util.lang.RegexValidator
 
 /**
- * Represents a Unix directory path as a value object.
+ * Represents a complete (starting with root '/') Unix directory path as a value object.
  *
  * @param value The underlying String value representing the directory path.
  */

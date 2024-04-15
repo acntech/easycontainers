@@ -30,15 +30,21 @@
     <awaitility.version>4.2.1</awaitility.version>
     <commons.lang3.version>3.14.0</commons.lang3.version>
     <commons-exec.version>1.4.0</commons-exec.version>
-    <commons-io.version>2.16.0</commons-io.version>
+    <commons-io.version>2.16.1</commons-io.version>
     <commons-compress.version>1.25.0</commons-compress.version>
     <jsch.version>0.2.17</jsch.version>
     <junit.version>5.10.1</junit.version>
     <slf4j.version>2.0.10</slf4j.version>
-    <logback.version>1.5.3</logback.version>
+    <logback.version>1.5.4</logback.version>
     <junit.version>5.10.2</junit.version>
     <khttp.version>1.6.1</khttp.version>
 
+    <!-- Vulnerability lib update enforce -->
+    <guava.version>33.1.0-jre</guava.version>
+    <commons-codec.version>1.16.1</commons-codec.version>
+    <okio.version>3.9.0</okio.version>
+    <okhttp.version>4.12.0</okhttp.version>
+    <netty-codec-http>4.1.108.Final</netty-codec-http>
 
     <!-- Plugin versions -->
     <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
@@ -51,6 +57,44 @@
     <dependency-check-maven.version>9.1.0</dependency-check-maven.version>
 
   </properties>
+
+  <dependencyManagement>
+    <dependencies>
+
+      <!-- Vulnerability overrides -->
+
+      <dependency>
+        <groupId>com.google.guava</groupId>
+        <artifactId>guava</artifactId>
+        <version>${guava.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>commons-codec</groupId>
+        <artifactId>commons-codec</artifactId>
+        <version>${commons-codec.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.squareup.okio</groupId>
+        <artifactId>okio</artifactId>
+        <version>${okio.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>com.squareup.okhttp3</groupId>
+        <artifactId>okhttp</artifactId>
+        <version>${okhttp.version}</version>
+      </dependency>
+
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-codec-http</artifactId>
+        <version>${netty-codec-http}</version>
+      </dependency>
+
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
 
@@ -65,7 +109,6 @@
       <artifactId>kotlin-stdlib</artifactId>
       <version>${kotlin.version}</version>
     </dependency>
-
 
     <dependency>
       <groupId>io.fabric8</groupId>
@@ -129,28 +172,36 @@
       <version>${logback.version}</version>
     </dependency>
 
+
+
+    <!-- Test dependencies -->
+
     <dependency>
       <groupId>com.github.mwiede</groupId>
       <artifactId>jsch</artifactId>
       <version>${jsch.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
       <version>${junit.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
       <version>${junit.version}</version>
+      <scope>test</scope>
     </dependency>
 
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-params</artifactId>
       <version>${junit.version}</version>
+      <scope>test</scope>
     </dependency>
 
   </dependencies>

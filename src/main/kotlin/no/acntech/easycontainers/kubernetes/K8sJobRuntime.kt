@@ -18,6 +18,8 @@ import no.acntech.easycontainers.util.text.NEW_LINE
 import org.apache.commons.lang3.time.DurationFormatUtils
 import java.time.Instant
 import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.atomic.AtomicReference
 
 /**
  * Represents a Kubernetes Job runtime for a given container.
@@ -30,22 +32,23 @@ class K8sJobRuntime(
    client: KubernetesClient = K8sClientFactory.createDefaultClient(),
 ) : K8sRuntime(container, client) {
 
-   private var job: Job = createJob()
+   private val _job: AtomicReference<Job> = AtomicReference<Job>(createJob())
+   private var job: Job
+      get() = _job.get()
+      set(value) {
+         _job.set(value)
+      }
 
    private val jobName
       get() = job.metadata.name
-
-   private val completionLatch = CountDownLatch(1)
 
    override fun start() {
       super.start()
 
       createWatcher()
 
-      pod.get().let { k8sPod ->
-         host = Host.of("${k8sPod.metadata.name}.$namespace.pod.cluster.local").also {
-            log.debug("Host for pod: $it")
-         }
+      host = Host.of("$podName.$namespace.pod.cluster.local").also {
+         log.debug("Pod hostname: $it")
       }
    }
 
@@ -71,14 +74,14 @@ class K8sJobRuntime(
    }
 
    override fun deploy() {
-      log.debug("Deploying job '${job.metadata.name}' in namespace '$namespace'")
+      log.debug("Deploying job '$jobName' in namespace '$namespace'")
 
       job = client.batch().v1()
          .jobs()
          .inNamespace(namespace)
          .resource(job)
          .create().also {
-            log.info("Job '${job.metadata.name}' deployed in namespace '$namespace'$NEW_LINE${it.prettyPrintMe()}")
+            log.info("Job '$jobName' deployed in namespace '$namespace'$NEW_LINE${it.prettyPrintMe()}")
          }
    }
 
@@ -135,12 +138,14 @@ class K8sJobRuntime(
          override fun eventReceived(action: Watcher.Action, job: Job) {
             log.debug("Received event '${action.name}' on job with status '${job.status}'")
 
-            if (job.status != null && job.status.startTime != null) {
-               startedAt.set(Instant.parse(job.status.startTime))
-            }
+            this@K8sJobRuntime.job = job
 
-            if (job.status != null && job.status.conditions != null) {
-               for (condition in job.status.conditions) {
+            job.status?.let { status ->
+               status.startTime?.let {
+                  startedAt = Instant.parse(it)
+               }
+
+               status.conditions?.forEach { condition ->
                   handleJobCondition(condition)
                }
             }
@@ -183,10 +188,10 @@ class K8sJobRuntime(
       if ("True" == condition.status) {
          val completionDateTimeVal = job.status.completionTime
          completionDateTimeVal?.let {
-            finishedAt.set(Instant.parse(completionDateTimeVal))
+            finishedAt = Instant.parse(completionDateTimeVal)
 
             DurationFormatUtils.formatDurationWords(
-               finishedAt.get().toEpochMilli() - startedAt.get().toEpochMilli(),
+               finishedAt.toEpochMilli() - startedAt.toEpochMilli(),
                true,
                true
             ).let { duration ->
