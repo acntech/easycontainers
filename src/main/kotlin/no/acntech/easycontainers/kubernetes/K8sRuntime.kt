@@ -185,7 +185,7 @@ abstract class K8sRuntime(
       get() = container.getNamespace().value
 
    protected val podName: String
-      get() = pod?.metadata?.name ?: throw IllegalStateException("No pod present")
+      get() = pod.metadata?.name ?: throw IllegalStateException("No pod present")
 
 
    private var containerLogStreamer: ContainerLogStreamer? = null

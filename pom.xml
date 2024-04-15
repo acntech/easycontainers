@@ -24,18 +24,17 @@
 
     <!-- Library versions -->
     <spring-boot.version>3.2.2</spring-boot.version>
-    <kubernetes-client.version>6.11.0</kubernetes-client.version>
+    <kubernetes-client.version>6.12.0</kubernetes-client.version>
     <docker-java.version>3.3.6</docker-java.version>
-
     <awaitility.version>4.2.1</awaitility.version>
     <commons.lang3.version>3.14.0</commons.lang3.version>
     <commons-exec.version>1.4.0</commons-exec.version>
     <commons-io.version>2.16.1</commons-io.version>
-    <commons-compress.version>1.25.0</commons-compress.version>
+    <commons-compress.version>1.26.1</commons-compress.version>
     <jsch.version>0.2.17</jsch.version>
     <junit.version>5.10.1</junit.version>
     <slf4j.version>2.0.10</slf4j.version>
-    <logback.version>1.5.4</logback.version>
+    <logback.version>1.5.5</logback.version>
     <junit.version>5.10.2</junit.version>
     <khttp.version>1.6.1</khttp.version>
 
@@ -45,9 +44,12 @@
     <okio.version>3.9.0</okio.version>
     <okhttp.version>4.12.0</okhttp.version>
     <netty-codec-http>4.1.108.Final</netty-codec-http>
+    <httpclient.version>4.5.14</httpclient.version>
+    <jersey-common.version>3.1.6</jersey-common.version>
+    <netty-handler.version>4.1.108.Final</netty-handler.version>
 
     <!-- Plugin versions -->
-    <maven-jar-plugin.version>3.3.0</maven-jar-plugin.version>
+    <maven-jar-plugin.version>3.4.0</maven-jar-plugin.version>
     <maven-compiler-plugin.version>3.13.0</maven-compiler-plugin.version>
     <maven-surefire-plugin.version>3.2.5</maven-surefire-plugin.version>
     <dokka-maven-plugin.version>1.9.20</dokka-maven-plugin.version>
@@ -93,6 +95,18 @@
         <version>${netty-codec-http}</version>
       </dependency>
 
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty-handler</artifactId>
+        <version>4.1.108.Final</version>
+      </dependency>
+
+      <dependency>
+        <groupId>org.apache.commons</groupId>
+        <artifactId>commons-compress</artifactId>
+        <version>${commons-compress.version}</version>
+      </dependency>
+
     </dependencies>
   </dependencyManagement>
 
@@ -120,6 +134,29 @@
       <groupId>com.github.docker-java</groupId>
       <artifactId>docker-java</artifactId>
       <version>${docker-java.version}</version>
+      <exclusions>
+
+        <exclusion>
+          <groupId>io.netty</groupId>
+          <artifactId>netty-handler</artifactId>
+        </exclusion>
+
+        <exclusion>
+          <groupId>org.apache.commons</groupId>
+          <artifactId>commons-compress</artifactId>
+        </exclusion>
+
+        <exclusion>
+          <groupId>org.apache.httpcomponents</groupId>
+          <artifactId>httpclient</artifactId>
+        </exclusion>
+
+        <exclusion>
+          <groupId>org.glassfish.jersey.core</groupId>
+          <artifactId>jersey-common</artifactId>
+        </exclusion>
+
+      </exclusions>
     </dependency>
 
     <dependency>
@@ -133,14 +170,6 @@
       <artifactId>khttp</artifactId>
       <version>${khttp.version}</version>
     </dependency>
-
-    <!--
-    <dependency>
-      <groupId>org.apache.commons</groupId>
-      <artifactId>commons-compress</artifactId>
-      <version>${commons-compress.version}</version>
-    </dependency>
-    -->
 
     <dependency>
       <groupId>commons-io</groupId>
@@ -172,7 +201,31 @@
       <version>${logback.version}</version>
     </dependency>
 
+    <!-- Vulnerability updated libs -->
 
+    <dependency>
+      <groupId>io.netty</groupId>
+      <artifactId>netty-handler</artifactId>
+      <version>${netty-handler.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.commons</groupId>
+      <artifactId>commons-compress</artifactId>
+      <version>${commons-compress.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.apache.httpcomponents</groupId>
+      <artifactId>httpclient</artifactId>
+      <version>${httpclient.version}</version>
+    </dependency>
+
+    <dependency>
+      <groupId>org.glassfish.jersey.core</groupId>
+      <artifactId>jersey-common</artifactId>
+      <version>${jersey-common.version}</version>
+    </dependency>
 
     <!-- Test dependencies -->
 

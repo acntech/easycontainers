@@ -10,6 +10,7 @@ import com.github.dockerjava.api.exception.DockerClientException
 import com.github.dockerjava.api.exception.DockerException
 import com.github.dockerjava.api.model.*
 import com.github.dockerjava.api.model.Volume
+import com.google.common.io.CountingInputStream
 import no.acntech.easycontainers.AbstractContainerRuntime
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.GenericContainer
@@ -20,7 +21,6 @@ import no.acntech.easycontainers.util.platform.PlatformUtils
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import no.acntech.easycontainers.util.text.SPACE
 import no.acntech.easycontainers.util.text.splitOnWhites
-import org.apache.commons.compress.utils.CountingInputStream
 import org.awaitility.Awaitility.await
 import org.awaitility.core.ConditionTimeoutException
 import java.io.*
@@ -385,7 +385,7 @@ internal class DockerRuntime(
             throw ContainerException(msg, it)
          })
 
-      return tarInput.bytesRead
+      return tarInput.count
    }
 
    override fun getDirectory(remoteDir: UnixDir, localDir: Path): Pair<Path, List<Path>> {

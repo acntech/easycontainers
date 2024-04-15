@@ -1,5 +1,6 @@
 package no.acntech.easycontainers.kubernetes
 
+import com.google.common.io.CountingInputStream
 import io.fabric8.kubernetes.api.model.Container
 import io.fabric8.kubernetes.api.model.Pod
 import io.fabric8.kubernetes.client.KubernetesClient
@@ -8,7 +9,7 @@ import no.acntech.easycontainers.util.io.FileUtils
 import no.acntech.easycontainers.util.io.pipe
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import no.acntech.easycontainers.util.text.FORWARD_SLASH
-import org.apache.commons.compress.utils.CountingInputStream
+import org.apache.commons.io.input.BoundedInputStream
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.*
@@ -145,7 +146,7 @@ internal class FileTransferHandler(
          throw ContainerException(msg)
       }
 
-      return countingInput.bytesRead
+      return countingInput.count
    }
 
 
