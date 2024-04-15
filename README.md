@@ -7,7 +7,7 @@
    1. [Starting a container](#Starting-a-container)
    2. [Building and deploying a custom container](#Building-and-deploying-a-custom-container)
    3. [Transferring files to and from a container](#Transferring-files-to-and-from-a-container)
-   4. [Running commands in a running container](#Running-commands-in-a-running-container)
+   4. [Executing commands in a running container](#Running-commands-in-a-running-container)
 3. [Requirements](#Requirements)
    1. [Docker](#Docker)
    2. [Kubernetes](#Kubernetes)
@@ -95,7 +95,7 @@ The following example shows how to build and deploy a custom container in Docker
 
 ```kotlin
 
-private const val REGISTRY = "172.23.75.43:5000" // Replace with your own registry
+private const val REGISTRY = "localhost:5000" // Replace with your own registry
 
 // Simple Dockerfile
 private val dockerfileContent = """       
@@ -203,7 +203,7 @@ The following example shows how to transfer a directory from a running container
     }
 ```   
 
-### Running commands in a running container
+### Executing commands in a running container
 
 The following example shows how to run a command in a running container and capture the output:
 
