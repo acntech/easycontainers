@@ -141,28 +141,28 @@ abstract class K8sRuntime(
       }
 
    private val _ipAddress = AtomicReference<InetAddress>()
-   protected var ipAddress: InetAddress
+   protected var ipAddress: InetAddress?
       get() = _ipAddress.get()
       set(value) {
          _ipAddress.set(value)
       }
 
    private val _startedAt = AtomicReference<Instant>()
-   protected var startedAt: Instant
+   protected var startedAt: Instant?
       get() = _startedAt.get()
       set(value) {
          _startedAt.compareAndSet(null, value)
       }
 
    private val _finishedAt = AtomicReference<Instant>()
-   protected var finishedAt: Instant
+   protected var finishedAt: Instant?
       get() = _finishedAt.get()
       set(value) {
          _finishedAt.compareAndSet(null, value)
       }
 
    private val _exitCode = AtomicReference<Int>()
-   protected var exitCode: Int
+   protected var exitCode: Int?
       get() = _exitCode.get()
       set(value) {
          _exitCode.set(value)

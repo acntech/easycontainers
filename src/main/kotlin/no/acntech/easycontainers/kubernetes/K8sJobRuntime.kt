@@ -191,7 +191,7 @@ class K8sJobRuntime(
             finishedAt = Instant.parse(completionDateTimeVal)
 
             DurationFormatUtils.formatDurationWords(
-               finishedAt.toEpochMilli() - startedAt.toEpochMilli(),
+               finishedAt!!.toEpochMilli() - startedAt!!.toEpochMilli(),
                true,
                true
             ).let { duration ->
