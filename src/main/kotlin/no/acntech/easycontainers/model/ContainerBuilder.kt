@@ -2,6 +2,7 @@ package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.output.OutputLineCallback
 import no.acntech.easycontainers.util.text.COLON
+import no.acntech.easycontainers.util.text.NEW_LINE
 import no.acntech.easycontainers.util.text.SPACE
 import java.math.BigInteger
 import java.time.Duration
@@ -357,6 +358,8 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
     */
    fun withOutputLineCallback(outputLineCallback: OutputLineCallback): SELF
 
+   fun withContainerFile(file: ContainerFile): SELF
+
    /**
     * Adds a container file to the builder.
     *
@@ -371,18 +374,35 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
       path: UnixDir,
       data: Map<String, String>,
       keyValSeparator: String = "$COLON$SPACE",
-   ): SELF
+   ): SELF {
+      val content = data.entries.joinToString("\n") { (key, value) -> "$key$keyValSeparator$value" }
+      return withContainerFile(name, path, content)
+   }
+
+   fun withContainerFile(
+      name: String,
+      path: String,
+      data: Map<String, String>,
+      keyValSeparator: String = "$COLON$SPACE",
+   ): SELF {
+      return withContainerFile(ContainerFileName.of(name), UnixDir.of(path), data, keyValSeparator)
+   }
 
    /**
     * Adds a file to the container with the specified name, path, and content.
-    * This method creates a new instance of the ContainerFile class and stores it in the containerFiles map.
     *
     * @param name The name of the file in the container
     * @param path The path in the container where the file will be mounted.
     * @param content The content of the file
     * @return The updated ContainerBuilder instance.
     */
-   fun withContainerFile(name: ContainerFileName, path: UnixDir, content: String): SELF
+   fun withContainerFile(name: ContainerFileName, path: UnixDir, content: String): SELF {
+      return withContainerFile(ContainerFile(name, path, content))
+   }
+
+   fun withContainerFile(name: String, mountPath: String, content: String): SELF {
+      return withContainerFile(ContainerFileName.of(name), UnixDir.of(mountPath), content)
+   }
 
    /**
     * Sets the volume name and mount path for the current instance of the object.

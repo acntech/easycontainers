@@ -1,5 +1,6 @@
 package test.acntech.easycontainers
 
+import no.acntech.easycontainers.ContainerBuilderCallback
 import no.acntech.easycontainers.GenericContainer
 import no.acntech.easycontainers.docker.DockerConstants
 import no.acntech.easycontainers.kubernetes.K8sUtils
@@ -36,6 +37,7 @@ object TestSupport {
       platform: ContainerPlatformType = ContainerPlatformType.DOCKER,
       executionMode: ExecutionMode = ExecutionMode.SERVICE,
       ephemeral: Boolean = true,
+      containerBuilderCallback: ContainerBuilderCallback? = null,
    ): Container {
       val imageName = "container-test"
 
@@ -58,6 +60,8 @@ object TestSupport {
          withImage(ImageURL.of("$registry/test/$imageName:latest"))
 
          withExecutionMode(executionMode)
+
+         withEnv("LOG_TIME_MESSAGE", "Hello from $platform running as $executionMode")
 
          when (executionMode) {
 
@@ -84,6 +88,9 @@ object TestSupport {
 
          withIsEphemeral(ephemeral)
          withOutputLineCallback { line -> println("$platform-'${imageName.uppercase()}'-CONTAINER-OUTPUT: $line") }
+
+         containerBuilderCallback?.configure(this)
+
       }.build()
 
       log.debug("Container created: $container")
@@ -95,7 +102,7 @@ object TestSupport {
 
       Assertions.assertTrue(container.getState() == ContainerState.INITIALIZING || container.getState() == ContainerState.RUNNING)
 
-      // Wait for the container to be in the running state
+      // Wait for the container to reach the running state
       container.waitForState(ContainerState.RUNNING, 30, TimeUnit.SECONDS)
 
       Assertions.assertEquals(ContainerState.RUNNING, runtime.getContainer().getState())

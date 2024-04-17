@@ -26,14 +26,20 @@ COPY log-time.sh /log-time.sh
 RUN chmod +x /log-time.sh
 
 # Copy the entry script from the build context to the container
-COPY entry.sh /entry.sh
+COPY entry.sh /entrypoint.sh
 
 # Make the entry script executable
-RUN chmod +x /entry.sh
+RUN chmod +x /entrypoint.sh
+
+RUN mkdir -p /tmp/test1
+RUN chmod 777 /tmp/test1
+
+RUN mkdir -p /tmp/test2
+RUN chmod 777 /tmp/test2
 
 # Expose ports for SSH (22) and lighttpd (80)
 EXPOSE 22
 EXPOSE 80
 
 # Define the container's default behavior
-CMD ["/entry.sh"]
+CMD ["/entrypoint.sh"]

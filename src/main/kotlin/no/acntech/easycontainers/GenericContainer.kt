@@ -43,6 +43,7 @@ open class GenericContainer(
 
    companion object {
 
+      @OptIn(ExperimentalStdlibApi::class)
       private val LEGAL_STATE_TRANSITIONS: Map<ContainerState, Set<ContainerState>> = mapOf(
          ContainerState.UNINITIATED to setOf(ContainerState.INITIALIZING),
          ContainerState.INITIALIZING to setOf(ContainerState.RUNNING, ContainerState.FAILED),

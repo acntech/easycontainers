@@ -5,6 +5,7 @@ import io.fabric8.kubernetes.client.KubernetesClientException
 import no.acntech.easycontainers.kubernetes.K8sConstants.ENV_KUBERNETES_SERVICE_HOST
 import no.acntech.easycontainers.kubernetes.K8sConstants.ENV_KUBERNETES_SERVICE_PORT
 import no.acntech.easycontainers.kubernetes.K8sConstants.SERVICE_ACCOUNT_PATH
+import no.acntech.easycontainers.util.text.EMPTY_STRING
 import no.acntech.easycontainers.util.text.FORWARD_SLASH
 import no.acntech.easycontainers.util.text.HYPHEN
 import java.nio.file.Files
@@ -30,11 +31,14 @@ object K8sUtils {
 
    private val MULTIPLE_HYPHENS_REGEX = "-+".toRegex()
 
+   private val INVALID_VOLUME_CHARS_REGEX = "[^a-z0-9-]".toRegex()
+
    private val INSTANT_LABEL_FORMATTER = DateTimeFormatter.ofPattern("yyyyMMdd'T'HHmmss'Z'").withZone(ZoneOffset.UTC)
 
    // Define maximum lengths
    private const val MAX_PREFIX_LENGTH = 253
    private const val MAX_LABEL_LENGTH = 63
+   private const val MAX_VOLUME_NAME_LENGTH = 63
 
    /**
     * Checks whether the current application is running inside a cluster.
@@ -95,6 +99,10 @@ object K8sUtils {
       return LABEL_REGEX.matches(value)
    }
 
+   fun normalizeConfigMapName(name: String): String {
+      return normalizeLabelKey(name)
+   }
+
    /**
     * Normalizes the given label key by separating the prefix and name if a forward slash is present,
     * normalizing the prefix and name by replacing invalid label characters with hyphens, removing
@@ -110,7 +118,7 @@ object K8sUtils {
       val parts = labelKey.split(FORWARD_SLASH)
       val (prefix, name) = when {
          parts.size > 1 -> Pair(parts[0], parts[1])
-         else -> Pair("", labelKey)
+         else -> Pair(EMPTY_STRING, labelKey)
       }
 
       // Normalize prefix and name
@@ -142,6 +150,14 @@ object K8sUtils {
          .replace(MULTIPLE_HYPHENS_REGEX, HYPHEN)
          .take(MAX_LABEL_LENGTH)
          .trim { it == '-' || it == '_' }
+   }
+
+   fun normalizeVolumeName(value: String): String {
+      return value.lowercase()
+         .replace(INVALID_VOLUME_CHARS_REGEX, "-")
+         .replace(MULTIPLE_HYPHENS_REGEX, "-")
+         .take(MAX_VOLUME_NAME_LENGTH)
+         .trim('-')
    }
 
    /**

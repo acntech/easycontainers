@@ -19,15 +19,15 @@ while getopts 'es:x:i:m:' flag; do
   esac
 done
 
-echo "Sleep time: ${sleep_time}"
 echo "Exit flag: ${exit_flag}"
-echo "Exit code: ${exit_code}"
-echo "Iterations: ${iterations}"
+echo "Sleep time: ${sleep_time}"
 echo "Message: ${message}"
 
 count=1
 
 if [ "${exit_flag}" -eq 1 ]; then
+  echo "Iterations: ${iterations}"
+  echo "Exit code: ${exit_code}"
   # Run the exit version
   while [ $count -le "${iterations}" ]
   do

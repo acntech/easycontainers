@@ -64,7 +64,7 @@ class ShowCaseTests {
 
          withIsEphemeral(true)
 
-         withEnv("LOG_TIME_MESSAGE", "Hello from k8s!!!")
+         withEnv("LOG_TIME_MESSAGE", "Hello from Kube!!!")
 
          withOutputLineCallback { line -> println("KUBERNETES-CONTAINER-OUTPUT: $line") }
 

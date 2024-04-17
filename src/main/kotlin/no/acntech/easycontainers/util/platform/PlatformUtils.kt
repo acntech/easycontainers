@@ -1,9 +1,6 @@
 package no.acntech.easycontainers.util.platform
 
-import no.acntech.easycontainers.util.text.EMPTY_STRING
-import no.acntech.easycontainers.util.text.FORWARD_SLASH
-import no.acntech.easycontainers.util.text.NEW_LINE
-import no.acntech.easycontainers.util.text.splitOnWhites
+import no.acntech.easycontainers.util.text.*
 import org.apache.commons.exec.CommandLine
 import org.apache.commons.exec.DefaultExecutor
 import org.apache.commons.exec.PumpStreamHandler
@@ -224,14 +221,15 @@ object PlatformUtils {
 
       // If starts with \\wsl$\, then it's already a WSL path, and we need convert it to a Linux-style path
       return if (windowsPath.startsWith("\\\\wsl\$")) {
-         val wslPath = windowsPath.replace("\\", "/")
-         val pathDistroName = wslPath.split("/")[3]
+         val wslPath = windowsPath.replace(BACK_SLASH, FORWARD_SLASH)
+         val pathDistroName = wslPath.split(FORWARD_SLASH)[3]
          wslPath.replaceFirst("\\\\wsl$\\\\$pathDistroName", EMPTY_STRING)
+
       } else {
          // Convert Windows-style path to WSL share path (e.g. /mnt/c/Users/path)
          val driveLetter = windowsPath.substring(0, 1).lowercase() // Extract the drive letter and convert to lowercase
-         val windowsPathWithoutDrive =
-            windowsPath.substring(2).replace("\\", "/") // Remove the drive letter and replace backslashes with forward slashes
+         val windowsPathWithoutDrive = windowsPath.substring(2)
+            .replace(BACK_SLASH, FORWARD_SLASH) // Remove the drive letter and replace backslashes with forward slashes
          "/mnt/${driveLetter}/$windowsPathWithoutDrive"
       }
    }
@@ -258,34 +256,48 @@ object PlatformUtils {
     * Example: "C:\Users\path" -> "/mnt/c/Users/path" (WSL) or "C:/Users/path" (Docker Desktop)
     */
    fun convertToDockerPath(path: Path): String {
-      // For Linux or Mac, return the absolute path
-      if (isLinux() || isMac()) {
-         return path.toAbsolutePath().toString()
-      }
+      val convertedPath: String
 
-      // For Windows with Docker Desktop installed, return the Windows path in Docker format
-      if (isWindows() && isDockerDesktopOnWindows()) {
-         // Convert Path to a Windows-style path recognizable by Docker Desktop
-         // Dynamically handle the drive letter
+      if (isWindows()) {
+         // Convert Path to a Windows-style path
          val absolutePath = path.toAbsolutePath().toString()
-         val driveLetter = absolutePath.substring(0, 1).lowercase() // Extract the drive letter and convert to lowercase
-         return absolutePath.replace("\\", "/").replaceFirst("${driveLetter}:/", "/${driveLetter}/")
+         val driveLetter = absolutePath.substring(0, 1)
+
+         if (isDockerDesktopOnWindows()) {
+            // For Windows with Docker Desktop installed, return the Windows path in Docker format
+            convertedPath = absolutePath
+               .replace(BACK_SLASH, FORWARD_SLASH)
+               .replaceFirst("${driveLetter}:/", "/${driveLetter}/").also {
+                  log.debug("Converted path '$path' to Docker Desktop format: $it")
+               }
+
+         } else if (isWslInstalled()) {
+            // For Windows with WSL installed, convert the path to WSL format
+            val windowsPath = path.toString().replace(BACK_SLASH, FORWARD_SLASH)
+            val wslPath = windowsPath.replaceFirst("$driveLetter:/", "/mnt/${driveLetter.lowercase()}/")
+            convertedPath = wslPath.also {
+               log.debug("Converted path '$path' to WSL format: $it")
+            }
+
+         } else {
+            // Default case for Windows when Docker Desktop or WSL are not installed
+            convertedPath = absolutePath.also {
+               log.debug("Converted path '$path' to 'as is' format: $it")
+            }
+         }
+
+      } else {
+         // Default case, return the path as-is for non-Windows OS
+         convertedPath = path.toAbsolutePath().toString().also {
+            log.debug("Converted path '$path' to 'as is' format: $it")
+         }
       }
 
-      if (isWindows() && isWslInstalled()) {
-         // For Windows with WSL installed, convert the path to WSL format
-         val driveLetter = path.root.toString().replace("\\", "").replace(":", "")
-         val windowsPath = path.toString().replace("\\", "/")
-         val wslPath = windowsPath.replaceFirst("$driveLetter:/", "/mnt/${driveLetter.lowercase()}/")
-         return wslPath
-      }
-
-      // Default case, return the path as-is (This might be a non-Windows path or an unhandled case)
-      return path.toString()
+      return convertedPath
    }
 
    fun convertWindowsPathToUnix(windowsPath: String): String {
-      return windowsPath.replace("\\", FORWARD_SLASH).replace("^[a-zA-Z]:".toRegex(), EMPTY_STRING)
+      return windowsPath.replace(BACK_SLASH, FORWARD_SLASH).replace("^[a-zA-Z]:".toRegex(), EMPTY_STRING)
    }
 
    private fun stripNullBytes(input: String): String {

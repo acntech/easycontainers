@@ -186,6 +186,7 @@ class K8sJobRuntime(
 
    private fun handleJobCompletion(condition: JobCondition) {
       if ("True" == condition.status) {
+
          val completionDateTimeVal = job.status.completionTime
          completionDateTimeVal?.let {
             finishedAt = Instant.parse(completionDateTimeVal)
@@ -198,7 +199,20 @@ class K8sJobRuntime(
                log.info("Job '$jobName' took approximately: $duration")
             }
          }
-         container.changeState(ContainerState.STOPPED)
+
+         job.status.failed?.let { failed ->
+            if (failed > 0) {
+               log.error("Job '$jobName' failed with $failed failed pods")
+               container.changeState(ContainerState.FAILED)
+            } else {
+               log.info("Job '$jobName' completed successfully")
+               container.changeState(ContainerState.STOPPED)
+            }
+         } ?: run {
+            log.info("Job '$jobName' completed successfully")
+            container.changeState(ContainerState.STOPPED)
+         }
+
          completionLatch.countDown()
          log.trace("Latch decremented, job '$jobName' completed")
       }

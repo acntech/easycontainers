@@ -3,6 +3,7 @@ package no.acntech.easycontainers
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.output.OutputLineCallback
 import no.acntech.easycontainers.util.collections.prettyPrint
+import no.acntech.easycontainers.util.text.EQUALS
 import no.acntech.easycontainers.util.text.NEW_LINE
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle
@@ -188,19 +189,8 @@ abstract class BaseContainerBuilder<SELF : BaseContainerBuilder<SELF>> : Contain
       return self()
    }
 
-   override fun withContainerFile(
-      name: ContainerFileName,
-      path: UnixDir,
-      data: Map<String, String>,
-      keyValSeparator: String,
-   ): SELF {
-      val content = data.entries.joinToString(NEW_LINE) { (key, value) -> "$key$keyValSeparator$value" }
-      containerFiles[name] = ContainerFile(name, path, content)
-      return self()
-   }
-
-   override fun withContainerFile(name: ContainerFileName, path: UnixDir, content: String): SELF {
-      containerFiles[name] = ContainerFile(name, path, content)
+   override fun withContainerFile(file: ContainerFile): SELF {
+      containerFiles[file.name] = file
       return self()
    }
 

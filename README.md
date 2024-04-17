@@ -40,7 +40,6 @@ Born from the practical insights gained from the [Testcontainers](https://www.te
 
 With Easycontainers, developers gain a versatile tool that streamlines container management, freeing them to focus more on development and less on the operational intricacies of containers.
 
-
 ## Getting Started
 
 ### Starting a container

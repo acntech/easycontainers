@@ -19,6 +19,7 @@ Additional notices:
 
 3. This product includes software developed by the Docker Java project (https://github.com/docker-java/docker-java):
    - Docker Java API Client
+   - Docker Java Transport OkHttp
    The Docker Java API Client is used under the terms of the Apache License 2.0.
 
 4. This product includes software from the Apache Commons project (http://commons.apache.org/):
@@ -33,10 +34,6 @@ Additional notices:
    - Logback Classic Module
    The logging frameworks are used under the terms of the MIT License and the Eclipse Public License 1.0 respectively.
 
-6. This product includes software developed by Michael Wiede (https://github.com/mwiede):
-   - JSch
-   The JSch library is used under the terms of the MIT License.
-
 7. This product includes software developed by Awaitility (https://github.com/awaitility/awaitility):
    - Awaitility
    The Awaitility library is used under the terms of the Apache License 2.0.
@@ -45,7 +42,11 @@ Additional notices:
    - khttp
    The khttp library is used under the terms of the MIT License.
 
-9. This product includes software from the JUnit Team (https://junit.org/):
+9. This product includes software developed by Michael Wiede (https://github.com/mwiede):
+   - JSch
+   The JSch library is used under the terms of the MIT License.
+
+10. This product includes software from the JUnit Team (https://junit.org/):
    - JUnit Jupiter API
    - JUnit Jupiter Engine
    - JUnit Jupiter Params

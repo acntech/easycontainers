@@ -214,6 +214,10 @@ interface Container {
     */
    fun putFile(localFile: Path, remoteDir: UnixDir, remoteFilename: String? = null): Long
 
+   fun putFile(localFile: String, remoteDir: String, remoteFilename: String? = null): Long {
+      return putFile(Path.of(localFile), UnixDir.of(remoteDir), remoteFilename)
+   }
+
    /**
     * Downloads a file from the container.
     *
@@ -226,6 +230,10 @@ interface Container {
     * @return the path of the downloaded file
     */
    fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path? = null): Path
+
+   fun getFile(remoteDir: String, remoteFilename: String, localPath: String? = null): Path {
+      return getFile(UnixDir.of(remoteDir), remoteFilename, localPath?.let { Path.of(it) })
+   }
 
    /**
     * Uploads a directory to the container. Note that the uploaded files and directoroes include the

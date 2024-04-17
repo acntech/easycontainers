@@ -141,9 +141,6 @@ object FileUtils {
    @Throws(IOException::class)
    fun untarFile(tarFile: File, destination: Path = Files.createTempDirectory("untar-").toAbsolutePath()): Path {
       require(tarFile.exists() && tarFile.isFile) { "The provided file '$tarFile' is not a valid file." }
-//      require(Files.isDirectory(destination) || (!Files.exists(destination) && destination.parent.toFile().canWrite())) {
-//         "The provided destination '$destination' must be an existing directory or a non-existing file that can be written to."
-//      }
 
       TarArchiveInputStream(BufferedInputStream(FileInputStream(tarFile))).use { tis ->
          val entry = tis.nextEntry

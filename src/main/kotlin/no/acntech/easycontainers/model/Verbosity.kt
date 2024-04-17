@@ -22,6 +22,7 @@ enum class Verbosity(val value: String) {
    TRACE("trace");
 
    companion object {
+      @OptIn(ExperimentalStdlibApi::class)
       fun of(value: String): Verbosity? {
          val valueLower = value.lowercase()
          return entries.find { it.value == valueLower }

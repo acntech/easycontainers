@@ -27,4 +27,7 @@ data class Volume(
    val hostDir: Path? = null, // Only valid for Docker
    val memoryBacked: Boolean = false,
    val memory: Memory? = null,
-)
+) {
+   constructor(name: String, mountPath: String) : this(VolumeName.of(name), UnixDir.of(mountPath), null, false, null)
+
+}

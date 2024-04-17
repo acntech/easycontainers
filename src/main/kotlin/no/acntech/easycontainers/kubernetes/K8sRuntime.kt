@@ -13,18 +13,16 @@ import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.GenericContainer
 import no.acntech.easycontainers.kubernetes.K8sConstants.APP_LABEL
 import no.acntech.easycontainers.kubernetes.K8sConstants.MEDIUM_MEMORY_BACKED
+import no.acntech.easycontainers.kubernetes.K8sUtils.normalizeConfigMapName
 import no.acntech.easycontainers.kubernetes.K8sUtils.normalizeLabelValue
+import no.acntech.easycontainers.kubernetes.K8sUtils.normalizeVolumeName
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.util.lang.guardedExecution
 import no.acntech.easycontainers.util.lang.prettyPrintMe
-import no.acntech.easycontainers.util.text.BACK_SLASH
-import no.acntech.easycontainers.util.text.FORWARD_SLASH
-import no.acntech.easycontainers.util.text.NEW_LINE
-import no.acntech.easycontainers.util.text.SPACE
+import no.acntech.easycontainers.util.text.*
 import org.awaitility.Awaitility
 import org.awaitility.core.ConditionTimeoutException
-import java.io.File
 import java.io.FileNotFoundException
 import java.io.InputStream
 import java.io.OutputStream
@@ -42,7 +40,6 @@ import kotlin.collections.component2
 import kotlin.collections.set
 import kotlin.io.path.exists
 import kotlin.io.path.isDirectory
-
 
 /**
  * Represents an abstract Kubernetes runtime for a container, capturing common functionality and properties for both
@@ -98,6 +95,8 @@ abstract class K8sRuntime(
       const val SERVICE_NAME_SUFFIX = "-service"
       const val PV_NAME_SUFFIX = "-pv"
       const val PVC_NAME_SUFFIX = "-pvc"
+      const val CONFIG_MAP_NAME_SUFFIX = "-config-map"
+      const val VOLUME_NAME_SUFFIX = "-volume"
 
       private fun mapPodPhaseToContainerState(podPhase: PodPhase?): ContainerState {
          return when (podPhase) {
@@ -601,40 +600,39 @@ abstract class K8sRuntime(
       volumeMounts: MutableList<VolumeMount>,
    ) {
       container.builder.containerFiles.forEach { (name, configFile) ->
-         handleContainerFile(name, configFile, volumes, volumeMounts)
+         handleContainerFile(configFile, volumes, volumeMounts)
       }
    }
 
    private fun handleContainerFile(
-      name: ContainerFileName,
-      configFile: ContainerFile,
+      file: ContainerFile,
       volumes: MutableList<Volume>,
       volumeMounts: MutableList<VolumeMount>,
    ) {
-      log.trace("Creating name -> config map mapping: $name -> $configFile")
-      val (mountPath, fileName) = extractMountPathAndFileName(configFile)
+      log.trace("Creating name -> config map mapping: ${file.name} -> $file")
 
-      val configMap = createConfigMap(name, fileName, configFile)
-      handleConfigMapCreation(configMap)
+      val baseName = "container-file-${file.name.value}"
+      val configMapName = normalizeConfigMapName(
+         "$baseName-${UUID.randomUUID().toString().truncate(5)}$CONFIG_MAP_NAME_SUFFIX}"
+      )
+      val volumeName = normalizeVolumeName("$baseName$VOLUME_NAME_SUFFIX")
+      val fileName = file.name.value
 
-      val volume = createVolume(name)
+      val configMap = createConfigMap(configMapName, fileName, file)
+      applyConfigMap(configMap)
+
+      val volume = createConfigMapVolume(volumeName, configMapName)
       volumes.add(volume)
 
-      val volumeMount = createVolumeMount(name, mountPath, fileName)
+      // Since we're using the same file name as the key, we don't need to specify the subPath
+      val volumeMount = createVolumeMount(volumeName, file.mountPath.value)
       volumeMounts.add(volumeMount)
    }
 
-   private fun extractMountPathAndFileName(configFile: ContainerFile): Pair<String, String> {
-      val mountPath = File(configFile.mountPath.value).parent?.replace(BACK_SLASH, FORWARD_SLASH) ?: FORWARD_SLASH
-      val fileName = File(configFile.mountPath.value).name
-
-      return Pair(mountPath, fileName)
-   }
-
-   private fun createConfigMap(name: ContainerFileName, fileName: String, configFile: ContainerFile): ConfigMap {
+   private fun createConfigMap(name: String, fileName: String, configFile: ContainerFile): ConfigMap {
       val configMap = ConfigMapBuilder()
          .withNewMetadata()
-         .withName(name.value)
+         .withName(name)
          .withNamespace(namespace)
          .addToLabels(createDefaultLabels())
          .endMetadata()
@@ -644,7 +642,7 @@ abstract class K8sRuntime(
       return configMap
    }
 
-   private fun handleConfigMapCreation(configMap: ConfigMap) {
+   private fun applyConfigMap(configMap: ConfigMap) {
       val configMapResource: Resource<ConfigMap> =
          client.configMaps()
             .inNamespace(namespace)
@@ -655,91 +653,92 @@ abstract class K8sRuntime(
             .withTimeout(30, TimeUnit.SECONDS)
             .delete()
             .also {
-               log.info("Deleted existing k8s config map: $it")
+               log.info("Deleted existing k8s config map:$NEW_LINE${it.prettyPrintMe()}")
             }
       }
 
       configMapResource.create().also {
          configMaps.add(it)
-         log.info("Created a k8s config map: $it")
+         log.info("Created k8s config map:$NEW_LINE${it.prettyPrintMe()}")
          log.debug("ConfigMap YAML: ${Serialization.asYaml(configMap)}")
       }
    }
 
-   private fun createVolume(name: ContainerFileName): Volume {
+   private fun createConfigMapVolume(volumeName: String, configMapName: String): Volume {
       val volume = VolumeBuilder()
-         .withName(name.value)
+         .withName(volumeName)
          .withNewConfigMap()
-         .withName(name.value)
+         .withName(configMapName)
          .endConfigMap()
          .build()
 
       return volume
    }
 
-   private fun createVolumeMount(name: ContainerFileName, mountPath: String, fileName: String): VolumeMount {
-      val volumeMount = VolumeMountBuilder()
-         .withName(name.value)
+   private fun createVolumeMount(name: String, mountPath: String, fileName: String? = null): VolumeMount {
+      return VolumeMountBuilder()
+         .withName(name)
          .withMountPath(mountPath)
-         .withSubPath(fileName) // Mount only the specific file within the directory
-         .build()
-
-      return volumeMount
+         .apply {
+            fileName?.let(this::withSubPath)
+         }.build()
    }
 
    private fun handlePersistentVolumes(
       volumes: MutableList<Volume>,
       volumeMounts: MutableList<VolumeMount>,
    ) {
-      container.builder.volumes.filter {
-         !it.memoryBacked
-      }.forEach { volume ->
+      container.builder.volumes
+         .filter { !it.memoryBacked }
+         .forEach { volume ->
 
-         // Derive the PVC name from the volume name
-         val pvcName = "${volume.name}$PVC_NAME_SUFFIX"
+            // Derive the PVC name from the volume name
+            val pvcName = "${volume.name}$PVC_NAME_SUFFIX"
 
-         // Create the Volume using the existing PVC
-         val k8sVolume = VolumeBuilder()
-            .withName(volume.name.value)
-            .withNewPersistentVolumeClaim()
-            .withClaimName(pvcName)
-            .endPersistentVolumeClaim()
-            .build()
-         volumes.add(k8sVolume)
+            // Create the Volume using the existing PVC
+            val k8sVolume = VolumeBuilder()
+               .withName(volume.name.value)
+               .withNewPersistentVolumeClaim()
+               .withClaimName(pvcName)
+               .endPersistentVolumeClaim()
+               .build()
+            volumes.add(k8sVolume)
 
-         // Create the VolumeMount
-         val volumeMount = VolumeMountBuilder()
-            .withName(volume.name.value)
-            .withMountPath(volume.mountPath.value)
-            .build()
-         volumeMounts.add(volumeMount)
+            // Create the VolumeMount
+            val volumeMount = VolumeMountBuilder()
+               .withName(volume.name.value)
+               .withMountPath(volume.mountPath.value)
+               .build()
+            volumeMounts.add(volumeMount)
 
-         log.info("Created persistent volume: ${volume.name.value}")
-      }
+            log.info("Created persistent volume: ${volume.name}")
+         }
    }
 
    private fun handleMemoryBackedVolumes(volumes: MutableList<Volume>, volumeMounts: MutableList<VolumeMount>) {
-      container.builder.volumes.filter { it.memoryBacked }.forEach { volume ->
-         val emptyDir = EmptyDirVolumeSource()
-         emptyDir.medium = MEDIUM_MEMORY_BACKED
-         volume.memory?.let {
-            emptyDir.sizeLimit = Quantity(it.toFormattedString())
+      container.builder.volumes
+         .filter { it.memoryBacked }
+         .forEach { volume ->
+            val emptyDir = EmptyDirVolumeSource()
+            emptyDir.medium = MEDIUM_MEMORY_BACKED
+            volume.memory?.let {
+               emptyDir.sizeLimit = Quantity(it.toFormattedString())
+            }
+
+            val k8sVolume = VolumeBuilder()
+               .withName(volume.name.value)
+               .withEmptyDir(emptyDir)
+               .build()
+            volumes.add(k8sVolume)
+
+            val volumeMount = VolumeMountBuilder()
+               .withName(volume.name.value)
+               .withMountPath(volume.mountPath.value)
+               .build()
+            volumeMounts.add(volumeMount)
+
+            log.info("Created memory-backed volume: ${volume.name}")
          }
-
-         val k8sVolume = VolumeBuilder()
-            .withName(volume.name.value)
-            .withEmptyDir(emptyDir)
-            .build()
-         volumes.add(k8sVolume)
-
-         val volumeMount = VolumeMountBuilder()
-            .withName(volume.name.value)
-            .withMountPath(volume.mountPath.value)
-            .build()
-         volumeMounts.add(volumeMount)
-
-         log.info("Created memory-backed volume: ${volume.name.value}")
-      }
    }
 
    private fun extractOurDeploymentName(): String? {
@@ -788,6 +787,7 @@ abstract class K8sRuntime(
       }
 
       pod = refreshedPod
+
       refreshContainer()
       updatePodState()
    }
@@ -854,40 +854,63 @@ abstract class K8sRuntime(
 
       // Check the container status
       val containerStatus = containerStatuses.first()
+
       // Update start time if the container is running
       containerStatus.state.running?.startedAt?.let {
          startedAt = Instant.parse(it)
       }
 
       // Handle container termination information
-      return handleTerminatedContainerState(containerStatus, newState)
+      return handlePossibleTerminatedContainerState(containerStatus, newState)
    }
 
-   private fun handleTerminatedContainerState(containerStatus: ContainerStatus, newState: ContainerState): ContainerState {
-      containerStatus.state.terminated?.let { terminatedState ->
-         log.info(
-            "Container ${containerStatus.name} terminated with signal '${terminatedState.signal}', " +
-               "reason: ${terminatedState.reason}, message: '${terminatedState.message}'"
-         )
+   private fun handlePossibleTerminatedContainerState(
+      containerStatus: ContainerStatus,
+      newState: ContainerState,
+   ): ContainerState {
+      var resultState = newState
 
-         // Update finish time and exit code upon termination
-         terminatedState.finishedAt?.let {
-            finishedAt = Instant.parse(it)
+      listOfNotNull(containerStatus.state.terminated, containerStatus.lastState.terminated)
+         .firstOrNull()
+         ?.let { terminatedState ->
+            resultState = handleTerminatedContainer(containerStatus, terminatedState)
          }
 
-         log.debug("Exit code: ${terminatedState.exitCode}")
+      return resultState
+   }
 
-         terminatedState.exitCode?.let { code ->
-            exitCode = code.also {
-               log.info("Container '${getName()}' exited with code: $code")
-            }
-         }
+   private fun handleTerminatedContainer(
+      containerStatus: ContainerStatus,
+      terminatedState: ContainerStateTerminated,
+   ): ContainerState {
+      log.info(
+         "Container ${containerStatus.name} terminated with signal '${terminatedState.signal}', " +
+            "reason: ${terminatedState.reason}, message: '${terminatedState.message}'"
+      )
 
-         // When a container is terminated, we consider the pod to be STOPPED
-         return ContainerState.STOPPED
+      // Update finish time and exit code upon termination
+      terminatedState.finishedAt?.let {
+         finishedAt = Instant.parse(it)
       }
 
-      return newState
+      terminatedState.exitCode?.let { code ->
+         exitCode = code.also {
+            log.info("Container '${getName()}' exited with code: $code")
+         }
+      }
+
+      // Check if the container was terminated due to an error
+      return if (terminatedState.reason.lowercase().contains("error")) {
+         log.warn(
+            "Container '${containerStatus.name}' terminated due to '" +
+               " ${terminatedState.reason}': ${terminatedState.message}"
+         )
+         ContainerState.FAILED
+
+      } else {
+         // When a container is terminated, we consider the pod to be STOPPED
+         ContainerState.STOPPED
+      }
    }
 
 

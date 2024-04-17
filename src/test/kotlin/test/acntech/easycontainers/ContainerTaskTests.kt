@@ -39,7 +39,10 @@ class ContainerTaskTests {
       log.debug("Container exit code: $exitCode")
 
       assertEquals(10, exitCode)
-      assertTrue(container.getState() == ContainerState.STOPPED || container.getState() == ContainerState.DELETED)
+
+      assertTrue(container.getState() == ContainerState.FAILED ||
+         container.getState() == ContainerState.STOPPED ||
+         container.getState() == ContainerState.DELETED)
 
       container.getRuntime().delete()
    }

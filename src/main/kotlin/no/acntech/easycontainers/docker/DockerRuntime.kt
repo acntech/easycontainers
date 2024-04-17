@@ -16,11 +16,10 @@ import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.GenericContainer
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.util.io.FileUtils
+import no.acntech.easycontainers.util.lang.asStringMap
 import no.acntech.easycontainers.util.lang.guardedExecution
 import no.acntech.easycontainers.util.platform.PlatformUtils
-import no.acntech.easycontainers.util.text.EMPTY_STRING
-import no.acntech.easycontainers.util.text.SPACE
-import no.acntech.easycontainers.util.text.splitOnWhites
+import no.acntech.easycontainers.util.text.*
 import org.awaitility.Awaitility.await
 import org.awaitility.core.ConditionTimeoutException
 import java.io.*
@@ -137,6 +136,10 @@ internal class DockerRuntime(
    private var networkName: NetworkName? = null
 
    private var startedAt: Instant? = null
+
+   init {
+      log.debug("DockerRuntime using container builder:$NEW_LINE${container.builder}")
+   }
 
    override fun getType(): ContainerPlatformType {
       return ContainerPlatformType.DOCKER
@@ -464,10 +467,11 @@ internal class DockerRuntime(
          {
             val image = container.getImage().toFQDN()
             val hostConfig = prepareHostConfig()
+
             configureNetwork(hostConfig)
 
             val containerCmd = createContainerCommand(image, hostConfig).also {
-               log.debug("containerCmd created: $it")
+               log.debug("containerCmd created:$NEW_LINE${it.asStringMap()}")
             }
 
             containerCmd.exec().id.also {
@@ -624,18 +628,51 @@ internal class DockerRuntime(
    }
 
    private fun createDockerVolumes(hostConfig: HostConfig): List<Volume> {
-      val volumeMap = container.getVolumes().associateWith { Volume(it.mountPath.value) }
+      val volumes = container.getVolumes()
+      val volumeMap = volumes.associateWith {
+         Volume(it.mountPath.value)
+      }
       val dockerVolumeNames = getExistingVolumeNames()
 
-      val binds = container.getVolumes().filter { it.memoryBacked }
+      val volumeBinds = volumes
+         .filter { !it.memoryBacked }
          .map { volume -> createBind(volume, volumeMap[volume], dockerVolumeNames) }
 
-      val tmpfsMounts = container.getVolumes().filter { it.memoryBacked }
+      val fileBinds = container.builder.containerFiles.map { (name, file) ->
+         createContainerFileBind(file)
+      }
+
+      val tmpfsMounts = volumes
+         .filter { it.memoryBacked }
          .map { volume -> createTmpfsMount(volume) }
 
-      configureHostConfigVolumes(hostConfig, binds, tmpfsMounts)
+      configureHostConfigVolumes(hostConfig, volumeBinds + fileBinds, tmpfsMounts)
 
       return volumeMap.values.toList()
+   }
+
+   private fun createContainerFileBind(containerFile: ContainerFile): Bind {
+      val hostFile = containerFile.hostFile ?: File.createTempFile(containerFile.name.value, null).toPath()
+
+      // If content is not null, write content to this file
+      containerFile.content?.let { content ->
+         hostFile.toFile().writeText(content)
+      }
+
+      val actualBindPath = PlatformUtils.convertToDockerPath(hostFile)
+
+      // Get the complete path including the filename as the mount point
+      val mountPath = "${containerFile.mountPath}$FORWARD_SLASH${containerFile.name}"
+
+      // Finally, create a Docker bind
+      val bind = Bind(actualBindPath, Volume(mountPath))
+
+      return bind.also {
+         log.info(
+            "Using host file '${actualBindPath}' for container file '${containerFile.name}'" +
+               " with mount-path '$mountPath'"
+         )
+      }
    }
 
    private fun createBind(
@@ -644,14 +681,18 @@ internal class DockerRuntime(
       dockerVolumeNames: Set<String>,
    ): Bind {
       val volumeName = volume.name.value
+
       return if (dockerVolumeNames.contains(volumeName)) {
          log.info("Using existing named Docker volume '$volumeName' with mount-path '${volume.mountPath}'")
          Bind(volumeName, dockerVolume)
+
       } else {
          log.info("Using hostDir '${volume.hostDir}' for volume '$volumeName'")
-         val actualHostDir =
-            getActualHostDir(volume.hostDir ?: throw ContainerException("Volume '$volumeName' must have a hostDir"))
-         Bind(actualHostDir, dockerVolume)
+
+         volume.hostDir?.let { hostDir ->
+            val actualHostDir = getActualHostDir(hostDir)
+            Bind(actualHostDir, dockerVolume)
+         } ?: throw ContainerException("Volume '$volumeName' must have a host-dir")
       }
    }
 
@@ -720,7 +761,7 @@ internal class DockerRuntime(
    }
 
    private fun configureVolumes(cmd: CreateContainerCmd, hostConfig: HostConfig) {
-      if (container.getVolumes().isNotEmpty()) {
+      if (container.getVolumes().isNotEmpty() || container.builder.containerFiles.isNotEmpty()) {
          val volumes = createDockerVolumes(hostConfig)
          cmd.withVolumes(*volumes.toTypedArray())
       } else {
