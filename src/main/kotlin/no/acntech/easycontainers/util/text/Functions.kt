@@ -16,7 +16,7 @@ fun String.splitOnWhites() = split(WHITESPACE_REGEX)
  * affix appended as a suffix.
  *
  * @param length The maximum length of the string.
- * @param affix The prefix or suffix to be added to the truncated string. Default value is "[..]".
+ * @param affix The prefix or suffix to be added to the truncated string. Default value the empty string.
  * @param fromStart Boolean indicating whether the truncation should be performed from the start of the string or from
  *                 the end. Default value is false.
  * @return The truncated string with the specified affix appended.

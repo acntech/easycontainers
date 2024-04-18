@@ -28,6 +28,6 @@ data class Volume(
    val memoryBacked: Boolean = false,
    val memory: Memory? = null,
 ) {
-   constructor(name: String, mountPath: String) : this(VolumeName.of(name), UnixDir.of(mountPath), null, false, null)
+   constructor(name: String, mountPath: String) : this(VolumeName.of(name), UnixDir.of(mountPath))
 
 }

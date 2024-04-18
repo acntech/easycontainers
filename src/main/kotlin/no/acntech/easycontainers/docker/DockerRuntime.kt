@@ -555,16 +555,10 @@ internal class DockerRuntime(
       }
    }
 
-   private fun determineLocalPath(localPath: Path?, remoteFilename: String): Path {
-      if (localPath == null) {
-         return Paths.get(System.getProperty("user.dir"), remoteFilename)
-      }
-
-      return if (Files.isDirectory(localPath)) {
-         localPath.resolve(remoteFilename)
-      } else {
-         localPath
-      }
+   private fun determineLocalPath(localPath: Path?, remoteFilename: String): Path = when {
+      localPath == null -> Files.createTempDirectory("docker-file-transfer-").resolve(remoteFilename)
+      Files.isDirectory(localPath) -> localPath.resolve(remoteFilename)
+      else -> localPath
    }
 
    private fun getActualHostDir(path: Path): String {

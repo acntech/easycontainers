@@ -24,7 +24,7 @@
 
     <!-- Library versions -->
     <spring-boot.version>3.2.2</spring-boot.version>
-    <kubernetes-client.version>6.12.0</kubernetes-client.version>
+    <kubernetes-client.version>6.12.1</kubernetes-client.version>
     <docker-java.version>3.3.6</docker-java.version>
     <awaitility.version>4.2.1</awaitility.version>
     <commons.lang3.version>3.14.0</commons.lang3.version>
@@ -34,7 +34,7 @@
     <jsch.version>0.2.17</jsch.version>
     <junit.version>5.10.1</junit.version>
     <slf4j.version>2.0.10</slf4j.version>
-    <logback.version>1.5.5</logback.version>
+    <logback.version>1.5.6</logback.version>
     <junit.version>5.10.2</junit.version>
     <khttp.version>1.6.1</khttp.version>
 
