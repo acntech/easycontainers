@@ -1,7 +1,6 @@
 package no.acntech.easycontainers.output
 
 import no.acntech.easycontainers.util.io.closeQuietly
-import no.acntech.easycontainers.util.lang.guardedExecution
 import java.io.IOException
 import java.io.InputStream
 import java.util.concurrent.atomic.AtomicBoolean
@@ -34,8 +33,8 @@ class LineReader(
          while (reader.readLine().also { line = it } != null && continueFlag.get() && !Thread.currentThread().isInterrupted) {
             try {
                callback.onLine(line)
-            } catch(e: IOException) {
-               if(!continueFlag.get()) { // If the continueFlag is set to false, we should break the loop silently
+            } catch (e: IOException) {
+               if (!continueFlag.get()) { // If the continueFlag is set to false, we should break the loop silently
                   callback.onLine("<Stream closed>")
                   break
                } else {

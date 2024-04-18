@@ -1,8 +1,9 @@
 package test.acntech.easycontainers
 
 import no.acntech.easycontainers.ContainerBuilderCallback
+import no.acntech.easycontainers.Environment
+import no.acntech.easycontainers.Environment.defaultRegistryEndpoint
 import no.acntech.easycontainers.GenericContainer
-import no.acntech.easycontainers.docker.DockerConstants
 import no.acntech.easycontainers.kubernetes.K8sUtils
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.util.net.NetworkUtils
@@ -18,20 +19,9 @@ object TestSupport {
 
    private val log: Logger = LoggerFactory.getLogger(TestSupport::class.java)
 
-   // NOTE: Only valid for a Windows/WSL2 environment
-   val registryIpAddress = PlatformUtils.getWslIpAddress() ?: "localhost"
+   val localKanikoDir = PlatformUtils.convertUnixPathToWindowsWslPath(Environment.k8sKanikoDataHostDir)
 
-   val nodeHostIpAddress = registryIpAddress
-
-   val dockerHostAddress = registryIpAddress
-
-   val registry = "${registryIpAddress}:5000"
-
-   val localKanikoPath = PlatformUtils.convertLinuxPathToWindowsWslPath("/home/thomas/kind/kaniko-data")
-
-   init {
-      System.setProperty(DockerConstants.PROP_DOCKER_HOST, "tcp://$dockerHostAddress:2375")
-   }
+   val localHostShareDir = PlatformUtils.convertUnixPathToWindowsWslPath(Environment.k8sGeneralDataHostDir)
 
    fun startContainer(
       platform: ContainerPlatformType = ContainerPlatformType.DOCKER,
@@ -57,11 +47,11 @@ object TestSupport {
          withContainerPlatformType(platform)
          withName(ContainerName.of("easycontainers-$imageName"))
          withNamespace(Namespace.TEST)
-         withImage(ImageURL.of("$registry/test/$imageName:latest"))
+         withImage(ImageURL.of("$defaultRegistryEndpoint/test/$imageName:latest"))
 
          withExecutionMode(executionMode)
 
-         withEnv("LOG_TIME_MESSAGE", "Hello from $platform running as $executionMode")
+         withEnv("LOG_TIME_MESSAGE", "Hello from $platform-container running as $executionMode")
 
          when (executionMode) {
 
@@ -107,8 +97,8 @@ object TestSupport {
 
       Assertions.assertEquals(ContainerState.RUNNING, runtime.getContainer().getState())
 
-      Assertions.assertTrue(NetworkUtils.isPortOpen("localhost", mappedLocalHttpPort))
-      Assertions.assertTrue(NetworkUtils.isPortOpen("localhost", mappedLocalSshPort))
+      Assertions.assertTrue(NetworkUtils.isTcpPortOpen("localhost", mappedLocalHttpPort))
+      Assertions.assertTrue(NetworkUtils.isTcpPortOpen("localhost", mappedLocalSshPort))
 
       return container
    }

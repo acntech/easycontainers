@@ -5,7 +5,6 @@ import no.acntech.easycontainers.model.ContainerPlatformType
 import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.model.ExecutionMode
 import org.apache.commons.lang3.time.DurationFormatUtils
-import org.bouncycastle.crypto.util.JournaledAlgorithm.getState
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Test
@@ -102,7 +101,8 @@ class ContainerLifeCycleTests {
          DurationFormatUtils.formatDuration(
             container.getDuration()!!.toMillis(),
             "mm'm:'ss's.'SSS'ms'",
-            true)
+            true
+         )
       )
 
       log.debug("Container exit code: ${container.getExitCode()}")

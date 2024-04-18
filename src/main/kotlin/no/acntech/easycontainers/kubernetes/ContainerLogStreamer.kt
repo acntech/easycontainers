@@ -28,11 +28,12 @@ class ContainerLogStreamer(
    override fun run() {
       try {
          lineReader.read()
-      } catch(e: IOException) {
+      } catch (e: IOException) {
          when (e.cause) {
             is InterruptedException, is CancellationException -> {
                // The thread was interrupted or cancelled, so we can ignore this exception
             }
+
             else -> throw ContainerException("Failed to read log stream for pod '$podName' in namespace '$namespace'", e)
          }
       }

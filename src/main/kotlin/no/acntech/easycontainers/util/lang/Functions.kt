@@ -237,8 +237,8 @@ inline fun guardedExecution(
    try {
       block.invoke()
    } catch (e: Exception) {
-      handlers.firstOrNull { (classes, _) -> classes.any { it.isInstance(e) } }?.let {
-         (_, handler) -> handler(e) } ?: noMatchHandler(e)
+      handlers.firstOrNull { (classes, _) -> classes.any { it.isInstance(e) } }?.let { (_, handler) -> handler(e) }
+         ?: noMatchHandler(e)
    } finally {
       finallyBlock.invoke()
    }

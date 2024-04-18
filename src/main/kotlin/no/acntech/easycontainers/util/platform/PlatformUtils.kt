@@ -196,7 +196,7 @@ object PlatformUtils {
 
    @Throws(IOException::class)
    fun createDirectoryInWsl(linuxPath: String, distroName: String? = getDefaultWslDistro()): String {
-      val wslPath = convertLinuxPathToWindowsWslPath(linuxPath, distroName)
+      val wslPath = convertUnixPathToWindowsWslPath(linuxPath, distroName)
 
       // Create directory and parent directories if they do not exist
       Files.createDirectories(Path.of(wslPath)).also {
@@ -210,7 +210,7 @@ object PlatformUtils {
     * Converts a Windows-style path to a Linux-style path for use in WSL.
     * Example: "C:\Users\path" -> "/mnt/c/Users/path"
     */
-   fun convertWindowsPathToLinuxWslPath(windowsPath: String, distroName: String? = getDefaultWslDistro()): String {
+   fun convertWindowsPathToUnixWslPath(windowsPath: String, distroName: String? = getDefaultWslDistro()): String {
       require(isWindows()) { "WSL is a Windows OS technology only" }
       require(isWslInstalled()) { "WSL is not installed" }
       require(windowsPath.isNotBlank()) { "Windows path cannot be blank" }
@@ -238,7 +238,7 @@ object PlatformUtils {
     * Converts a Linux-style path to a Windows-style path for use in WSL.
     * Example: "/home/johndoe/myfile.txt" -> "\\wsl$\Ubuntu\home\johndoe\myfile.txt"
     */
-   fun convertLinuxPathToWindowsWslPath(linuxPath: String, distroName: String? = getDefaultWslDistro()): String {
+   fun convertUnixPathToWindowsWslPath(linuxPath: String, distroName: String? = getDefaultWslDistro()): String {
       require(isWindows()) { "WSL is a Windows OS technology only" }
       require(isWslInstalled()) { "WSL is not installed" }
       require(linuxPath.isNotBlank()) { "Linux path cannot be blank" }

@@ -41,7 +41,7 @@ class ContainerFileTransferTests {
       val content = Files.readString(path)
       log.debug("Content of file:$NEW_LINE$content")
       assertTrue(content.contains("while getopts"))
-      guardedExecution({container.getRuntime().delete(true)})
+      guardedExecution({ container.getRuntime().delete(true) })
    }
 
    @ParameterizedTest
@@ -79,8 +79,8 @@ class ContainerFileTransferTests {
 
          assertEquals(content, receivedContent)
       } finally {
+         guardedExecution({ runtime.delete(true) })
          tempFile.deleteIfExists()
-         guardedExecution({runtime.delete(true)})
       }
    }
 
@@ -142,7 +142,7 @@ class ContainerFileTransferTests {
          assertEquals(content2, Files.readString(receivedFile2))
 
       } finally {
-         guardedExecution({runtime.delete(true)})
+         guardedExecution({ runtime.delete(true) })
          guardedExecution({ tempSendDir.deleteRecursively() })
          guardedExecution({ tempReceiveDir.deleteRecursively() })
       }

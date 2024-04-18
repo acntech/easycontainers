@@ -102,7 +102,7 @@ class ContainerExecTests {
 
       runtime.stop()
       assertEquals(ContainerState.STOPPED, runtime.getContainer().getState())
-      runtime.delete()
+      runtime.delete(true)
       assertEquals(ContainerState.DELETED, runtime.getContainer().getState())
       log.debug("Container exit code: {}", container.getExitCode())
    }
@@ -147,7 +147,7 @@ class ContainerExecTests {
 
       runtime.stop()
       assertEquals(ContainerState.STOPPED, runtime.getContainer().getState())
-      runtime.delete()
+      runtime.delete(true)
       assertEquals(ContainerState.DELETED, runtime.getContainer().getState())
       log.debug("Container exit code: {}", container.getExitCode())
    }
@@ -209,7 +209,7 @@ class ContainerExecTests {
 
       runtime.stop()
       assertEquals(ContainerState.STOPPED, runtime.getContainer().getState())
-      runtime.delete()
+      runtime.delete(true)
       assertEquals(ContainerState.DELETED, runtime.getContainer().getState())
    }
 

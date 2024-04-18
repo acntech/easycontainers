@@ -3,7 +3,6 @@ package no.acntech.easycontainers
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.output.OutputLineCallback
 import no.acntech.easycontainers.util.collections.prettyPrint
-import no.acntech.easycontainers.util.text.EQUALS
 import no.acntech.easycontainers.util.text.NEW_LINE
 import org.apache.commons.lang3.builder.ToStringBuilder
 import org.apache.commons.lang3.builder.ToStringStyle

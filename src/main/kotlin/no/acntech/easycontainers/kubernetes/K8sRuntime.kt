@@ -707,7 +707,7 @@ abstract class K8sRuntime(
             // Create the VolumeMount
             val volumeMount = VolumeMountBuilder()
                .withName(volume.name.value)
-               .withMountPath(volume.mountPath.value)
+               .withMountPath(volume.mountDir.value)
                .build()
             volumeMounts.add(volumeMount)
 
@@ -733,7 +733,7 @@ abstract class K8sRuntime(
 
             val volumeMount = VolumeMountBuilder()
                .withName(volume.name.value)
-               .withMountPath(volume.mountPath.value)
+               .withMountPath(volume.mountDir.value)
                .build()
             volumeMounts.add(volumeMount)
 

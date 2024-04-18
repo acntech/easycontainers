@@ -3,18 +3,16 @@ package test.acntech.easycontainers
 import no.acntech.easycontainers.ContainerBuilderCallback
 import no.acntech.easycontainers.model.*
 import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.slf4j.LoggerFactory
-import java.io.File
-import java.util.concurrent.TimeUnit
+import java.nio.file.Files
 import kotlin.io.path.readText
 
-class ContainerVolumeTests {
+class ContainerFileMountTests {
 
    companion object {
-      private val log = LoggerFactory.getLogger(ContainerVolumeTests::class.java)
+      private val log = LoggerFactory.getLogger(ContainerFileMountTests::class.java)
    }
 
 
@@ -25,7 +23,7 @@ class ContainerVolumeTests {
          "KUBERNETES"
       ]
    )
-   fun `Test mounting container file`(containerType: String) {
+   fun `Test mounting container file (single file mount)`(containerType: String) {
       log.info("Testing mount container file on platform: $containerType")
 
       val containerPlatformType = ContainerPlatformType.valueOf(containerType)
@@ -42,7 +40,7 @@ class ContainerVolumeTests {
                   ContainerFileName.of(fileName),
                   mount,
                   content,
-                  File.createTempFile("hello", ".txt").toPath()
+                  Files.createTempFile("hello", ".txt")
                )
             )
          }
@@ -63,7 +61,7 @@ class ContainerVolumeTests {
       assertEquals(content, readContent)
 
       container.getRuntime().stop()
-      container.getRuntime().delete()
+      container.getRuntime().delete(true)
    }
 
 }

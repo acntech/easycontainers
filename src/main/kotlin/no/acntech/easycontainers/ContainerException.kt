@@ -8,9 +8,7 @@ open class ContainerException : RuntimeException {
 
    constructor() : super()
 
-
    constructor(cause: Throwable) : super(cause)
-
 
    constructor(message: String) : super(message)
 

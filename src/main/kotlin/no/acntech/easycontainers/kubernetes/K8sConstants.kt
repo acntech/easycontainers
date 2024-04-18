@@ -1,6 +1,8 @@
 package no.acntech.easycontainers.kubernetes
 
 object K8sConstants {
+
+
    const val APP_LABEL = "app"
    const val CLUSTER_IP_DIRECTIVE = "ClusterIP"
    const val NODE_PORT_DIRECTIVE = "NodePort"
@@ -17,5 +19,4 @@ object K8sConstants {
 
    const val MEDIUM_MEMORY_BACKED = "Memory"
 
-   const val REGISTRY_DEFAULT_PORT = 5000
 }

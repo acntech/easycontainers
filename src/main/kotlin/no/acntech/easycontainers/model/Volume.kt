@@ -14,7 +14,7 @@ import java.nio.file.Path
  * </ul>
  *
  * @param name The name of the volume
- * @param mountPath The path in the container where the volume will be mounted
+ * @param mountDir The path in the container where the volume will be mounted
  * @param hostDir Only valid for Docker - if set, the volume will be mounted from the host
  * @param memoryBacked Valid for Docker and Kubernetes - if true, the volume will be memory backed using tmpfs for Docker and
  * emptyDir with medium 'Memory' for Kubernetes
@@ -23,7 +23,7 @@ import java.nio.file.Path
  */
 data class Volume(
    val name: VolumeName,
-   val mountPath: UnixDir,
+   val mountDir: UnixDir,
    val hostDir: Path? = null, // Only valid for Docker
    val memoryBacked: Boolean = false,
    val memory: Memory? = null,

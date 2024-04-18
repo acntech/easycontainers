@@ -2,7 +2,6 @@ package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.output.OutputLineCallback
 import no.acntech.easycontainers.util.text.COLON
-import no.acntech.easycontainers.util.text.NEW_LINE
 import no.acntech.easycontainers.util.text.SPACE
 import java.math.BigInteger
 import java.time.Duration

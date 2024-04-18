@@ -67,7 +67,7 @@ object NetworkUtils {
     * @param timeoutMillis the timeout in milliseconds for the connection attempt (default is 5000 milliseconds)
     * @return true if the port is open and reachable, false otherwise
     */
-   fun isPortOpen(host: String, port: Int, timeoutMillis: Int = 5000): Boolean {
+   fun isTcpPortOpen(host: String, port: Int, timeoutMillis: Int = 5000): Boolean {
       return try {
          Socket().use { socket ->
             // Connects this socket to the server with a specified timeout value.

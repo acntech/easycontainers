@@ -9,7 +9,6 @@ import no.acntech.easycontainers.util.io.FileUtils
 import no.acntech.easycontainers.util.io.pipe
 import no.acntech.easycontainers.util.text.EMPTY_STRING
 import no.acntech.easycontainers.util.text.FORWARD_SLASH
-import org.apache.commons.io.input.BoundedInputStream
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.io.*

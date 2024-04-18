@@ -17,8 +17,6 @@ import no.acntech.easycontainers.util.lang.prettyPrintMe
 import no.acntech.easycontainers.util.text.NEW_LINE
 import org.apache.commons.lang3.time.DurationFormatUtils
 import java.time.Instant
-import java.util.concurrent.CountDownLatch
-import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicReference
 
 /**

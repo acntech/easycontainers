@@ -3,9 +3,9 @@ package no.acntech.easycontainers.docker
 import com.github.dockerjava.api.DockerClient
 import com.github.dockerjava.core.DefaultDockerClientConfig
 import com.github.dockerjava.core.DockerClientBuilder
-import com.github.dockerjava.transport.DockerHttpClient
 import com.github.dockerjava.okhttp.OkDockerHttpClient
-import no.acntech.easycontainers.util.text.EMPTY_STRING
+import com.github.dockerjava.transport.DockerHttpClient
+import no.acntech.easycontainers.Environment
 import org.slf4j.LoggerFactory
 
 /**
@@ -47,22 +47,25 @@ object DockerClientFactory {
     *
     * @return The Docker host as a String, or null if not found.
     */
-   private fun getDockerHost(): String? {
-      var dockerHost = System.getenv(DockerConstants.ENV_DOCKER_HOST)
+   private fun getDockerHost(): String {
+      return Environment.defaultDockerDaemonEndpoint
 
-      if (dockerHost.isEmpty()) {
-         dockerHost = System.getProperty(DockerConstants.PROP_DOCKER_HOST, EMPTY_STRING)
-      }
-
-      if (dockerHost.isNotEmpty()) {
-         log.debug("Using Docker host from environment/system-property variable: $dockerHost")
-         if (!dockerHost.matches(".*:\\d+".toRegex())) { // host:port
-            dockerHost += ":${DockerConstants.DEFAULT_DOCKER_TCP_PORT}"
-         }
-      }
-      return dockerHost.also {
-         log.debug("Using Docker host: $dockerHost")
-      }
+//      var dockerHost = System.getenv(DockerConstants.ENV_DOCKER_DAEMON_ENDPOINT)
+//
+//      if (dockerHost.isEmpty()) {
+//         dockerHost = System.getProperty(Environment.PROP_DOCKER_DAEMON_ENDPOINT, EMPTY_STRING)
+//      }
+//
+//      if (dockerHost.isNotEmpty()) {
+//         log.debug("Using Docker host from environment/system-property variable: $dockerHost")
+//         if (!dockerHost.matches(".*:\\d+".toRegex())) { // host:port
+//            dockerHost += ":${DockerConstants.DEFAULT_DOCKER_TCP_INSECURE_PORT}"
+//         }
+//      }
+//
+//      return dockerHost.also {
+//         log.debug("Using Docker host: $dockerHost")
+//      }
    }
 
 }

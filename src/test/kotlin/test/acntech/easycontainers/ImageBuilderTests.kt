@@ -1,5 +1,6 @@
 package test.acntech.easycontainers
 
+import no.acntech.easycontainers.Environment.defaultRegistryEndpoint
 import no.acntech.easycontainers.GenericContainer
 import no.acntech.easycontainers.ImageBuilder
 import no.acntech.easycontainers.docker.DockerRegistryUtils
@@ -12,13 +13,11 @@ import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.slf4j.LoggerFactory
-import test.acntech.easycontainers.TestSupport.registry
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
 import java.time.Instant
 import java.util.concurrent.TimeUnit
-import javax.sound.sampled.Port
 
 class ImageBuilderTests {
 
@@ -90,11 +89,11 @@ class ImageBuilderTests {
 
       val repository = RepositoryName.TEST
 
-      val imageUrlVal = "$registry/$repository/${imageName.unwrap()}"
+      val imageUrlVal = "$defaultRegistryEndpoint/$repository/${imageName.unwrap()}"
 
       log.info("Image URL: $imageUrlVal")
 
-      DockerRegistryUtils.deleteImage("http://$registry/$repository", imageName.unwrap())
+      DockerRegistryUtils.deleteImage("http://$defaultRegistryEndpoint/$repository", imageName.unwrap())
 
       val dockerContextDir = Files.createTempDirectory("temp-docker-context-").toString().also {
          log.debug("Docker context (temp) dir created: $it")
@@ -119,7 +118,7 @@ class ImageBuilderTests {
       val imageBuilder = ImageBuilder.of(platformType)
          .withName(imageName)
          .withVerbosity(Verbosity.DEBUG)
-         .withImageRegistry(RegistryURL.of(registry))
+         .withImageRegistry(RegistryURL.of(defaultRegistryEndpoint))
          .withInsecureRegistry(true)
          .withRepository(RepositoryName.TEST)
          .withNamespace(Namespace.TEST)
@@ -129,7 +128,7 @@ class ImageBuilderTests {
          .withOutputLineCallback { line -> println("KUBE-KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
 
          // Kubernetes specific property to tell the image builder where to find the local Kaniko data
-         .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, TestSupport.localKanikoPath)
+         .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, TestSupport.localKanikoDir)
 
       val result = imageBuilder.buildImage()
 
@@ -158,7 +157,7 @@ class ImageBuilderTests {
       container.getRuntime().start()
       val running = container.waitForState(ContainerState.RUNNING, 60, TimeUnit.SECONDS)
       assertTrue(running, "Container did not start within 60 seconds")
-      assertTrue(NetworkUtils.isPortOpen("localhost", sshPort))
+      assertTrue(NetworkUtils.isTcpPortOpen("localhost", sshPort))
 
       // Wait for it...
       val completed = container.waitForCompletion(60, TimeUnit.SECONDS)
@@ -170,7 +169,7 @@ class ImageBuilderTests {
       assertEquals(10, exitVal, "Container exited with code $exitVal, expected 10")
 
       // Delete it...
-      container.getRuntime().delete()
+      container.getRuntime().delete(true)
    }
 
 

@@ -1,12 +1,9 @@
 package test.acntech.easycontainers
 
+import no.acntech.easycontainers.Environment.defaultRegistryEndpoint
 import no.acntech.easycontainers.GenericContainer
 import no.acntech.easycontainers.model.*
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.api.Test
-import org.junit.jupiter.params.ParameterizedTest
-import org.junit.jupiter.params.provider.ValueSource
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
 
@@ -22,7 +19,7 @@ class ShowCaseTests {
 
       val container = GenericContainer.builder().apply {
          withName(ContainerName.of("easycontainers-$imageName"))
-         withImage(ImageURL.of("${TestSupport.registry}/test/$imageName:latest"))
+         withImage(ImageURL.of("$defaultRegistryEndpoint/test/$imageName:latest"))
 
          withContainerPlatformType(ContainerPlatformType.DOCKER)
 
@@ -46,7 +43,7 @@ class ShowCaseTests {
 
       log.debug("Container state: ${container.getState()}")
 
-      TimeUnit.SECONDS.sleep(5*60)
+      TimeUnit.SECONDS.sleep(5 * 60)
 
       container.getRuntime().delete()
    }
@@ -58,7 +55,7 @@ class ShowCaseTests {
       val container = GenericContainer.builder().apply {
          withNamespace("test")
          withName(ContainerName.of("easycontainers-$imageName"))
-         withImage(ImageURL.of("${TestSupport.registry}/test/$imageName:latest"))
+         withImage(ImageURL.of("${defaultRegistryEndpoint}/test/$imageName:latest"))
 
          withContainerPlatformType(ContainerPlatformType.KUBERNETES)
 
@@ -84,7 +81,7 @@ class ShowCaseTests {
 
       log.debug("Container state: ${container.getState()}")
 
-      TimeUnit.SECONDS.sleep(5*60)
+      TimeUnit.SECONDS.sleep(5 * 60)
 
       container.getRuntime().delete()
    }

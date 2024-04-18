@@ -14,6 +14,10 @@ import com.google.common.io.CountingInputStream
 import no.acntech.easycontainers.AbstractContainerRuntime
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.GenericContainer
+import no.acntech.easycontainers.docker.DockerConstants.NETWORK_MODE_BRIDGE
+import no.acntech.easycontainers.docker.DockerConstants.NETWORK_MODE_HOST
+import no.acntech.easycontainers.docker.DockerConstants.NETWORK_MODE_NONE
+import no.acntech.easycontainers.docker.DockerConstants.NETWORK_NODE_CONTAINER
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.util.io.FileUtils
 import no.acntech.easycontainers.util.lang.asStringMap
@@ -328,7 +332,7 @@ internal class DockerRuntime(
    }
 
    override fun getFile(remoteDir: UnixDir, remoteFilename: String, localPath: Path?): Path {
-      val tempTarFile = Files.createTempFile("temp", ".tar").toFile()
+      val tempTarFile = File.createTempFile("temp", ".tar")
 
       val remoteFilePath = "$remoteDir/$remoteFilename"
 
@@ -345,7 +349,7 @@ internal class DockerRuntime(
 
             val targetPath = determineLocalPath(localPath, remoteFilename)
 
-            // untar the tempTarFile to the targetPath
+            // Untar the tempTarFile to the targetPath
             FileUtils.untarFile(tempTarFile, targetPath)
 
             return targetPath.also {
@@ -368,7 +372,6 @@ internal class DockerRuntime(
       require(localDir.exists() && localDir.isDirectory()) { "Local directory '$localDir' does not exist" }
       container.requireOneOfStates(ContainerState.RUNNING)
 
-      // Check if remoteDir exists, if not create it
       createContainerDirIfNotExists(remoteDir)
 
       val tarInput = CountingInputStream(FileUtils.tar(localDir, includeParentDir = true))
@@ -630,7 +633,7 @@ internal class DockerRuntime(
    private fun createDockerVolumes(hostConfig: HostConfig): List<Volume> {
       val volumes = container.getVolumes()
       val volumeMap = volumes.associateWith {
-         Volume(it.mountPath.value)
+         Volume(it.mountDir.value)
       }
       val dockerVolumeNames = getExistingVolumeNames()
 
@@ -652,7 +655,7 @@ internal class DockerRuntime(
    }
 
    private fun createContainerFileBind(containerFile: ContainerFile): Bind {
-      val hostFile = containerFile.hostFile ?: File.createTempFile(containerFile.name.value, null).toPath()
+      val hostFile = containerFile.hostFile ?: Files.createTempFile(containerFile.name.value, null)
 
       // If content is not null, write content to this file
       containerFile.content?.let { content ->
@@ -683,7 +686,7 @@ internal class DockerRuntime(
       val volumeName = volume.name.value
 
       return if (dockerVolumeNames.contains(volumeName)) {
-         log.info("Using existing named Docker volume '$volumeName' with mount-path '${volume.mountPath}'")
+         log.info("Using existing named Docker volume '$volumeName' with mount-path '${volume.mountDir}'")
          Bind(volumeName, dockerVolume)
 
       } else {
@@ -698,7 +701,7 @@ internal class DockerRuntime(
 
    private fun createTmpfsMount(volume: no.acntech.easycontainers.model.Volume): Mount {
       val volumeName = volume.name.value
-      val mountPath = volume.mountPath.value
+      val mountPath = volume.mountDir.value
       val memory = volume.memory
       log.info("Using memory-backed volume '$volumeName' with mount-path '$mountPath' and memory '$memory'")
       return Mount()
@@ -711,45 +714,56 @@ internal class DockerRuntime(
 
    private fun configureNetwork(hostConfig: HostConfig) {
       container.getNetworkName()?.let { networkName ->
-         val networkMode = networkName.value.also {
+         val networkModeType = networkName.value.also {
             log.info("Using network-mode: $it")
          }
-
-         // check networkMode is one of "bridge", "host", "none", "container:<name>", or a custom network name
-         when (networkMode) {
-            "bridge", "host", "none" -> {
-               hostConfig.withNetworkMode(networkMode)
+         when (networkModeType) {
+            NETWORK_MODE_BRIDGE, NETWORK_MODE_HOST, NETWORK_MODE_NONE -> {
+               hostConfig.withNetworkMode(networkModeType)
             }
 
             else -> {
-               if (networkMode.startsWith("container:")) {
-                  val containerName = networkMode.substringAfter("container:")
-                  val container = dockerClient.listContainersCmd().withNameFilter(listOf(containerName)).exec().firstOrNull()
-                  val containerId = container?.id ?: throw ContainerException("Container '$containerName' not found")
-                  hostConfig.withNetworkMode("container:$containerId")
-
-               } else {
-                  // Custom network name (create if it doesn't exist
-                  val networkList = dockerClient.listNetworksCmd().withNameFilter(networkMode).exec()
-                  val networkId = if (networkList.isEmpty()) {
-                     this.networkName = networkName // Must be removed if the container is ephimeral
-                     // Network doesn't exist, so create it
-                     dockerClient.createNetworkCmd()
-                        .withName(networkMode)
-                        .withDriver("bridge")
-                        .exec().id.also {
-                           log.info("Created network '$networkMode' with ID '$it'")
-                        }
-                  } else {
-                     // Network already exists
-                     networkList[0].id
-                  }
-                  hostConfig.withNetworkMode(networkId)
-               }
+               configureCustomNetworkMode(networkModeType, hostConfig)
             }
          }
       }
    }
+
+   private fun configureCustomNetworkMode(networkMode: String, hostConfig: HostConfig) {
+      when {
+         networkMode.startsWith(NETWORK_NODE_CONTAINER) -> {
+            val containerId = getContainerIdByName(networkMode.substringAfter(NETWORK_NODE_CONTAINER))
+            hostConfig.withNetworkMode("container:$containerId")
+         }
+
+         else -> {
+            val networkId = determineNetworkId(networkMode)
+            hostConfig.withNetworkMode(networkId)
+         }
+      }
+   }
+
+   private fun getContainerIdByName(containerName: String): String {
+      val container = listContainersByName(containerName).firstOrNull()
+      return container?.id ?: throw ContainerException("Container '$containerName' not found")
+   }
+
+   private fun listContainersByName(name: String) = dockerClient.listContainersCmd().withNameFilter(listOf(name)).exec()
+
+   private fun determineNetworkId(networkMode: String): String {
+      val networkList = dockerClient.listNetworksCmd().withNameFilter(networkMode).exec()
+      return if (networkList.isEmpty()) {
+         this.networkName = networkName // Must be removed if the container is ephimeral
+         createNetworkWithMode(networkMode)
+      } else {
+         networkList[0].id
+      }
+   }
+
+   private fun createNetworkWithMode(networkMode: String) =
+      dockerClient.createNetworkCmd().withName(networkMode).withDriver("bridge").exec().id.also {
+         log.info("Created network '$networkMode' with ID '$it'")
+      }
 
    private fun configurePortBindings(hostConfig: HostConfig) {
       if (container.getPortMappings().isNotEmpty()) {

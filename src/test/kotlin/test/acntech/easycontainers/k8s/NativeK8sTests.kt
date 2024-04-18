@@ -14,7 +14,6 @@ import org.slf4j.LoggerFactory
 import test.acntech.easycontainers.TestSupport.startContainer
 import java.io.ByteArrayOutputStream
 import java.io.OutputStream
-import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
 

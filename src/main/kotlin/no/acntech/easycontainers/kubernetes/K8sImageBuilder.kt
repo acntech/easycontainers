@@ -9,8 +9,8 @@ import io.fabric8.kubernetes.client.Watcher
 import io.fabric8.kubernetes.client.WatcherException
 import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.ContainerException
+import no.acntech.easycontainers.Environment.DEFAULT_REGISTRY_PORT
 import no.acntech.easycontainers.ImageBuilder
-import no.acntech.easycontainers.kubernetes.K8sConstants.REGISTRY_DEFAULT_PORT
 import no.acntech.easycontainers.model.ImageTag
 import no.acntech.easycontainers.util.platform.PlatformUtils
 import no.acntech.easycontainers.util.text.COLON
@@ -228,28 +228,28 @@ internal class K8sImageBuilder(
       }.absolutePath
    }
 
-   private fun processDockerContextDir(updatedLocalKanikoPath: String?): String {
+   private fun processDockerContextDir(localKanikoPath: String?): String {
       return when {
          dockerContextDir.startsWith(
-            updatedLocalKanikoPath ?: return dockerContextDirBelowMountPath()
-         ) -> processDockerContextDirUnderKanikoDataPath(updatedLocalKanikoPath)
+            localKanikoPath ?: return dockerContextDirBelowMountPath()
+         ) -> processDockerContextDirUnderKanikoDataPath(localKanikoPath)
 
-         else -> processDockerContextDirNotUnderKanikoDataVolume(updatedLocalKanikoPath)
+         else -> processDockerContextDirNotUnderKanikoDataVolume(localKanikoPath)
       }
    }
 
-   private fun processDockerContextDirUnderKanikoDataPath(updatedLocalKanikoPath: String): String {
+   private fun processDockerContextDirUnderKanikoDataPath(localKanikoPath: String): String {
       log.trace("Docker context dir '$dockerContextDir' is already under the Kaniko data path")
       requireDockerfile()
       return (KANIKO_DATA_VOLUME_MOUNT_PATH + dockerContextDir.absolutePathString()
-         .substring(updatedLocalKanikoPath.length)).also {
+         .substring(localKanikoPath.length)).also {
          log.info("Using '$it' as the Docker context dir (present on local WSL filesystem)")
       }
    }
 
-   private fun processDockerContextDirNotUnderKanikoDataVolume(updatedLocalKanikoPath: String): String {
+   private fun processDockerContextDirNotUnderKanikoDataVolume(localKanikoPath: String): String {
       log.trace("Docker context dir '$dockerContextDir' is not under the local Kaniko data volume, preparing to copy it")
-      copyDockerContextDirToUniqueSubDir(updatedLocalKanikoPath)
+      copyDockerContextDirToUniqueSubDir(localKanikoPath)
       return "$KANIKO_DATA_VOLUME_MOUNT_PATH/${uuid}".also {
          log.info("Using '$it' as the Docker context dir")
       }
@@ -377,7 +377,7 @@ internal class K8sImageBuilder(
    private fun createInsecureRegistryConfigVolumeMount(): VolumeMount {
       val registryVal = registry.unwrap()
       val host = if (registryVal.contains(COLON)) registryVal.substringBefore(COLON) else registryVal
-      val port = if (registryVal.contains(COLON)) registryVal.substringAfter(COLON).toInt() else REGISTRY_DEFAULT_PORT
+      val port = if (registryVal.contains(COLON)) registryVal.substringAfter(COLON).toInt() else DEFAULT_REGISTRY_PORT
       createConfigMap(listOf(Pair(host, port)))
       return createVolumeMount(KANIKO_DOCKER_CONFIG_VOLUME_NAME, KANIKO_DOCKER_PATH)
    }
