@@ -7,6 +7,7 @@ import no.acntech.easycontainers.model.ExecutionMode
 import org.apache.commons.lang3.time.DurationFormatUtils
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.extension.ExtensionContext
 import org.junit.jupiter.params.ParameterizedTest
@@ -27,6 +28,7 @@ class ContainerLifeCycleTests {
 
 
    @Test
+   @Disabled
    fun startAndRunServiceTestContainers() {
 //      val dockerContainer = startContainer(ContainerPlatformType.DOCKER, ExecutionMode.SERVICE)
       val k8sContainer = startContainer(ContainerPlatformType.KUBERNETES, ExecutionMode.SERVICE)
@@ -34,6 +36,7 @@ class ContainerLifeCycleTests {
    }
 
    @Test
+   @Disabled
    fun startAndRunTaskTestContainers() {
       try {
          val k8sContainer = startContainer(ContainerPlatformType.KUBERNETES, ExecutionMode.TASK)

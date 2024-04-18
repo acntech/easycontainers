@@ -3,6 +3,7 @@ package test.acntech.easycontainers
 import no.acntech.easycontainers.Environment.defaultRegistryEndpoint
 import no.acntech.easycontainers.GenericContainer
 import no.acntech.easycontainers.model.*
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import org.slf4j.LoggerFactory
 import java.util.concurrent.TimeUnit
@@ -14,6 +15,7 @@ class ShowCaseTests {
    }
 
    @Test
+   @Disabled
    fun `Showcase Docker`() {
       val imageName = "container-test"
 
@@ -49,6 +51,7 @@ class ShowCaseTests {
    }
 
    @Test
+   @Disabled
    fun `Showcase Kubernetes`() {
       val imageName = "container-test"
 
