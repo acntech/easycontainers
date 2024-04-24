@@ -335,7 +335,7 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
    }
 
    /**
-    * Sets the memory limit for the container.
+    * Sets the memory limit for the container in bytes.
     *
     * @param memoryLimit The memory limit for the container as a BigInteger.
     * @return The updated ContainerBuilder instance.
@@ -345,7 +345,19 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
    }
 
    /**
+    * Sets the memory limit for the container in bytes given as a long, hence limited to the maximum value of a long.
     *
+    * @param memoryLimit The memory limit for the container as a long.
+    * @return The updated ContainerBuilder instance.
+    */
+   fun withMemoryLimit(memoryLimit: Long): SELF {
+      return withMemoryLimit(BigInteger.valueOf(memoryLimit))
+   }
+
+   /**
+    * Sets the ephemeral flag for the container.
+    * If the ephemeral flag is set to true, the container will be deleted after it has stopped.
+    * @param ephemeral The ephemeral flag to be set.
     */
    fun withIsEphemeral(ephemeral: Boolean): SELF
 
@@ -387,6 +399,10 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
       return withContainerFile(ContainerFileName.of(name), UnixDir.of(path), data, keyValSeparator)
    }
 
+   fun withContainerFile(name: String, mountPath: String, content: String): SELF {
+      return withContainerFile(ContainerFileName.of(name), UnixDir.of(mountPath), content)
+   }
+
    /**
     * Adds a file to the container with the specified name, path, and content.
     *
@@ -399,8 +415,8 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
       return withContainerFile(ContainerFile(name, path, content))
    }
 
-   fun withContainerFile(name: String, mountPath: String, content: String): SELF {
-      return withContainerFile(ContainerFileName.of(name), UnixDir.of(mountPath), content)
+   fun withVolume(name: String, mountPath: String): SELF {
+      return withVolume(VolumeName.of(name), UnixDir.of(mountPath))
    }
 
    /**
@@ -410,7 +426,9 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
     * @param mountPath The mount path to be set as the mount point for the volume.
     * @return An instance of the object with the volume name and mount path set.
     */
-   fun withVolume(name: VolumeName, mountPath: UnixDir): SELF
+   fun withVolume(name: VolumeName, mountPath: UnixDir): SELF {
+      return withVolume(Volume(name, mountPath))
+   }
 
    /**
     * Sets the volume for the container.
@@ -442,9 +460,9 @@ interface ContainerBuilder<SELF : ContainerBuilder<SELF>> {
    /**
     * Sets the maximum life time for the object.
     *
-    * @param value the value of the maximum life time
-    * @param unit the time unit of the maximum life time
-    * @return this object with the maximum life time set
+    * @param value the value of the maximum lifetime
+    * @param unit the time unit of the maximum lifetime
+    * @return this object with the maximum lifetime set
     */
    fun withMaxLifeTime(value: Long, unit: TimeUnit): SELF {
       return withMaxLifeTime(value, unit.toChronoUnit())

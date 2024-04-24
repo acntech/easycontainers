@@ -14,7 +14,7 @@ import java.nio.file.Path
 import java.time.Instant
 
 /**
- * An abstract class for building Docker images. The class is designed to be extended by specific implementations.
+ * An abstract class for building Docker images. The class is designed to be extended by specific (concrete) implementations.
  *
  * <h2>Kubernetes quirks</h2>
  * In order to build Docker images in a k8s cluster (using Kaniko) from a test environment running outside the cluster, you would
@@ -86,9 +86,6 @@ abstract class ImageBuilder {
    }
 
    companion object {
-      const val PROP_LOCAL_KANIKO_DATA_PATH = "kaniko-data.local.path"
-      const val PROP_KANIKO_K8S_PVC_NAME = "kaniko-data.k8s.pvc.name"
-      const val PROP_KANIKO_K8S_PV_NAME = "kaniko-data.k8s.pv.name"
 
       /**
        * Creates and returns of ImageBuilder based on the provided container type.
@@ -117,7 +114,7 @@ abstract class ImageBuilder {
 
    protected var dockerContextDir: Path = Path.of(System.getProperty("user.dir"))
 
-   protected var name: ImageName = ImageName.DEFAULT
+   protected var imageName: ImageName = ImageName.DEFAULT
 
    protected val tags: MutableList<ImageTag> = mutableListOf()
 
@@ -127,7 +124,7 @@ abstract class ImageBuilder {
 
    protected var verbosity: Verbosity = Verbosity.INFO
 
-   protected var customProperties: MutableMap<String, String> = mutableMapOf()
+   protected var customProperties: MutableMap<String, Any> = mutableMapOf()
 
    protected var outputLineCallback: OutputLineCallback = OutputLineCallback { _ -> }
 
@@ -144,6 +141,10 @@ abstract class ImageBuilder {
       return this
    }
 
+   fun withDockerContextDir(dir: String): ImageBuilder {
+      return withDockerContextDir(Path.of(dir))
+   }
+
    /**
     * Sets the image registry for the ImageBuilder.
     *
@@ -153,6 +154,10 @@ abstract class ImageBuilder {
    fun withImageRegistry(registry: RegistryURL): ImageBuilder {
       this.registry = registry
       return this
+   }
+
+   fun withImageRegistry(registry: String): ImageBuilder {
+      return withImageRegistry(RegistryURL.of(registry))
    }
 
    /**
@@ -177,6 +182,10 @@ abstract class ImageBuilder {
       return this
    }
 
+   fun withRepository(repository: String): ImageBuilder {
+      return withRepository(RepositoryName.of(repository))
+   }
+
    /**
     * Sets the name of the image.
     *
@@ -184,8 +193,12 @@ abstract class ImageBuilder {
     * @return The instance of the ImageBuilder with the name set.
     */
    fun withName(name: ImageName): ImageBuilder {
-      this.name = name
+      this.imageName = name
       return this
+   }
+
+   fun withName(name: String): ImageBuilder {
+      return withName(ImageName.of(name))
    }
 
    /**
@@ -196,6 +209,15 @@ abstract class ImageBuilder {
     */
    fun withTag(tag: ImageTag): ImageBuilder {
       tags.add(tag)
+      return this
+   }
+
+   fun withTag(tag: String): ImageBuilder {
+      return withTag(ImageTag.of(tag))
+   }
+
+   fun withTags(tags: Set<String>): ImageBuilder {
+      tags.forEach { withTag(it) }
       return this
    }
 
@@ -211,6 +233,15 @@ abstract class ImageBuilder {
       return this
    }
 
+   fun withLabel(key: String, value: String): ImageBuilder {
+      return withLabel(LabelKey.of(key), LabelValue.of(value))
+   }
+
+   fun withLabels(labels: Map<String, String>): ImageBuilder {
+      labels.forEach { (key, value) -> withLabel(key, value) }
+      return this
+   }
+
    /**
     * Sets the namespace for the ImageBuilder - this is only relevant for Kubernetes.
     *
@@ -222,6 +253,10 @@ abstract class ImageBuilder {
       return this
    }
 
+   fun withNamespace(namespace: String): ImageBuilder {
+      return withNamespace(Namespace.of(namespace))
+   }
+
    /**
     * Sets the verbosity level for the ImageBuilder.
     *
@@ -231,6 +266,10 @@ abstract class ImageBuilder {
    fun withVerbosity(verbosity: Verbosity): ImageBuilder {
       this.verbosity = verbosity
       return this
+   }
+
+   fun withVerbosity(verbosity: String): ImageBuilder {
+      return withVerbosity(Verbosity.valueOf(verbosity.uppercase()))
    }
 
    /**
@@ -251,7 +290,7 @@ abstract class ImageBuilder {
     * @param value the value of the custom property
     * @return the modified ImageBuilder object
     */
-   fun withCustomProperty(key: String, value: String): ImageBuilder {
+   fun withCustomProperty(key: String, value: Any): ImageBuilder {
       customProperties[key] = value
       return this
    }
@@ -286,7 +325,7 @@ abstract class ImageBuilder {
     */
    override fun toString(): String {
       return ToStringBuilder(this, ToStringStyle.MULTI_LINE_STYLE)
-         .append(this::name.name, name)
+         .append(this::imageName.name, imageName)
          .append(this::namespace.name, namespace)
          .append("startTime", getStartTime())
          .append("finishTime", getFinishTime())
@@ -335,6 +374,7 @@ abstract class ImageBuilder {
     * @param states the states to check against
     * @throws IllegalStateException if the current state is not one of the specified states
     */
+   @Synchronized
    protected fun requireState(vararg states: State) {
       if (!states.contains(getState())) {
          throw IllegalStateException("In state [${getState()}], but required state is one of [${states.joinToString()}]")

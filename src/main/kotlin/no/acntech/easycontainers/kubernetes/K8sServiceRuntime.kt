@@ -6,7 +6,6 @@ import io.fabric8.kubernetes.api.model.apps.DeploymentSpec
 import io.fabric8.kubernetes.client.KubernetesClient
 import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.GenericContainer
-import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.model.Host
 import no.acntech.easycontainers.util.lang.prettyPrintMe
 import no.acntech.easycontainers.util.text.NEW_LINE
@@ -47,7 +46,10 @@ class K8sServiceRuntime(
    override fun stop() {
       log.debug("Stopping container: ${container.getName()}")
 
-      container.requireOneOfStates(ContainerState.RUNNING, ContainerState.FAILED)
+      container.requireOneOfStates(
+         no.acntech.easycontainers.model.Container.State.RUNNING,
+         no.acntech.easycontainers.model.Container.State.FAILED
+      )
 
       val exists = client.apps()
          .deployments()
@@ -87,10 +89,13 @@ class K8sServiceRuntime(
    override fun kill() {
       log.debug("Killing container: ${container.getName()}")
 
-      container.requireOneOfStates(ContainerState.RUNNING, ContainerState.FAILED)
+      container.requireOneOfStates(
+         no.acntech.easycontainers.model.Container.State.RUNNING,
+         no.acntech.easycontainers.model.Container.State.FAILED
+      )
       deleteDeploymentIfExists(true)
       finishedAt = Instant.now()
-      container.changeState(ContainerState.STOPPED)
+      container.changeState(no.acntech.easycontainers.model.Container.State.STOPPED)
    }
 
    override fun deploy() {

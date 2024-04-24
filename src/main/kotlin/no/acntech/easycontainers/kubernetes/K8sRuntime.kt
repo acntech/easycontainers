@@ -17,7 +17,6 @@ import no.acntech.easycontainers.kubernetes.K8sUtils.normalizeConfigMapName
 import no.acntech.easycontainers.kubernetes.K8sUtils.normalizeLabelValue
 import no.acntech.easycontainers.kubernetes.K8sUtils.normalizeVolumeName
 import no.acntech.easycontainers.model.*
-import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.util.lang.guardedExecution
 import no.acntech.easycontainers.util.lang.prettyPrintMe
 import no.acntech.easycontainers.util.text.*
@@ -98,14 +97,14 @@ abstract class K8sRuntime(
       const val CONFIG_MAP_NAME_SUFFIX = "-config-map"
       const val VOLUME_NAME_SUFFIX = "-volume"
 
-      private fun mapPodPhaseToContainerState(podPhase: PodPhase?): ContainerState {
+      private fun mapPodPhaseToContainerState(podPhase: PodPhase?): no.acntech.easycontainers.model.Container.State {
          return when (podPhase) {
-            PodPhase.PENDING -> ContainerState.INITIALIZING
-            PodPhase.RUNNING -> ContainerState.RUNNING
-            PodPhase.FAILED -> ContainerState.FAILED
-            PodPhase.SUCCEEDED -> ContainerState.STOPPED
-            PodPhase.UNKNOWN -> ContainerState.UNKNOWN
-            else -> ContainerState.UNKNOWN // Ensures newState has a default value even if podPhase is null
+            PodPhase.PENDING -> no.acntech.easycontainers.model.Container.State.INITIALIZING
+            PodPhase.RUNNING -> no.acntech.easycontainers.model.Container.State.RUNNING
+            PodPhase.FAILED -> no.acntech.easycontainers.model.Container.State.FAILED
+            PodPhase.SUCCEEDED -> no.acntech.easycontainers.model.Container.State.STOPPED
+            PodPhase.UNKNOWN -> no.acntech.easycontainers.model.Container.State.UNKNOWN
+            else -> no.acntech.easycontainers.model.Container.State.UNKNOWN // Ensures newState has a default value even if podPhase is null
          }
       }
    }
@@ -211,7 +210,10 @@ abstract class K8sRuntime(
    }
 
    override fun start() {
-      container.changeState(ContainerState.INITIALIZING, ContainerState.UNINITIATED)
+      container.changeState(
+         no.acntech.easycontainers.model.Container.State.INITIALIZING,
+         no.acntech.easycontainers.model.Container.State.UNINITIATED
+      )
 
       log.info("Starting container: ${container.getName()}")
       log.debug("Using container config$NEW_LINE${container.builder}")
@@ -220,7 +222,7 @@ abstract class K8sRuntime(
          deploy()
          waitForPod()
       } catch (e: Exception) {
-         container.changeState(ContainerState.FAILED)
+         container.changeState(no.acntech.easycontainers.model.Container.State.FAILED)
          ErrorSupport.handleK8sException(e, log)
       }
    }
@@ -243,10 +245,10 @@ abstract class K8sRuntime(
          )
       } else {
          container.changeState(
-            ContainerState.TERMINATING,
-            ContainerState.RUNNING,
-            ContainerState.STOPPED,
-            ContainerState.FAILED
+            no.acntech.easycontainers.model.Container.State.TERMINATING,
+            no.acntech.easycontainers.model.Container.State.RUNNING,
+            no.acntech.easycontainers.model.Container.State.STOPPED,
+            no.acntech.easycontainers.model.Container.State.FAILED
          )
          deleteResources()
       }
@@ -270,7 +272,9 @@ abstract class K8sRuntime(
             )
          }
       }
-      container.changeState(ContainerState.DELETED)
+      container.onDelete()
+
+      container.changeState(no.acntech.easycontainers.model.Container.State.DELETED)
    }
 
    override fun execute(
@@ -384,8 +388,9 @@ abstract class K8sRuntime(
 
    protected fun getResourceMetaData(): ObjectMeta {
       return ObjectMeta().apply {
-         name = getResourceName()
          namespace = this@K8sRuntime.namespace
+//         name = getResourceName()
+         generateName = getResourceName().truncate(10) + "-"
          val stringLabels: Map<String, String> = container.getLabels().flatMap { (key, value) ->
             listOf(key.value to value.value)
          }.toMap()
@@ -693,7 +698,8 @@ abstract class K8sRuntime(
          .forEach { volume ->
 
             // Derive the PVC name from the volume name
-            val pvcName = "${volume.name}$PVC_NAME_SUFFIX"
+            val pvcName = extractPersistentVolumeClaimName(volume.name.value)
+               ?: throw ContainerException("Failed to extract persistent volume claim name for volume: ${volume.name}")
 
             // Create the Volume using the existing PVC
             val k8sVolume = VolumeBuilder()
@@ -739,6 +745,26 @@ abstract class K8sRuntime(
 
             log.info("Created memory-backed volume: ${volume.name}")
          }
+   }
+
+   private fun extractPersistentVolumeClaimName(base: String): String? {
+      var claimName = base
+
+      // Check if a PVC with the base name exists.
+      var pvc = client.persistentVolumeClaims().inNamespace(namespace).withName(claimName).get()
+
+      // If the PVC base name does not exist, create a new claimName with the PVC_NAME_SUFFIX.
+      // Then, re-check if a PVC with the new name exists.
+      if (pvc == null && !base.endsWith(PVC_NAME_SUFFIX)) {
+         claimName += PVC_NAME_SUFFIX
+         pvc = client.persistentVolumeClaims().inNamespace(namespace).withName(claimName).get()
+      }
+
+      // If a PVC with either the base name or the suffixed name was found, return the claimName.
+      // If no PVC was found for both, return null.
+      return (if (pvc != null) claimName else null).also {
+         log.debug("Extracted PVC name: $it")
+      }
    }
 
    private fun extractOurDeploymentName(): String? {
@@ -837,7 +863,10 @@ abstract class K8sRuntime(
       }
    }
 
-   private fun handleContainerStatuses(containerStatuses: List<ContainerStatus>?, newState: ContainerState): ContainerState? {
+   private fun handleContainerStatuses(
+      containerStatuses: List<ContainerStatus>?,
+      newState: no.acntech.easycontainers.model.Container.State,
+   ): no.acntech.easycontainers.model.Container.State? {
       if (containerStatuses.isNullOrEmpty()) {
          log.warn("No container statuses found in pod '$podName'")
          return null
@@ -866,8 +895,8 @@ abstract class K8sRuntime(
 
    private fun handlePossibleTerminatedContainerState(
       containerStatus: ContainerStatus,
-      newState: ContainerState,
-   ): ContainerState {
+      newState: no.acntech.easycontainers.model.Container.State,
+   ): no.acntech.easycontainers.model.Container.State {
       var resultState = newState
 
       listOfNotNull(containerStatus.state.terminated, containerStatus.lastState.terminated)
@@ -882,7 +911,7 @@ abstract class K8sRuntime(
    private fun handleTerminatedContainer(
       containerStatus: ContainerStatus,
       terminatedState: ContainerStateTerminated,
-   ): ContainerState {
+   ): no.acntech.easycontainers.model.Container.State {
       log.info(
          "Container ${containerStatus.name} terminated with signal '${terminatedState.signal}', " +
             "reason: ${terminatedState.reason}, message: '${terminatedState.message}'"
@@ -905,11 +934,11 @@ abstract class K8sRuntime(
             "Container '${containerStatus.name}' terminated due to '" +
                " ${terminatedState.reason}': ${terminatedState.message}"
          )
-         ContainerState.FAILED
+         no.acntech.easycontainers.model.Container.State.FAILED
 
       } else {
          // When a container is terminated, we consider the pod to be STOPPED
-         ContainerState.STOPPED
+         no.acntech.easycontainers.model.Container.State.STOPPED
       }
    }
 

@@ -84,6 +84,8 @@ class ShowCaseTests {
 
       log.debug("Container state: ${container.getState()}")
 
+      container.waitForState(Container.State.RUNNING, 60, TimeUnit.SECONDS)
+
       TimeUnit.SECONDS.sleep(5 * 60)
 
       container.getRuntime().delete()

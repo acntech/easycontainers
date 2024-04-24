@@ -36,6 +36,7 @@ open class GenericContainer(
       }
 
       override fun build(): Container {
+         checkBuildAllowed()
          return GenericContainer(this)
       }
 
@@ -44,15 +45,15 @@ open class GenericContainer(
    companion object {
 
       @OptIn(ExperimentalStdlibApi::class)
-      private val LEGAL_STATE_TRANSITIONS: Map<ContainerState, Set<ContainerState>> = mapOf(
-         ContainerState.UNINITIATED to setOf(ContainerState.INITIALIZING),
-         ContainerState.INITIALIZING to setOf(ContainerState.RUNNING, ContainerState.FAILED),
-         ContainerState.RUNNING to setOf(ContainerState.TERMINATING, ContainerState.STOPPED, ContainerState.FAILED),
-         ContainerState.TERMINATING to setOf(ContainerState.STOPPED, ContainerState.DELETED, ContainerState.FAILED),
-         ContainerState.STOPPED to setOf(ContainerState.DELETED, ContainerState.FAILED),
-         ContainerState.DELETED to emptySet(),
-         ContainerState.FAILED to emptySet(),
-         ContainerState.UNKNOWN to ContainerState.entries.toSet()
+      private val LEGAL_STATE_TRANSITIONS: Map<Container.State, Set<Container.State>> = mapOf(
+         Container.State.UNINITIATED to setOf(Container.State.INITIALIZING),
+         Container.State.INITIALIZING to setOf(Container.State.RUNNING, Container.State.FAILED),
+         Container.State.RUNNING to setOf(Container.State.TERMINATING, Container.State.STOPPED, Container.State.FAILED),
+         Container.State.TERMINATING to setOf(Container.State.STOPPED, Container.State.DELETED, Container.State.FAILED),
+         Container.State.STOPPED to setOf(Container.State.DELETED, Container.State.FAILED),
+         Container.State.DELETED to emptySet(),
+         Container.State.FAILED to emptySet(),
+         Container.State.UNKNOWN to Container.State.entries.toSet()
       )
 
       fun builder(): ContainerBuilder<*> {
@@ -72,15 +73,15 @@ open class GenericContainer(
       }
    }
 
-   private var state: ContainerState = ContainerState.UNINITIATED
+   private var state: Container.State = Container.State.UNINITIATED
 
-   private val stateLatches: Map<ContainerState, CountDownLatch> = mapOf(
-      ContainerState.INITIALIZING to CountDownLatch(1),
-      ContainerState.RUNNING to CountDownLatch(1),
-      ContainerState.TERMINATING to CountDownLatch(1),
-      ContainerState.STOPPED to CountDownLatch(1),
-      ContainerState.DELETED to CountDownLatch(1),
-      ContainerState.FAILED to CountDownLatch(1)
+   private val stateLatches: Map<Container.State, CountDownLatch> = mapOf(
+      Container.State.INITIALIZING to CountDownLatch(1),
+      Container.State.RUNNING to CountDownLatch(1),
+      Container.State.TERMINATING to CountDownLatch(1),
+      Container.State.STOPPED to CountDownLatch(1),
+      Container.State.DELETED to CountDownLatch(1),
+      Container.State.FAILED to CountDownLatch(1)
    )
 
    private val completionLatch: CountDownLatch = CountDownLatch(1)
@@ -208,11 +209,11 @@ open class GenericContainer(
    }
 
    @Synchronized
-   override fun getState(): ContainerState {
+   override fun getState(): Container.State {
       return state
    }
 
-   override fun waitForState(state: ContainerState, timeout: Long, unit: TimeUnit): Boolean {
+   override fun waitForState(state: Container.State, timeout: Long, unit: TimeUnit): Boolean {
       val latch = stateLatches[state] ?: throw IllegalArgumentException("Cannot wait for state: $state")
       log.debug("Waiting $timeout $unit for container '${getName()}' to reach state '$state'")
 
@@ -251,7 +252,7 @@ open class GenericContainer(
    }
 
    @Synchronized
-   internal fun changeState(newState: ContainerState, vararg requireOneOf: ContainerState) {
+   internal fun changeState(newState: Container.State, vararg requireOneOf: Container.State) {
       if (getState() == newState) {
          log.debug("Container '${getName()}' is already in state '$newState'")
          return
@@ -267,18 +268,18 @@ open class GenericContainer(
       // Notify waiting threads
       stateLatches[newState]?.countDown()
 
-      if (isInOneOfStates(ContainerState.STOPPED, ContainerState.DELETED, ContainerState.FAILED)) {
+      if (isInOneOfStates(Container.State.STOPPED, Container.State.DELETED, Container.State.FAILED)) {
          completionLatch.countDown()
       }
    }
 
    @Synchronized
-   internal fun isInOneOfStates(vararg states: ContainerState): Boolean {
+   internal fun isInOneOfStates(vararg states: Container.State): Boolean {
       return states.contains(state)
    }
 
    @Synchronized
-   internal fun requireOneOfStates(vararg states: ContainerState) {
+   internal fun requireOneOfStates(vararg states: Container.State) {
       if (states.isNotEmpty() && !states.contains(state)) {
          throw ContainerException(
             "Illegal state: container '${getName()}' is in state '${getState()}', " +
@@ -287,7 +288,7 @@ open class GenericContainer(
       }
    }
 
-   internal fun isLegalStateChange(oldState: ContainerState = getState(), newState: ContainerState): Boolean {
+   internal fun isLegalStateChange(oldState: Container.State = getState(), newState: Container.State): Boolean {
       return newState in (LEGAL_STATE_TRANSITIONS[oldState] ?: emptySet())
    }
 

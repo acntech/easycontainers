@@ -4,7 +4,6 @@ import no.acntech.easycontainers.ContainerBuilderCallback
 import no.acntech.easycontainers.Environment
 import no.acntech.easycontainers.Environment.k8sGeneralDataPvcName
 import no.acntech.easycontainers.model.*
-import no.acntech.easycontainers.util.platform.PlatformUtils
 import no.acntech.easycontainers.util.text.FORWARD_SLASH
 import no.acntech.easycontainers.util.text.truncate
 import org.apache.commons.io.FileUtils
@@ -15,6 +14,7 @@ import org.junit.jupiter.params.provider.Arguments
 import org.junit.jupiter.params.provider.ArgumentsProvider
 import org.junit.jupiter.params.provider.ArgumentsSource
 import org.slf4j.LoggerFactory
+import test.acntech.easycontainers.TestSupport.getActualDir
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
@@ -30,7 +30,7 @@ class ContainerVolumeMountTests {
    class ContainerVolumeMountTestsProvider : ArgumentsProvider {
       override fun provideArguments(context: ExtensionContext?): Stream<out Arguments> {
          return Stream.of(
-//            Arguments.of(ContainerPlatformType.DOCKER, "/tmp"), // in Docker, any directory can be shared
+            Arguments.of(ContainerPlatformType.DOCKER, "/tmp"), // in Docker, any directory can be shared
             Arguments.of(ContainerPlatformType.KUBERNETES, Environment.k8sGeneralDataHostDir),
          )
       }
@@ -116,16 +116,6 @@ class ContainerVolumeMountTests {
       val actualDir = getActualDir(hostDir)
       FileUtils.deleteDirectory(actualDir.toFile())
       log.debug("Deleted test files in dir: $actualDir")
-   }
-
-   private fun getActualDir(hostDir: Path): Path {
-      return Path.of(
-         if (PlatformUtils.isWslInstalled()) {
-            PlatformUtils.convertUnixPathToWindowsWslPath(hostDir.toString())
-         } else {
-            hostDir.toString()
-         }
-      )
    }
 
 }

@@ -60,8 +60,7 @@ class ContainerFileMountTests {
       val readContent = file.readText()
       assertEquals(content, readContent)
 
-      container.getRuntime().stop()
-      container.getRuntime().delete(true)
+      TestSupport.shutdownContainer(container)
    }
 
 }

@@ -25,8 +25,8 @@ COPY log-time.sh /log-time.sh
 # Make the log-time.sh script executable
 RUN chmod +x /log-time.sh
 
-# Copy the entry script from the build context to the container
-COPY entry.sh /entrypoint.sh
+# Copy the entrypoint script from the build context to the container
+COPY entrypoint.sh /entrypoint.sh
 
 # Make the entry script executable
 RUN chmod +x /entrypoint.sh

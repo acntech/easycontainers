@@ -2,6 +2,8 @@ package no.acntech.easycontainers.docker
 
 object DockerConstants {
 
+   const val PROP_ENABLE_NATIVE_DOCKER_ENTRYPOINT_STRATEGY = "enableNativeDockerEntrypointStrategy"
+
    const val ENV_DOCKER_DAEMON_ENDPOINT = "DOCKER_HOST"
 
    const val NETWORK_MODE_BRIDGE = "bridge"

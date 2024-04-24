@@ -61,7 +61,7 @@ abstract class AbstractContainerRuntime(
       val shutdownHook = Thread {
 
          // Early return: if the container has already been deleted, we don't need to do anything
-         if (container.getState() == ContainerState.DELETED) {
+         if (container.getState() == Container.State.DELETED) {
             return@Thread
          }
 
@@ -109,7 +109,11 @@ abstract class AbstractContainerRuntime(
 
    override fun stop() {
       terminateFuture?.cancel(false)
-      container.changeState(ContainerState.STOPPED)
+      container.changeState(Container.State.STOPPED)
+   }
+
+   override fun delete(force: Boolean) {
+      container.onDelete()
    }
 
    internal abstract fun execute(

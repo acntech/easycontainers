@@ -1,7 +1,7 @@
 package test.acntech.easycontainers
 
+import no.acntech.easycontainers.model.Container
 import no.acntech.easycontainers.model.ContainerPlatformType
-import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.model.ExecutionMode
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
@@ -41,12 +41,12 @@ class ContainerTaskTests {
       assertEquals(10, exitCode)
 
       assertTrue(
-         container.getState() == ContainerState.FAILED ||
-            container.getState() == ContainerState.STOPPED ||
-            container.getState() == ContainerState.DELETED
+         container.getState() == Container.State.FAILED
+            || container.getState() == Container.State.STOPPED
+            || container.getState() == Container.State.DELETED
       )
 
-      container.getRuntime().delete(true)
+      TestSupport.shutdownContainer(container)
    }
 
 }

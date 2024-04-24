@@ -12,6 +12,53 @@ import java.util.concurrent.TimeUnit
 interface Container {
 
    /**
+    * Represents the state of a container.
+    */
+   enum class State {
+
+      /**
+       * The container is in an uninitiated state.
+       */
+      UNINITIATED,
+
+      /**
+       * The container is being initialized.
+       */
+      INITIALIZING,
+
+      /**
+       * The container is running.
+       */
+      RUNNING,
+
+      /**
+       * The container has failed.
+       */
+      FAILED,
+
+      /**
+       * The container is being terminated.
+       */
+      TERMINATING,
+
+      /**
+       * The container is in an unknown state.
+       */
+      UNKNOWN,
+
+      /**
+       * The container has been gracefully or forcefully stopped.
+       */
+      STOPPED,
+
+      /**
+       * The container has been removed from the underlying container platform.
+       */
+      DELETED
+   }
+
+
+   /**
     * Retrieves the (underlying) runtime of the container.
     */
    fun getRuntime(): ContainerRuntime
@@ -289,7 +336,7 @@ interface Container {
     *
     * @return the state of the container as a ContainerState enum value
     */
-   fun getState(): ContainerState
+   fun getState(): State
 
    /**
     * Wait for the container to reach the specified state.
@@ -298,7 +345,7 @@ interface Container {
     * @param timeout the maximum time to wait for the container to reach the state, default is 0 which means indefinite wait
     * @param unit the time unit of the timeout, default is seconds
     */
-   fun waitForState(state: ContainerState, timeout: Long = 0, unit: TimeUnit = TimeUnit.SECONDS): Boolean
+   fun waitForState(state: State, timeout: Long = 0, unit: TimeUnit = TimeUnit.SECONDS): Boolean
 
    /**
     * Wait for the container to stop. The default implementation waits indefinitely for the ContainerState.STOPPED state.
@@ -307,7 +354,11 @@ interface Container {
     * @param unit the time unit of the timeout, default is seconds
     */
    fun waitForCompletion(timeout: Long = 0, unit: TimeUnit = TimeUnit.SECONDS): Boolean {
-      return waitForState(ContainerState.STOPPED, timeout, unit)
+      return waitForState(State.STOPPED, timeout, unit)
+   }
+
+   fun onDelete() {
+      // no-op
    }
 
 }

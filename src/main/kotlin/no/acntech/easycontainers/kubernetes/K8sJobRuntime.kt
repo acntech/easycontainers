@@ -11,7 +11,6 @@ import io.fabric8.kubernetes.client.WatcherException
 import io.fabric8.kubernetes.client.utils.Serialization
 import no.acntech.easycontainers.ContainerException
 import no.acntech.easycontainers.GenericContainer
-import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.model.Host
 import no.acntech.easycontainers.util.lang.prettyPrintMe
 import no.acntech.easycontainers.util.text.NEW_LINE
@@ -54,7 +53,10 @@ class K8sJobRuntime(
     * Stop the job by deleting the Kubernetes Job resource.
     */
    override fun stop() {
-      container.changeState(ContainerState.TERMINATING, ContainerState.RUNNING)
+      container.changeState(
+         no.acntech.easycontainers.model.Container.State.TERMINATING,
+         no.acntech.easycontainers.model.Container.State.RUNNING
+      )
 
       val existingJob = client.batch().v1()
          .jobs()
@@ -72,14 +74,14 @@ class K8sJobRuntime(
    }
 
    override fun deploy() {
-      log.debug("Deploying job '$jobName' in namespace '$namespace'")
+      log.debug("Deploying job '${getResourceName()} in namespace '$namespace'")
 
       job = client.batch().v1()
          .jobs()
          .inNamespace(namespace)
          .resource(job)
          .create().also {
-            log.info("Job '$jobName' deployed in namespace '$namespace'$NEW_LINE${it.prettyPrintMe()}")
+            log.info("Job '${it.metadata.name}' deployed in namespace '$namespace':$NEW_LINE${it.prettyPrintMe()}")
          }
    }
 
@@ -152,10 +154,10 @@ class K8sJobRuntime(
          override fun onClose(cause: WatcherException?) {
             cause?.let { nonNullCause ->
                log.error("Job '$jobName' watcher closed due to error: ${nonNullCause.message}", nonNullCause)
-               container.changeState(ContainerState.FAILED)
+               container.changeState(no.acntech.easycontainers.model.Container.State.FAILED)
             } ?: run {
                log.info("Job '$jobName' watcher closed")
-               container.changeState(ContainerState.STOPPED)
+               container.changeState(no.acntech.easycontainers.model.Container.State.STOPPED)
             }
          }
 
@@ -170,7 +172,7 @@ class K8sJobRuntime(
 
       } catch (e: Exception) {
          log.error("Error watching job: ${e.message}", e)
-         container.changeState(ContainerState.FAILED)
+         container.changeState(no.acntech.easycontainers.model.Container.State.FAILED)
          throw ContainerException("Error watching job: ${e.message}", e)
       }
    }
@@ -201,14 +203,14 @@ class K8sJobRuntime(
          job.status.failed?.let { failed ->
             if (failed > 0) {
                log.error("Job '$jobName' failed with $failed failed pods")
-               container.changeState(ContainerState.FAILED)
+               container.changeState(no.acntech.easycontainers.model.Container.State.FAILED)
             } else {
                log.info("Job '$jobName' completed successfully")
-               container.changeState(ContainerState.STOPPED)
+               container.changeState(no.acntech.easycontainers.model.Container.State.STOPPED)
             }
          } ?: run {
             log.info("Job '$jobName' completed successfully")
-            container.changeState(ContainerState.STOPPED)
+            container.changeState(no.acntech.easycontainers.model.Container.State.STOPPED)
          }
 
          completionLatch.countDown()
@@ -219,11 +221,10 @@ class K8sJobRuntime(
    private fun handleJobFailure(condition: JobCondition) {
       if ("True" == condition.status) {
          log.error("Job '$jobName' failed with reason: ${condition.reason}")
-         container.changeState(ContainerState.FAILED)
+         container.changeState(no.acntech.easycontainers.model.Container.State.FAILED)
          completionLatch.countDown()
          log.trace("Latch decremented, job '$jobName' failed")
       }
    }
-
 
 }

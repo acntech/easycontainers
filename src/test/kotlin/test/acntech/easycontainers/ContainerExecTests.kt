@@ -8,6 +8,7 @@ import org.junit.jupiter.api.assertThrows
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.ValueSource
 import org.slf4j.LoggerFactory
+import test.acntech.easycontainers.TestSupport.shutdownContainer
 import test.acntech.easycontainers.TestSupport.startContainer
 import java.io.ByteArrayOutputStream
 import java.util.concurrent.TimeUnit
@@ -54,10 +55,7 @@ class ContainerExecTests {
       assertTrue(output.toUtf8String().startsWith(msg))
       assertNull(stderr)
 
-      runtime.stop()
-      assertEquals(ContainerState.STOPPED, runtime.getContainer().getState())
-      runtime.delete()
-      assertEquals(ContainerState.DELETED, runtime.getContainer().getState())
+      shutdownContainer(container)
       log.debug("Container exit code: {}", container.getExitCode())
    }
 
@@ -100,10 +98,7 @@ class ContainerExecTests {
       assertTrue(stdout.contains("Filesystem"))
       assertTrue(stdout.contains("Size"))
 
-      runtime.stop()
-      assertEquals(ContainerState.STOPPED, runtime.getContainer().getState())
-      runtime.delete(true)
-      assertEquals(ContainerState.DELETED, runtime.getContainer().getState())
+      shutdownContainer(container)
       log.debug("Container exit code: {}", container.getExitCode())
    }
 
@@ -145,10 +140,7 @@ class ContainerExecTests {
       assertEquals(inputString, stdout)
       assertNull(stderr)
 
-      runtime.stop()
-      assertEquals(ContainerState.STOPPED, runtime.getContainer().getState())
-      runtime.delete(true)
-      assertEquals(ContainerState.DELETED, runtime.getContainer().getState())
+      shutdownContainer(container)
       log.debug("Container exit code: {}", container.getExitCode())
    }
 
@@ -207,10 +199,7 @@ class ContainerExecTests {
          }
       }
 
-      runtime.stop()
-      assertEquals(ContainerState.STOPPED, runtime.getContainer().getState())
-      runtime.delete(true)
-      assertEquals(ContainerState.DELETED, runtime.getContainer().getState())
+      shutdownContainer(container)
    }
 
 }

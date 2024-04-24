@@ -3,6 +3,7 @@ package no.acntech.easycontainers
 import no.acntech.easycontainers.docker.DockerConstants
 import no.acntech.easycontainers.util.net.NetworkUtils
 import no.acntech.easycontainers.util.platform.PlatformUtils
+import no.acntech.easycontainers.util.text.EMPTY_STRING
 import org.slf4j.LoggerFactory
 
 object Environment {
@@ -28,12 +29,12 @@ object Environment {
    const val DEFAULT_REGISTRY_HOST = "localhost"
    const val DEFAULT_REGISTRY_PORT = 5000
 
-
-   val defaultRegistryURL: String // e.g. http://localhost:5000
+   // Note that this includes the protocol
+   val defaultRegistryCompleteURL: String // e.g. http://localhost:5000
 
    val defaultRegistryEndpoint: String // e.g. localhost:5000
 
-   val defaultDockerDaemonEndpoint: String // e.g. tcp://localhost:2375 or unix:///var/run/docker.sock
+   val defaultDockerDaemonEndpoint: String // e.g. tcp://localhost:2375, tcps://docker.acne.com:2376, unix:///var/run/docker.sock
 
    val k8sKanikoDataHostDir: String = System.getProperty(PROP_K8S_KANIKO_DATA_HOST_DIR, DEFAULT_K8S_KANIKO_DATA_HOST_DIR)
 
@@ -44,12 +45,12 @@ object Environment {
    val k8sGeneralDataPvcName: String = System.getProperty(PROP_K8S_GENERAL_DATA_PVC_NAME, DEFAULT_K8S_GENERAL_DATA_PVC_NAME)
 
    init {
-      defaultRegistryURL = extractRegistryUrl().also {
+      defaultRegistryCompleteURL = extractRegistryUrl().also {
          log.info("Environment: Default registry URL: $it")
       }
 
       // Set default registry endpoint from the url - extract the host and port
-      defaultRegistryEndpoint = defaultRegistryURL.substringAfter("://").also {
+      defaultRegistryEndpoint = defaultRegistryCompleteURL.substringAfter("://").also {
          log.info("Environment: Default registry endpoint: $it")
       }
 
@@ -60,23 +61,29 @@ object Environment {
 
    private fun extractDockerDaemonEndpoint(): String {
       val dockerHost = System.getenv(DockerConstants.ENV_DOCKER_DAEMON_ENDPOINT)
-      if (!dockerHost.isNullOrEmpty()) {
-         // Docker host is set in environment variable, check if port is set
+      var result = EMPTY_STRING
 
-         return if (dockerHost.startsWith("tcp") && !dockerHost.matches(".*:\\d+".toRegex())) // host:port
+      if (!dockerHost.isNullOrEmpty()) {
+         result = if (dockerHost.startsWith("tcp") && !dockerHost.matches(".*:\\d+".toRegex())) // host:port
             "$dockerHost:${DockerConstants.DEFAULT_DOCKER_TCP_INSECURE_PORT}"
          else dockerHost
       }
 
-      val endpoint = System.getProperty(PROP_DOCKER_DAEMON_ENDPOINT)
-      if (!endpoint.isNullOrEmpty()) {
-         return endpoint
+      if (result.isEmpty()) {
+         val endpoint = System.getProperty(PROP_DOCKER_DAEMON_ENDPOINT)
+         if (!endpoint.isNullOrEmpty()) {
+            result = endpoint
+         }
       }
 
-      val host = PlatformUtils.getWslIpAddress() ?: "localhost"
-      return getEndpointByOpenPort(host, DockerConstants.DEFAULT_DOCKER_TCP_INSECURE_PORT, "tcp")
-         ?: getEndpointByOpenPort(host, DockerConstants.DEFAULT_DOCKER_TCP_SECURE_PORT, "tcps")
-         ?: DockerConstants.DEFAULT_DOCKER_DAEMON_ENDPOINT
+      if (result.isEmpty()) {
+         val host = PlatformUtils.getWslIpAddress() ?: "localhost"
+         result = getEndpointByOpenPort(host, DockerConstants.DEFAULT_DOCKER_TCP_INSECURE_PORT, "tcp")
+            ?: getEndpointByOpenPort(host, DockerConstants.DEFAULT_DOCKER_TCP_SECURE_PORT, "tcps")
+               ?: DockerConstants.DEFAULT_DOCKER_DAEMON_ENDPOINT
+      }
+
+      return result
    }
 
    private fun getEndpointByOpenPort(host: String, port: Int, protocol: String): String? {

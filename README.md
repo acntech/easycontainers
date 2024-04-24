@@ -170,7 +170,7 @@ The following example shows how to transfer a file from the local file system to
    container.putFile(localFile, UnixDir.of("/tmp"))
 ```
 
-The following example shows how to transfer a (remote) file from a running container to the local file system:
+The following example shows how to transfer a (remote) file from a running container to the local file system (a temporary file is created for the downloaded file):
 
 ```kotlin
    val path = container.getFile(UnixDir.of("/tmp"), "hello.txt")
@@ -178,7 +178,7 @@ The following example shows how to transfer a (remote) file from a running conta
    log.debug("Content of file:\n$content")
 ```
 
-In order to specify a target file, just specify it as an argument:
+In order to specify a target file (for the downloaded file), just specify it as an argument:
 
 ```kotlin
     val path = container.getFile(UnixDir.of("/tmp"), "hello.txt", Path.of("./hello-local.txt"))
@@ -211,7 +211,7 @@ The following example shows how to run a command in a running container and capt
     val (exitCode, stdErr) = container.execute(
        command = List.of("ls","-la", "/"),
        output = output)
-    log.debug("Result of command:\n${output.toString(StandardCharsets.UTF_8)}")
+    log.debug("Result of command:\n${output.toUtf8String}")
 ```
 
 The following example shows how to run a command with input in a running container, and capture the output:
@@ -282,7 +282,7 @@ TODO
 ## Roadmap
 - [x] Add support for Kubernetes Jobs as a container runtime.
 - [ ] Add conditional wait strategies for containers - similar to Testcontainers, see [here](https://java.testcontainers.org/features/startup_and_waits/).
-- [ ] Add support for binary (frame-by-frame) log output from containers.
+- [ ] Add support for binary (frame-by-frame) stdout output from containers.
 - [ ] Add specific container implementations for popular databases and services.
 - [ ] Add support for multi-pod/multi-container deployments in both Docker and Kubernetes.
 - [ ] Convert all tests to use [Testcontainers](https://testcontainers.com/) - using either the official [K3s module](https://java.testcontainers.org/modules/k3s/), or the community contributed [KinD module](https://testcontainers.com/modules/kindcontainer/).

@@ -18,7 +18,9 @@ import no.acntech.easycontainers.docker.DockerConstants.NETWORK_MODE_BRIDGE
 import no.acntech.easycontainers.docker.DockerConstants.NETWORK_MODE_HOST
 import no.acntech.easycontainers.docker.DockerConstants.NETWORK_MODE_NONE
 import no.acntech.easycontainers.docker.DockerConstants.NETWORK_NODE_CONTAINER
+import no.acntech.easycontainers.docker.DockerConstants.PROP_ENABLE_NATIVE_DOCKER_ENTRYPOINT_STRATEGY
 import no.acntech.easycontainers.model.*
+import no.acntech.easycontainers.model.Container
 import no.acntech.easycontainers.util.io.FileUtils
 import no.acntech.easycontainers.util.lang.asStringMap
 import no.acntech.easycontainers.util.lang.guardedExecution
@@ -72,7 +74,7 @@ internal class DockerRuntime(
 
             override fun onError(throwable: Throwable) {
                log.warn("Container '${getDisplayName()}' output error", throwable)
-               container.changeState(ContainerState.FAILED)
+               container.changeState(Container.State.FAILED)
             }
 
             override fun onComplete() {
@@ -87,16 +89,16 @@ internal class DockerRuntime(
                         log.info("Container '${getDisplayName()}' finished at $finishedAt with exit code: $exitCode")
                      }, onError = {
                         log.warn("Error '${it.message}' inspecting container '${getDisplayName()}': ${it.message}", it)
-                        container.changeState(ContainerState.FAILED)
+                        container.changeState(Container.State.FAILED)
                      }
                   )
 
                } finally {
-                  container.changeState(ContainerState.STOPPED)
+                  container.changeState(Container.State.STOPPED)
 
                   if (container.isEphemeral()) {
                      guardedExecution({ cleanUpResources() })
-                     container.changeState(ContainerState.DELETED)
+                     container.changeState(Container.State.DELETED)
                   }
                }
             }
@@ -157,20 +159,24 @@ internal class DockerRuntime(
    }
 
    override fun start() {
-      container.changeState(ContainerState.INITIALIZING, ContainerState.UNINITIATED)
+      container.changeState(Container.State.INITIALIZING, Container.State.UNINITIATED)
       pullImage()
       createAndStartContainer()
       GENERAL_EXECUTOR_SERVICE.submit(EventSubscriber())
       super.start()
-      container.changeState(ContainerState.RUNNING, ContainerState.INITIALIZING)
+      container.changeState(Container.State.RUNNING, Container.State.INITIALIZING)
    }
 
    override fun stop() {
-      if (container.getState() == ContainerState.STOPPED || container.getState() == ContainerState.TERMINATING) {
+      if (container.getState() == Container.State.STOPPED ||
+         container.getState() == Container.State.TERMINATING ||
+         container.getState() == Container.State.DELETED
+      ) {
          log.debug("Container is already stopped: ${getDisplayName()}")
          return
       }
-      container.changeState(ContainerState.TERMINATING, ContainerState.RUNNING)
+
+      container.changeState(Container.State.TERMINATING, Container.State.RUNNING)
 
       val callback = object : WaitContainerResultCallback() {
 
@@ -196,13 +202,13 @@ internal class DockerRuntime(
          },
          finallyBlock = {
             super.stop()
-            container.changeState(ContainerState.STOPPED)
+            container.changeState(Container.State.STOPPED)
          }
       )
    }
 
    override fun kill() {
-      container.changeState(ContainerState.TERMINATING, ContainerState.RUNNING)
+      container.changeState(Container.State.TERMINATING, Container.State.RUNNING)
 
       val callback = object : WaitContainerResultCallback() {
 
@@ -225,32 +231,34 @@ internal class DockerRuntime(
          {
             val msg = "Error '${it.message} killing (Docker) container: ${getDisplayName()}"
             log.warn(msg)
-            container.changeState(ContainerState.FAILED)
+            container.changeState(Container.State.FAILED)
             throw ContainerException(msg, it)
          }
       )
 
-      container.changeState(ContainerState.STOPPED)
+      container.changeState(Container.State.STOPPED)
    }
 
    override fun delete(force: Boolean) {
-      if (container.getState() == ContainerState.DELETED) {
+      if (container.getState() == Container.State.DELETED) {
          log.debug("Container is already deleted: ${getDisplayName()}")
          return
       }
 
-      if (container.getState() == ContainerState.RUNNING) {
+      super.delete(force)
+
+      if (container.getState() == Container.State.RUNNING) {
          kill()
       }
 
       if (!force) {
-         container.requireOneOfStates(ContainerState.STOPPED, ContainerState.FAILED)
+         container.requireOneOfStates(Container.State.STOPPED, Container.State.FAILED)
       }
 
       if (container.isEphemeral()) {
          log.debug("Container is ephemeral, hence already removed: ${getDisplayName()}")
          cleanUpResources()
-         container.changeState(ContainerState.DELETED)
+         container.changeState(Container.State.DELETED)
 
       } else {
          log.info("Removing Docker container: ${getDisplayName()}")
@@ -271,7 +279,7 @@ internal class DockerRuntime(
             finallyBlock = { cleanUpResources() }
          )
 
-         container.changeState(ContainerState.DELETED)
+         container.changeState(Container.State.DELETED)
       }
    }
 
@@ -300,7 +308,7 @@ internal class DockerRuntime(
       require(localFile.exists()) { "Local file '$localFile' does not exist" }
       require(localFile.isRegularFile()) { "Local path '$localFile' is not a file" }
 
-      container.requireOneOfStates(ContainerState.RUNNING)
+      container.requireOneOfStates(Container.State.RUNNING)
 
       // Check if remoteDir exists, if not create it
       createContainerDirIfNotExists(remoteDir)
@@ -370,7 +378,7 @@ internal class DockerRuntime(
 
    override fun putDirectory(localDir: Path, remoteDir: UnixDir): Long {
       require(localDir.exists() && localDir.isDirectory()) { "Local directory '$localDir' does not exist" }
-      container.requireOneOfStates(ContainerState.RUNNING)
+      container.requireOneOfStates(Container.State.RUNNING)
 
       createContainerDirIfNotExists(remoteDir)
 
@@ -496,7 +504,7 @@ internal class DockerRuntime(
          {
             val msg = "Error '${it}' creating/starting Docker container: ${getDisplayName()}"
             log.warn(msg)
-            container.changeState(ContainerState.FAILED)
+            container.changeState(Container.State.FAILED)
             throw ContainerException(msg, it)
          }
       )
@@ -614,13 +622,18 @@ internal class DockerRuntime(
          configurePortBindings(hostConfig)
          configureVolumes(this, hostConfig)
          configureCommandAndArgs(this)
-
-         // We want to mimic the behaviour of k8s here, so we override the entrypoint if the command or args are set
-         if (container.getCommand() != null || (container.getArgs() != null && container.getArgs()!!.args.isNotEmpty())) {
-            withEntrypoint("/bin/sh", "-c")
-         }
-
          withHostConfig(hostConfig)
+
+         // We want to mimic the behaviour of k8s here, so we override the entrypoint if the command or args are set,
+         // unless explicitly told not to with the enableNativeDockerEntrypointStrategy property
+         if (container.getCommand() != null || (container.getArgs() != null && container.getArgs()!!.args.isNotEmpty())) {
+            val property = container.builder.customProperties[PROP_ENABLE_NATIVE_DOCKER_ENTRYPOINT_STRATEGY]
+            val enableNativeStrategy = property is Boolean && property ||
+               property is String && property.equals("true", ignoreCase = true)
+            if (!enableNativeStrategy) {
+               withEntrypoint("/bin/sh", "-c")
+            }
+         }
       }
    }
 
@@ -825,7 +838,7 @@ internal class DockerRuntime(
       waitTimeValue: Long? = null,
       waitTimeUnit: TimeUnit? = null,
    ): Pair<Int?, String?> {
-      container.requireOneOfStates(ContainerState.RUNNING)
+      container.requireOneOfStates(Container.State.RUNNING)
 
       log.trace("Executing command: ${command.joinToString(SPACE)}")
 

@@ -2,7 +2,6 @@ package test.acntech.easycontainers
 
 import no.acntech.easycontainers.model.Container
 import no.acntech.easycontainers.model.ContainerPlatformType
-import no.acntech.easycontainers.model.ContainerState
 import no.acntech.easycontainers.model.ExecutionMode
 import org.apache.commons.lang3.time.DurationFormatUtils
 import org.junit.jupiter.api.Assertions.assertEquals
@@ -71,18 +70,18 @@ class ContainerLifeCycleTests {
          log.debug("Gracefully shutting down the container: ${container.getName()}")
          val runtime = container.getRuntime()
          runtime.stop()
-         assertEquals(ContainerState.STOPPED, runtime.getContainer().getState())
+         assertEquals(Container.State.STOPPED, runtime.getContainer().getState())
          runtime.delete()
-         assertEquals(ContainerState.DELETED, runtime.getContainer().getState())
+         assertEquals(Container.State.DELETED, runtime.getContainer().getState())
       }
 
       fun forcefulShutdown(container: Container) {
          log.debug("Forcefully shutting down the container: ${container.getName()}")
          val runtime = container.getRuntime()
          runtime.kill()
-         assertEquals(ContainerState.STOPPED, runtime.getContainer().getState())
+         assertEquals(Container.State.STOPPED, runtime.getContainer().getState())
          runtime.delete(true)
-         assertEquals(ContainerState.DELETED, runtime.getContainer().getState())
+         assertEquals(Container.State.DELETED, runtime.getContainer().getState())
       }
 
       val container = startContainer(containerPlatformType, executionMode)
@@ -96,7 +95,7 @@ class ContainerLifeCycleTests {
          forcefulShutdown(container)
       }
 
-      assertEquals(ContainerState.DELETED, container.getState())
+      assertEquals(Container.State.DELETED, container.getState())
       assertNotNull(container.getDuration())
 
       log.debug(

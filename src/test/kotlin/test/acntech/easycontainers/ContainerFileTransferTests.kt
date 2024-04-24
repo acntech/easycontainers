@@ -79,7 +79,7 @@ class ContainerFileTransferTests {
 
          assertEquals(content, receivedContent)
       } finally {
-         guardedExecution({ runtime.delete(true) })
+         TestSupport.shutdownContainer(container)
          tempFile.deleteIfExists()
       }
    }
@@ -142,7 +142,7 @@ class ContainerFileTransferTests {
          assertEquals(content2, Files.readString(receivedFile2))
 
       } finally {
-         guardedExecution({ runtime.delete(true) })
+         TestSupport.shutdownContainer(container)
          guardedExecution({ tempSendDir.deleteRecursively() })
          guardedExecution({ tempReceiveDir.deleteRecursively() })
       }

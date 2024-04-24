@@ -83,7 +83,7 @@ internal class DockerImageBuilder(
    }
 
    private fun createImageTags(): Set<String> {
-      return tags.map { tag -> "${registry}/$repository/$name:$tag" }.toSet()
+      return tags.map { tag -> "${registry}/$repository/$imageName:$tag" }.toSet()
    }
 
    private fun buildAndTagImage(dockerfile: Path, tags: Set<String>): String? {

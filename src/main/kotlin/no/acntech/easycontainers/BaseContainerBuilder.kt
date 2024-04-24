@@ -11,6 +11,7 @@ import org.slf4j.LoggerFactory
 import java.time.Duration
 import java.time.temporal.ChronoUnit
 import java.util.*
+import java.util.concurrent.atomic.AtomicBoolean
 
 /**
  * Abstract base class for container builders.
@@ -43,6 +44,8 @@ import java.util.*
 abstract class BaseContainerBuilder<SELF : BaseContainerBuilder<SELF>> : ContainerBuilder<SELF> {
 
    protected val log: Logger = LoggerFactory.getLogger(javaClass)
+
+   private val isBuilt = AtomicBoolean(false)
 
    internal var executionMode = ExecutionMode.SERVICE
 
@@ -87,6 +90,7 @@ abstract class BaseContainerBuilder<SELF : BaseContainerBuilder<SELF>> : Contain
    internal var customProperties: MutableMap<String, Any> = mutableMapOf()
 
    internal var containerPlatformType = ContainerPlatformType.DOCKER
+
 
    override fun withContainerPlatformType(type: ContainerPlatformType): SELF {
       this.containerPlatformType = type
@@ -222,6 +226,12 @@ abstract class BaseContainerBuilder<SELF : BaseContainerBuilder<SELF>> : Contain
    protected open fun self(): SELF {
       @Suppress("UNCHECKED_CAST")
       return this as SELF
+   }
+
+   protected fun checkBuildAllowed() {
+      if (!isBuilt.compareAndSet(false, true)) {
+         throw ContainerException("Container has already been built")
+      }
    }
 
    override fun toString(): String {

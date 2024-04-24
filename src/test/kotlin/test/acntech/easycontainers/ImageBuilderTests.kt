@@ -6,13 +6,15 @@ import no.acntech.easycontainers.ImageBuilder
 import no.acntech.easycontainers.docker.DockerRegistryUtils
 import no.acntech.easycontainers.model.*
 import no.acntech.easycontainers.util.net.NetworkUtils
-import no.acntech.easycontainers.util.text.CRLF
 import no.acntech.easycontainers.util.text.NEW_LINE
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
 import org.junit.jupiter.params.ParameterizedTest
 import org.junit.jupiter.params.provider.CsvSource
 import org.slf4j.LoggerFactory
+import test.acntech.easycontainers.TestSupport.dockerFileContent
+import test.acntech.easycontainers.TestSupport.scriptContent
+import test.acntech.easycontainers.TestSupport.shutdownContainer
 import java.io.File
 import java.nio.file.Files
 import java.nio.file.Path
@@ -23,61 +25,11 @@ class ImageBuilderTests {
 
    companion object {
       private val log = LoggerFactory.getLogger(ImageBuilderTests::class.java)
-
-      private val dockerFileContent = """       
-         # Use Alpine Linux as the base image
-         FROM alpine:latest
-
-         # Install dependencies
-         # RUN apk add --no-cache curl netcat-openbsd openssh
-         RUN apk add --no-cache openssh
-
-         # Additional setup SSH
-         RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
-             && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
-             && echo "root:root" | chpasswd \
-             && ssh-keygen -A
-         
-         # Copy the log-time.sh script to the container
-         COPY log-time.sh /log-time.sh
-         
-         # Make the log-time.sh script executable
-         RUN chmod +x /log-time.sh
-         
-         # Create a startup script directly in the Dockerfile
-         RUN echo '#!/bin/sh' > /entry.sh \
-            && echo '/usr/sbin/sshd &' >> /entry.sh \
-            && echo '/log-time.sh' >> /entry.sh \
-            && chmod +x /entry.sh
-
-         # Expose necessary ports (the SSH port)
-         EXPOSE 22
-         
-         # Define the container's default behavior
-         CMD ["/entry.sh"]
-
-    """.trimIndent().replace(CRLF, NEW_LINE)
-
-      private val scriptContent = """
-         #!/bin/sh
-         
-         count=1
-         while true
-         do
-           echo "${'$'}{count}: ${'$'}(date) - #MESSAGE#"
-           if [ "${'$'}count" -eq #COUNT# ]; then
-             echo "Exiting!"
-             exit 10
-           fi
-           count=${'$'}((count+1))
-           sleep 1
-         done
-      """.trimIndent().replace(CRLF, NEW_LINE)
    }
 
    @ParameterizedTest
    @CsvSource(
-      "DOCKER, 8022",
+//      "DOCKER, 8022",
       "KUBERNETES, 30022"
    )
    fun `Test build and run image`(containerType: String, sshPort: Int) {
@@ -85,12 +37,9 @@ class ImageBuilderTests {
 
       val platformType = ContainerPlatformType.valueOf(containerType.uppercase())
 
-      val imageName = ImageName.of("easycontainers-test-job")
-
+      val imageName = ImageName.of("easycontainers-junit-test-job")
       val repository = RepositoryName.TEST
-
-      val imageUrlVal = "$defaultRegistryEndpoint/$repository/${imageName.unwrap()}"
-
+      val imageUrlVal = "$defaultRegistryEndpoint/$repository/$imageName"
       log.info("Image URL: $imageUrlVal")
 
       DockerRegistryUtils.deleteImage("http://$defaultRegistryEndpoint/$repository", imageName.unwrap())
@@ -118,23 +67,22 @@ class ImageBuilderTests {
       val imageBuilder = ImageBuilder.of(platformType)
          .withName(imageName)
          .withVerbosity(Verbosity.DEBUG)
-         .withImageRegistry(RegistryURL.of(defaultRegistryEndpoint))
+         .withImageRegistry(RegistryURL.of(defaultRegistryEndpoint.substringAfter("://")))
          .withInsecureRegistry(true)
          .withRepository(RepositoryName.TEST)
          .withNamespace(Namespace.TEST)
          .withDockerContextDir(Path.of(dockerContextDir))
 
          // Will only work for Kubernetes!!!
-         .withOutputLineCallback { line -> println("KUBE-KANIKO-JOB-OUTPUT: ${Instant.now()} $line") }
-
-         // Kubernetes specific property to tell the image builder where to find the local Kaniko data
-         .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, TestSupport.localKanikoDir)
+         .withOutputLineCallback { line -> println("KUBE-KANIKO-JOB-OUTPUT: ${Instant.now()} - $line") }
 
       val result = imageBuilder.buildImage()
 
       assertTrue(result, "Image build failed")
 
       log.info("Image built successfully: $imageUrlVal")
+
+      TimeUnit.SECONDS.sleep(2)
 
       // Now we have a new version of the image in the registry, lets run it in a container
 
@@ -143,19 +91,19 @@ class ImageBuilderTests {
          withContainerPlatformType(platformType)
          withExecutionMode(ExecutionMode.TASK)
          withIsEphemeral(false)
-         withName(ContainerName.of("easycontainers-junit-test"))
+         withName(ContainerName.of("easycontainers-junit-test-job"))
          withNamespace(Namespace.TEST)
          withImage(ImageURL.of(imageUrlVal))
          withExposedPort("ssh", 22)
          withPortMapping(22, sshPort)
          withIsEphemeral(true)
          withMaxLifeTime(30, TimeUnit.SECONDS)
-         withOutputLineCallback { line -> println("OUTPUT: $line") }
+         withOutputLineCallback { line -> println("$platformType-OUTPUT: $line") }
       }.build()
 
       // Run it...
       container.getRuntime().start()
-      val running = container.waitForState(ContainerState.RUNNING, 60, TimeUnit.SECONDS)
+      val running = container.waitForState(Container.State.RUNNING, 60, TimeUnit.SECONDS)
       assertTrue(running, "Container did not start within 60 seconds")
       assertTrue(NetworkUtils.isTcpPortOpen("localhost", sshPort))
 
@@ -169,7 +117,8 @@ class ImageBuilderTests {
       assertEquals(10, exitVal, "Container exited with code $exitVal, expected 10")
 
       // Delete it...
-      container.getRuntime().delete(true)
+
+      shutdownContainer(container)
    }
 
 

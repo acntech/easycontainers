@@ -14,7 +14,9 @@ value class Host(val value: String) : SimpleValueObject<String> {
 
       const val MIN_LENGTH: Int = 1
 
-      const val MAX_LENGTH: Int = 63
+      // Need to set this to higher than 63 wince pod native names are too long to concatenate with
+      // test.pod.cluster.local
+      const val MAX_LENGTH: Int = 100
 
       private val REGEXP: Regex = "^(?:[a-zA-Z0-9.-]+|\\[[a-fA-F0-9:]+])\$".toRegex()
 
