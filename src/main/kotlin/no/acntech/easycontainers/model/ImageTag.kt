@@ -12,6 +12,9 @@ value class ImageTag(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
+      // Defines a regular expression pattern that matches any string composed solely of alpha-numeric characters
+      // (a-z, A-Z, 0-9), underscores (_), hyphens (-), and periods (.).
+      // The + at the end signifies that one or more of these characters must be present for a match.
       private val REGEXP: Regex = "^[a-zA-Z0-9_\\-\\.]+$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(

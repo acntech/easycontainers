@@ -12,6 +12,9 @@ value class EnvVarKey(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
+      // REGEXP: Defines a regular expression pattern to match valid identifiers
+      // An identifier must start with a letter (a-z or A-Z) or an underscore (_),
+      // followed by zero or more alphanumeric characters (a-z, A-Z, 0-9) or underscores (_)
       private val REGEXP: Regex = "^[a-zA-Z_][a-zA-Z0-9_]*\$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(

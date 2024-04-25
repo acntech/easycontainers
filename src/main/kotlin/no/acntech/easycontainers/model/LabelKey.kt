@@ -12,6 +12,8 @@ value class LabelKey(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
+      // Defines a regular expression pattern that matches a single character string. The character can be an alpha-numeric
+      // value (a-z, A-Z, 0-9), an underscore (_), or a hyphen (-).
       private val REGEXP: Regex = "^[a-zA-Z0-9_-]\$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(

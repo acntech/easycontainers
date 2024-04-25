@@ -12,6 +12,8 @@ value class Executable(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
+      // REGEXP: Defines a regular expression pattern that matches strings consisting of
+      // alpha-numeric characters, underscores (_), hyphens (-), periods (.) and forward slashes (/) only
       private val REGEXP: Regex = "^[a-zA-Z0-9_\\-\\.\\/]+$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(

@@ -12,6 +12,9 @@ value class NetworkName(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
+      // Defines a regular expression pattern for validating network names.
+      // A valid network name must start and end with an alpha-numeric character (a-z, A-Z, 0-9).
+      // The middle portion of the name can include alpha-numeric characters, underscores (_), dots (.) or hyphens (-).
       private val REGEXP: Regex = "^[a-zA-Z0-9][a-zA-Z0-9_.-]*[a-zA-Z0-9]\$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(
@@ -19,8 +22,6 @@ value class NetworkName(val value: String) : SimpleValueObject<String> {
          maxLength = 255,
          lexicalValidator = RegexValidator(REGEXP)
       )
-
-      val LATEST = NetworkName("latest")
 
       fun of(value: String): NetworkName {
          return NetworkName(value)

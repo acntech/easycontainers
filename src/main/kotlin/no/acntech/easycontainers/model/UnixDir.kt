@@ -14,6 +14,10 @@ value class UnixDir(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
+      // REGEXP: Defines a regular expression pattern for validating Unix directory paths.
+      // A valid Unix directory path should start with a '/' (root directory) followed by any number of subdirectories
+      // separated by '/'. Each subdirectory must have at least one character and cannot contain a '/'.
+      // The pattern doesn't accept paths that have consecutive '/' (bad format) or end with '/'
       private val REGEXP: Regex = "^/([^/]+(/[^/]*)*)?$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(

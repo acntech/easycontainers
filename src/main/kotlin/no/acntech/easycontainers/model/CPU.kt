@@ -11,19 +11,8 @@ import no.acntech.easycontainers.model.base.ValidationRange
 value class CPU(val value: Double) : SimpleValueObject<Double> {
 
    companion object {
-      fun of(value: String): CPU {
-         val numericValue = if (value.endsWith("m")) {
-            value.removeSuffix("m").toDoubleOrNull()?.div(1000)
-         } else {
-            value.toDoubleOrNull()
-         }
 
-         requireNotNull(numericValue) { "Invalid CPU format: $value" }
-
-         return CPU(numericValue)
-      }
-
-      fun of(value: Double): CPU = CPU(value)
+      const val MILLI_CPU_SUFFIX = "m"
 
       private val VALIDATOR = SimpleValueObjectValidator(
          range = ValidationRange(
@@ -31,6 +20,20 @@ value class CPU(val value: Double) : SimpleValueObject<Double> {
             exclusiveMax = 64.0
          )
       )
+
+      fun of(value: String): CPU {
+         val numericValue = if (value.endsWith(MILLI_CPU_SUFFIX)) {
+            value.removeSuffix(MILLI_CPU_SUFFIX).toDoubleOrNull()?.div(1000)
+         } else {
+            value.toDoubleOrNull()
+         }
+
+         requireNotNull(numericValue) { "Invalid CPU request/limit format: $value" }
+
+         return CPU(numericValue)
+      }
+
+      fun of(value: Double): CPU = CPU(value)
    }
 
    init {
@@ -41,12 +44,6 @@ value class CPU(val value: Double) : SimpleValueObject<Double> {
       return value
    }
 
-   override fun toString(): String {
-      return if (value < 1) {
-         "${(value * 1000).toInt()}m"
-      } else {
-         value.toString()
-      }
-   }
+   override fun toString(): String = if (value < 1) "${(value * 1000).toInt()}$MILLI_CPU_SUFFIX" else value.toString()
 
 }

@@ -12,6 +12,8 @@ value class ImageName(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
+      // REGEXP: Matches strings starting with one or more lowercase letters or digits,
+      // optionally followed by groups of one character (-, _, or .) and one or more lowercase letters or digits.
       private val REGEXP: Regex = "^[a-z0-9]+([-_.][a-z0-9]+)*\$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(

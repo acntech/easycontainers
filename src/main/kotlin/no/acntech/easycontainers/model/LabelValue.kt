@@ -12,6 +12,8 @@ value class LabelValue(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
+      // Defines a regular expression pattern that matches any string consisting of printable ASCII characters (ranging from
+      // space ' ' to tilde '~') only. An empty string will also be a valid match.
       private val REGEXP: Regex = "^[ -~]*\$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(

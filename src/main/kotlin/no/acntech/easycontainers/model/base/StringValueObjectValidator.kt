@@ -2,11 +2,12 @@ package no.acntech.easycontainers.model.base
 
 import no.acntech.easycontainers.util.lang.ValidationException
 import no.acntech.easycontainers.util.lang.Validator
+import no.acntech.easycontainers.util.text.truncate
 
 /**
  * Validates a String value object based on a given range and additional validators.
  *
- * @param range the validation range for the String value object
+ * @param range the validation range for the String value object (default is an empty range)
  * @param minLength the minimum length of the String value object (optional)
  * @param maxLength the maximum length of the String value object (optional)
  * @param lexicalValidator the lexical validator for the String value object (optional)
@@ -30,13 +31,16 @@ class StringValueObjectValidator(
       // Length checks
       minLength?.let { min ->
          if (value.length < min) {
-            throw ValidationException("String length '${value.length}' below allowed minimum '$min' voa value '$value'")
+            throw ValidationException("String length '${value.length}' below allowed minimum '$min' for value '$value'")
          }
       }
 
       maxLength?.let { max ->
          if (value.length > max) {
-            throw ValidationException("String length '${value.length}' exceeds allowed maximum '$max' for value '$value'")
+            throw ValidationException(
+               "String length '${value.length}' exceeds allowed" +
+                  " maximum '$max' for value '${value.truncate(1024)}'"
+            )
          }
       }
 

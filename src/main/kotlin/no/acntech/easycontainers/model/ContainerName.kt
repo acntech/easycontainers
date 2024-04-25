@@ -14,6 +14,9 @@ value class ContainerName(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
+      // Matches strings that start with a lowercase letter or a digit,
+      // followed by zero or more lowercase letters, digits, or hyphens,
+      // and if there are such, end with a lowercase letter or digit.
       private val REGEXP: Regex = "^[a-z0-9]([-a-z0-9]*[a-z0-9])?\$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(

@@ -24,6 +24,11 @@ value class RepositoryName(val value: String) : SimpleValueObject<String> {
 
    companion object {
 
+      // REGEXP: Defines a regular expression pattern for validating repository names.
+      // A valid repository name must start with a lowercase alphanumeric character (a-z, 0-9).
+      // It can include dashes (-), underscores (_) or periods (.) but these characters must be followed by at least one
+      // alphanumeric character (a-z, 0-9). The pattern prevents repository names from ending with special characters like a
+      // dash (-), underscore (_) or period (.).
       private val REGEXP: Regex = "^[a-z0-9]+([-_.][a-z0-9]+)*\$".toRegex()
 
       private val VALIDATOR = StringValueObjectValidator(
