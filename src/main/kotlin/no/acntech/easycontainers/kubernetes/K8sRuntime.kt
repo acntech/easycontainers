@@ -389,8 +389,8 @@ abstract class K8sRuntime(
    protected fun getResourceMetaData(): ObjectMeta {
       return ObjectMeta().apply {
          namespace = this@K8sRuntime.namespace
-//         name = getResourceName()
-         generateName = getResourceName().truncate(10) + "-"
+         name = getResourceName()
+//         generateName = getResourceName().truncate(10) + "-"
          val stringLabels: Map<String, String> = container.getLabels().flatMap { (key, value) ->
             listOf(key.value to value.value)
          }.toMap()

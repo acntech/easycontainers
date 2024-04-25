@@ -29,7 +29,7 @@ class ImageBuilderTests {
 
    @ParameterizedTest
    @CsvSource(
-//      "DOCKER, 8022",
+      "DOCKER, 8022",
       "KUBERNETES, 30022"
    )
    fun `Test build and run image`(containerType: String, sshPort: Int) {

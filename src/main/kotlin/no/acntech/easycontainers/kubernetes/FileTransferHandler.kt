@@ -24,13 +24,15 @@ internal class FileTransferHandler(
 
    companion object {
       private val log: Logger = LoggerFactory.getLogger(ExecHandler::class.java)
+
+      private const val CAT_COMMAND = "cat"
    }
 
    fun getFile(remoteDir: String, remoteFilename: String, localFile: Path?): Path {
       val remotePath = "${remoteDir}/$remoteFilename"
       val targetPath = localFile ?: Files.createTempFile("k8s-file-transfer-", ".tmp")
 
-      val command = listOf("cat", remotePath)
+      val command = listOf(CAT_COMMAND, remotePath)
       val output = BufferedOutputStream(FileOutputStream(targetPath.toFile()))
 
       val execHandler = ExecHandler(client, pod, container)
@@ -59,7 +61,7 @@ internal class FileTransferHandler(
 
       log.debug("Transferring local file '$localFile' to remote path '$remotePath'")
 
-      val command = listOf("sh", "-c", "cat > $remotePath")
+      val command = listOf("sh", "-c", "$CAT_COMMAND > $remotePath")
       // Prepare the execution of the command with the file's content piped into stdin
       val input = BufferedInputStream(FileInputStream(localFile.toFile()))
       val execHandler = ExecHandler(client, pod, container)
