@@ -1,0 +1,45 @@
+# Use Alpine Linux as the base image
+FROM alpine:latest
+
+# Install curl, httpie, openssh, lighttpd, bash, and other necessary dependencies
+RUN apk add --no-cache curl netcat-openbsd gzip openssh lighttpd bash
+
+# Set bash as the default shell for the root user
+RUN sed -i 's#/bin/ash#/bin/bash#' /etc/passwd
+
+# Setup SSH
+RUN sed -i 's/#PermitRootLogin prohibit-password/PermitRootLogin yes/' /etc/ssh/sshd_config \
+    && sed -i 's/#PasswordAuthentication yes/PasswordAuthentication yes/' /etc/ssh/sshd_config \
+    && echo "root:root" | chpasswd \
+    && ssh-keygen -A
+
+# Create a directory for the web content
+RUN mkdir -p /var/www/localhost/htdocs
+
+# Create an index.html file with a message
+RUN echo "<html><body><h1>Hello from httpdlight</h1></body></html>" > /var/www/localhost/htdocs/index.html
+
+# Copy the log-time.sh script from the build context to the container
+COPY log-time.sh /log-time.sh
+
+# Make the log-time.sh script executable
+RUN chmod +x /log-time.sh
+
+# Copy the entrypoint script from the build context to the container
+COPY entrypoint.sh /entrypoint.sh
+
+# Make the entry script executable
+RUN chmod +x /entrypoint.sh
+
+RUN mkdir -p /tmp/test1
+RUN chmod 777 /tmp/test1
+
+RUN mkdir -p /tmp/test2
+RUN chmod 777 /tmp/test2
+
+# Expose ports for SSH (22) and lighttpd (80)
+EXPOSE 22
+EXPOSE 80
+
+# Define the container's default behavior
+CMD ["/entrypoint.sh"]

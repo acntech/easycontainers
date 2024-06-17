@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>ImageBuilder</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+                    <a class="library-name--link" href="../../../index.html">
+                            easycontainers
+                    </a>
+            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter="easycontainers/JVM">JVM</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="easycontainers::no.acntech.easycontainers/ImageBuilder///PointingToDeclaration//1134874120">
+  <div class="breadcrumbs"><a href="../../../index.html">easycontainers</a><span class="delimiter">/</span><a href="../index.html">no.acntech.easycontainers</a><span class="delimiter">/</span><span class="current">ImageBuilder</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Image</span><wbr></wbr><span><span>Builder</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">class </span><a href="index.html">ImageBuilder</a><span class="clearfix"><span class="floating-right">(<a href="https://github.com/acntech/easycontainers/tree/main/src/main/kotlin/no/acntech/easycontainers/ImageBuilder.kt#L78">source</a>)</span></span></div><p class="paragraph">An abstract class for building Docker images. The class is designed to be extended by specific (concrete) implementations.</p><p class="paragraph"><h2>Kubernetes quirks</h2> In order to build Docker images in a k8s cluster (using Kaniko) from a test environment running outside the cluster, you would normally use a shared volume between the host and the k8s cluster.</p><p>
+In order to share a folder between the host and the k8s cluster the following config apply for Docker Desktop on
+WSL (Windows Subsystem for Linux):
+<ul>
+    <li> On the host the shared directory <i>must</i> be under /mnt/wsl/.. </li>
+    <li> In the k8s cluster the shared directory <i>must</i> be specified to be under /run/desktop/mnt/host/wsl/.. </li>
+<code><pre>
+    apiVersion: v1
+kind: PersistentVolume
+metadata:
+name: kaniko-data-pv
+labels:
+    type: local
+spec:
+storageClassName: hostpath
+capacity:
+    storage: 100Mi
+accessModes:
+    - ReadWriteMany
+hostPath: /run/desktop/mnt/host/wsl/kaniko-data
+</pre></code>
+<p>
+When creating and configuring the ImageBuilder, this path must be used as the local path.
+<pre><code>
+    val imageBuilder = ImageBuilder.of(ContainerPlatformType.KUBERNETES)
+          .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/mnt/wsl/kaniko-data")
+          // other properties
+</code></pre>
+<p>
+For KinD k8s the shared folder can be anywhere on the host file system, but the kind cluster must be configured
+using a custom config applied at cluster startup in order for containers to mount the shared folder.
+<p>
+Example:
+<p>
+Host (wsl or native linux) path: /home/user/k8s-share/kaniko-data
+<p>
+Kind cluster config:
+<code><pre>
+    kind: Cluster
+apiVersion: kind.x-k8s.io/v1alpha4
+networking:
+apiServerAddress: "0.0.0.0"
+nodes:
+- role: control-plane
+extraMounts:
+    - hostPath: /home/[user]/kaniko-data
+      containerPath: /kaniko-data
+</pre></code>
+<p>
+When creating and configuring the ImageBuilder (for kubernetes), this path must be used as the local path.
+<pre><code>
+    val imageBuilder = ImageBuilder.of(ContainerPlatformType.KUBERNETES)
+          .withCustomProperty(ImageBuilder.PROP_LOCAL_KANIKO_DATA_PATH, "/home/[user]/kaniko-data")
+          // other properties
+</code></pre></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="">Constructors</h2>
+        <div class="table"><a data-name="-1353128048%2FConstructors%2F1134874120" anchor-label="ImageBuilder" id="-1353128048%2FConstructors%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-togglable="CONSTRUCTOR" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-image-builder.html"><span>Image</span><wbr></wbr><span><span>Builder</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1353128048%2FConstructors%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="-2106418127%2FClasslikes%2F1134874120" anchor-label="Companion" id="-2106418127%2FClasslikes%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-2106418127%2FClasslikes%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1197518924%2FClasslikes%2F1134874120" anchor-label="State" id="1197518924%2FClasslikes%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-state/index.html"><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1197518924%2FClasslikes%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-state/index.html">State</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="-state/index.html">ImageBuilder.State</a><span class="token operator">&gt; </span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="714228547%2FFunctions%2F1134874120" anchor-label="buildImage" id="714228547%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="build-image.html"><span>build</span><wbr></wbr><span><span>Image</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="714228547%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="build-image.html"><span class="token function">buildImage</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Builds an image.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1177361612%2FFunctions%2F1134874120" anchor-label="getFinishTime" id="-1177361612%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-finish-time.html"><span>get</span><wbr></wbr><span>Finish</span><wbr></wbr><span><span>Time</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1177361612%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-finish-time.html"><span class="token function">getFinishTime</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Instant.html">Instant</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Retrieves the finish time of the image building process.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1676190711%2FFunctions%2F1134874120" anchor-label="getStartTime" id="1676190711%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-start-time.html"><span>get</span><wbr></wbr><span>Start</span><wbr></wbr><span><span>Time</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1676190711%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-start-time.html"><span class="token function">getStartTime</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Instant.html">Instant</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Retrieves the start time of the image build process.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-434219915%2FFunctions%2F1134874120" anchor-label="getState" id="-434219915%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-state.html"><span>get</span><wbr></wbr><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-434219915%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><div class="block"><div class="block"><span class="token annotation builtin">@</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.jvm/-synchronized/index.html"><span class="token annotation builtin">Synchronized</span></a></div></div><span class="token keyword">fun </span><a href="get-state.html"><span class="token function">getState</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-state/index.html">ImageBuilder.State</a></div><div class="brief "><p class="paragraph">Retrieves the current state.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-538287612%2FFunctions%2F1134874120" anchor-label="toString" id="-538287612%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="to-string.html"><span>to</span><wbr></wbr><span><span>String</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-538287612%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="to-string.html"><span class="token function">toString</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div><div class="brief "><p class="paragraph">Returns a string representation of this ImageBuilder.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1022685920%2FFunctions%2F1134874120" anchor-label="withCustomProperty" id="-1022685920%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-custom-property.html"><span>with</span><wbr></wbr><span>Custom</span><wbr></wbr><span><span>Property</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1022685920%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-custom-property.html"><span class="token function">withCustomProperty</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">key<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><div class="brief "><p class="paragraph">Adds a custom property to the image builder.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="965837833%2FFunctions%2F1134874120" anchor-label="withDockerContextDir" id="965837833%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-docker-context-dir.html"><span>with</span><wbr></wbr><span>Docker</span><wbr></wbr><span>Context</span><wbr></wbr><span><span>Dir</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="965837833%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-docker-context-dir.html"><span class="token function">withDockerContextDir</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">dir<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><div class="brief "><p class="paragraph">Set the Docker context directory. This directory will be used as the build context when building the Docker image.</p></div><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-docker-context-dir.html"><span class="token function">withDockerContextDir</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">dir<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1748529666%2FFunctions%2F1134874120" anchor-label="withImageRegistry" id="-1748529666%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-image-registry.html"><span>with</span><wbr></wbr><span>Image</span><wbr></wbr><span><span>Registry</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1748529666%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-image-registry.html"><span class="token function">withImageRegistry</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">registry<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><br><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-image-registry.html"><span class="token function">withImageRegistry</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">registry<span class="token operator">: </span><a href="../../no.acntech.easycontainers.model/-registry-u-r-l/index.html">RegistryURL</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><div class="brief "><p class="paragraph">Sets the image registry for the ImageBuilder.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="74850998%2FFunctions%2F1134874120" anchor-label="withInsecureRegistry" id="74850998%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-insecure-registry.html"><span>with</span><wbr></wbr><span>Insecure</span><wbr></wbr><span><span>Registry</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="74850998%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-insecure-registry.html"><span class="token function">withInsecureRegistry</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">insecureRegistry<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><div class="brief "><p class="paragraph">Sets the insecure registry flag for the image builder.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1505219918%2FFunctions%2F1134874120" anchor-label="withLabel" id="-1505219918%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-label.html"><span>with</span><wbr></wbr><span><span>Label</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1505219918%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-label.html"><span class="token function">withLabel</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">key<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><br><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-label.html"><span class="token function">withLabel</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">key<span class="token operator">: </span><a href="../../no.acntech.easycontainers.model/-label-key/index.html">LabelKey</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="../../no.acntech.easycontainers.model/-label-value/index.html">LabelValue</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><div class="brief "><p class="paragraph">Adds a label to the ImageBuilder.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1455435013%2FFunctions%2F1134874120" anchor-label="withLabels" id="1455435013%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-labels.html"><span>with</span><wbr></wbr><span><span>Labels</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1455435013%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-labels.html"><span class="token function">withLabels</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">labels<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1919311050%2FFunctions%2F1134874120" anchor-label="withName" id="1919311050%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-name.html"><span>with</span><wbr></wbr><span><span>Name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1919311050%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-name.html"><span class="token function">withName</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><br><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-name.html"><span class="token function">withName</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="../../no.acntech.easycontainers.model/-image-name/index.html">ImageName</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><div class="brief "><p class="paragraph">Sets the name of the image.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-103944069%2FFunctions%2F1134874120" anchor-label="withNamespace" id="-103944069%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-namespace.html"><span>with</span><wbr></wbr><span><span>Namespace</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-103944069%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-namespace.html"><span class="token function">withNamespace</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">namespace<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><br><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-namespace.html"><span class="token function">withNamespace</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">namespace<span class="token operator">: </span><a href="../../no.acntech.easycontainers.model/-namespace/index.html">Namespace</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><div class="brief "><p class="paragraph">Sets the namespace for the ImageBuilder - this is only relevant for Kubernetes.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1401869684%2FFunctions%2F1134874120" anchor-label="withOutputLineCallback" id="-1401869684%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-output-line-callback.html"><span>with</span><wbr></wbr><span>Output</span><wbr></wbr><span>Line</span><wbr></wbr><span><span>Callback</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1401869684%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-output-line-callback.html"><span class="token function">withOutputLineCallback</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">outputLineCallback<span class="token operator">: </span><a href="../../no.acntech.easycontainers.output/-output-line-callback/index.html">OutputLineCallback</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><div class="brief "><p class="paragraph">Sets the provided OutputLineCallback for this ImageBuilder instance.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1857314371%2FFunctions%2F1134874120" anchor-label="withRepository" id="-1857314371%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-repository.html"><span>with</span><wbr></wbr><span><span>Repository</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1857314371%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-repository.html"><span class="token function">withRepository</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><br><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-repository.html"><span class="token function">withRepository</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">repository<span class="token operator">: </span><a href="../../no.acntech.easycontainers.model/-repository-name/index.html">RepositoryName</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><div class="brief "><p class="paragraph">Sets the (registry) repository for the ImageBuilder.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1801722607%2FFunctions%2F1134874120" anchor-label="withTag" id="1801722607%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-tag.html"><span>with</span><wbr></wbr><span><span>Tag</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1801722607%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-tag.html"><span class="token function">withTag</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">tag<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><br><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-tag.html"><span class="token function">withTag</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">tag<span class="token operator">: </span><a href="../../no.acntech.easycontainers.model/-image-tag/index.html">ImageTag</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><div class="brief "><p class="paragraph">Adds the given image tag to the builder.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1708214765%2FFunctions%2F1134874120" anchor-label="withTags" id="-1708214765%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-tags.html"><span>with</span><wbr></wbr><span><span>Tags</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1708214765%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-tags.html"><span class="token function">withTags</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">tags<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-set/index.html">Set</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-836615253%2FFunctions%2F1134874120" anchor-label="withVerbosity" id="-836615253%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-verbosity.html"><span>with</span><wbr></wbr><span><span>Verbosity</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-836615253%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-verbosity.html"><span class="token function">withVerbosity</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">verbosity<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><br><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-verbosity.html"><span class="token function">withVerbosity</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">verbosity<span class="token operator">: </span><a href="../../no.acntech.easycontainers.model/-verbosity/index.html">Verbosity</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ImageBuilder</a></div><div class="brief "><p class="paragraph">Sets the verbosity level for the ImageBuilder.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2024 Copyright</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,58 @@
+Easycontainers
+Copyright 2024 Accenture AS
+
+The Easycontainers Project is developed and maintained by Thomas Muller (thomas.muller@accenture.com) (me.thomas.muller@gmail.com).
+
+This product includes software developed at
+The Apache Software Foundation (http://www.apache.org/).
+
+Additional notices:
+
+1. This product includes software developed by JetBrains (http://www.jetbrains.com/):
+   - Kotlin Reflect
+   - Kotlin Standard Library
+   The Kotlin libraries are used under the terms of the Apache License 2.0.
+
+2. This product includes software from the Fabric8 project (https://fabric8.io/):
+   - Kubernetes Client for Java
+   The Kubernetes Client is used under the terms of the Apache License 2.0.
+
+3. This product includes software developed by the Docker Java project (https://github.com/docker-java/docker-java):
+   - Docker Java API Client
+   - Docker Java Transport OkHttp
+   The Docker Java API Client is used under the terms of the Apache License 2.0.
+
+4. This product includes software from the Apache Commons project (http://commons.apache.org/):
+   - commons-compress
+   - commons-lang3
+   - commons-exec
+   - commons-io
+   The Apache Commons libraries are used under the terms of the Apache License 2.0.
+
+5. This product includes software developed by QOS.ch (http://www.qos.ch/):
+   - SLF4J
+   - Logback Classic Module
+   The logging frameworks are used under the terms of the MIT License and the Eclipse Public License 1.0 respectively.
+
+7. This product includes software developed by Awaitility (https://github.com/awaitility/awaitility):
+   - Awaitility
+   The Awaitility library is used under the terms of the Apache License 2.0.
+
+8. This product includes software developed by Danilo Pianini (https://github.com/DanySK):
+   - khttp
+   The khttp library is used under the terms of the MIT License.
+
+9. This product includes software developed by Michael Wiede (https://github.com/mwiede):
+   - JSch
+   The JSch library is used under the terms of the MIT License.
+
+10. This product includes software from the JUnit Team (https://junit.org/):
+   - JUnit Jupiter API
+   - JUnit Jupiter Engine
+   - JUnit Jupiter Params
+   The JUnit libraries are used under the terms of the Eclipse Public License 1.0.
+
+Disclaimer:
+
+This is not an official translation of the Apache License. It is simply a helpful guide to include necessary legal notices and attributions. It is the responsibility of the user of the license to ensure compliance with any applicable local laws and regulations.
+
