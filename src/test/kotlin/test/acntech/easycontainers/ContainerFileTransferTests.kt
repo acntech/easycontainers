@@ -78,6 +78,7 @@ class ContainerFileTransferTests {
          log.debug("Content of received file: $receivedContent")
 
          assertEquals(content, receivedContent)
+
       } finally {
          TestSupport.shutdownContainer(container)
          tempFile.deleteIfExists()

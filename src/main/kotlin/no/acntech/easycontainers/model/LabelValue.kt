@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Value object representing a docker/kubernetes label value.
@@ -16,7 +16,7 @@ value class LabelValue(val value: String) : SimpleValueObject<String> {
       // space ' ' to tilde '~') only. An empty string will also be a valid match.
       private val REGEXP: Regex = "^[ -~]*\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          // https://kubernetes.io/docs/concepts/overview/working-with-objects/labels/#syntax-and-character-set
          maxLength = 1063, // This is a practical limit
          lexicalValidator = RegexValidator(REGEXP)
@@ -28,7 +28,7 @@ value class LabelValue(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.unwrap())
    }
 
    override fun unwrap(): String {

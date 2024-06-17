@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Value object representing a Docker image tag.
@@ -17,7 +17,7 @@ value class NetworkName(val value: String) : SimpleValueObject<String> {
       // The middle portion of the name can include alpha-numeric characters, underscores (_), dots (.) or hyphens (-).
       private val REGEXP: Regex = "^[a-zA-Z0-9][a-zA-Z0-9_.-]*[a-zA-Z0-9]\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 2,
          maxLength = 255,
          lexicalValidator = RegexValidator(REGEXP)
@@ -29,7 +29,7 @@ value class NetworkName(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.unwrap())
    }
 
    override fun unwrap(): String {

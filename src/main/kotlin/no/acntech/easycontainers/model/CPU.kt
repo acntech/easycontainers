@@ -1,8 +1,7 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.SimpleValueObjectValidator
-import no.acntech.easycontainers.model.base.ValidationRange
+import no.acntech.easycontainers.util.lang.RangeValidator
 
 /**
  * Value object representing a kubernetes/docker cpu request or limit.
@@ -14,12 +13,11 @@ value class CPU(val value: Double) : SimpleValueObject<Double> {
 
       const val MILLI_CPU_SUFFIX = "m"
 
-      private val VALIDATOR = SimpleValueObjectValidator(
-         range = ValidationRange(
-            inclusiveMin = 0.001,
-            exclusiveMax = 64.0
-         )
+      private val VALIDATOR = RangeValidator(
+         inclusiveMin = 0.001,
+         exclusiveMax = 64.0
       )
+
 
       fun of(value: String): CPU {
          val numericValue = if (value.endsWith(MILLI_CPU_SUFFIX)) {
@@ -37,7 +35,7 @@ value class CPU(val value: Double) : SimpleValueObject<Double> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.value)
    }
 
    override fun unwrap(): Double {

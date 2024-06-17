@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Represents a repository name in a software repository system.
@@ -31,7 +31,7 @@ value class RepositoryName(val value: String) : SimpleValueObject<String> {
       // dash (-), underscore (_) or period (.).
       private val REGEXP: Regex = "^[a-z0-9]+([-_.][a-z0-9]+)*\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 2,
          maxLength = 255,
          lexicalValidator = RegexValidator(REGEXP)
@@ -47,7 +47,7 @@ value class RepositoryName(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.unwrap())
    }
 
    override fun unwrap(): String {

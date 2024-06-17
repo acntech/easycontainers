@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Value object representing an environment variable key.
@@ -17,7 +17,7 @@ value class EnvVarKey(val value: String) : SimpleValueObject<String> {
       // followed by zero or more alphanumeric characters (a-z, A-Z, 0-9) or underscores (_)
       private val REGEXP: Regex = "^[a-zA-Z_][a-zA-Z0-9_]*\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 1,
          maxLength = 255,
          lexicalValidator = RegexValidator(REGEXP)
@@ -29,7 +29,7 @@ value class EnvVarKey(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.value)
    }
 
    override fun unwrap(): String {

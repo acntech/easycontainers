@@ -1,8 +1,7 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.SimpleValueObjectValidator
-import no.acntech.easycontainers.model.base.ValidationRange
+import no.acntech.easycontainers.util.lang.RangeValidator
 import java.math.BigInteger
 
 /**
@@ -48,16 +47,15 @@ value class Memory(val bytes: BigInteger) : SimpleValueObject<BigInteger> {
 
       fun of(value: BigInteger): Memory = Memory(value)
 
-      private val VALIDATOR = SimpleValueObjectValidator(
-         range = ValidationRange(
-            exclusiveMin = BigInteger.ZERO,
-            exclusiveMax = BigInteger("9223372036854775807") // 2^63 - 1
-         )
+      private val VALIDATOR = RangeValidator(
+         exclusiveMin = BigInteger.ZERO,
+         exclusiveMax = BigInteger("9223372036854775807") // 2^63 - 1
       )
+
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.unwrap())
    }
 
    override fun unwrap(): BigInteger {

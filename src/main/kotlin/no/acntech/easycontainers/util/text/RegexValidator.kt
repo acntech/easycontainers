@@ -1,4 +1,7 @@
-package no.acntech.easycontainers.util.lang
+package no.acntech.easycontainers.util.text
+
+import no.acntech.easycontainers.util.lang.ValidationException
+import no.acntech.easycontainers.util.lang.Validator
 
 /**
  * A validator that uses regular expressions to validate strings.

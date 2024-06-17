@@ -89,3 +89,21 @@ fun Map<*, *>.toStringMap(): Map<String, String> {
 fun List<*>.toStringList(): List<String> {
    return this.map { it?.toString() ?: "null" }
 }
+
+/**
+ * Converts each element in the set to a string representation.
+ * If the element is null, it is converted to the string "null".
+ *
+ * @return a new list where each element is converted to its string representation.
+ * @see Any.toString
+ * @see List.map
+ */
+fun Set<*>.toStringSet(): Set<String> {
+   return this.map { it?.toString() ?: "null" }.toSet()
+}
+
+fun Collection<*>.toStringCollection(): Collection<String> {
+   return this.map { it?.toString() ?: "null" }
+}
+
+

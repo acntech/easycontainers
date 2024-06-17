@@ -1,7 +1,7 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Value object representing a kubernetes/docker command argument.
@@ -13,7 +13,7 @@ value class Arg(val value: String) : SimpleValueObject<String> {
 
       private val REGEXP: Regex = "^[a-zA-Z0-9_\\-.]+\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 1,
          maxLength = 255,
 //         lexicalValidator = RegexValidator(REGEXP)
@@ -25,7 +25,7 @@ value class Arg(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.value)
    }
 
    override fun unwrap(): String {

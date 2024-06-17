@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Represents a URL of a registry.
@@ -20,7 +20,7 @@ value class RegistryURL(val value: String) : SimpleValueObject<String> {
       // followed by one or more digits (representing a port number) followed by an optional '/'.
       private val REGEXP: Regex = "^[a-zA-Z0-9]+([.:-][a-zA-Z0-9]+)*(:[0-9]+)?/?\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 4,
          maxLength = 253,
          lexicalValidator = RegexValidator(REGEXP)
@@ -37,7 +37,7 @@ value class RegistryURL(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.unwrap())
    }
 
    override fun unwrap(): String {

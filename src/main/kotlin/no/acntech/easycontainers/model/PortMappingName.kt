@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Value object representing a port mapping name
@@ -17,7 +17,7 @@ value class PortMappingName(val value: String) : SimpleValueObject<String> {
       // can have dashes (-) in the middle. The name cannot start or end with a dash (-).
       private val REGEXP: Regex = "^[a-zA-Z0-9]([-a-zA-Z0-9]*[a-zA-Z0-9])?\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 1,
          maxLength = 15,
          lexicalValidator = RegexValidator(REGEXP)
@@ -34,7 +34,7 @@ value class PortMappingName(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.value)
    }
 
    override fun unwrap(): String {

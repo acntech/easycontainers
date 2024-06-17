@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Value object representing an environment variable value.
@@ -16,7 +16,7 @@ value class EnvVarValue(val value: String) : SimpleValueObject<String> {
       // (ranging from space ' ' to tilde '~') only. An empty string will also be a valid match.
       private val REGEXP: Regex = "^[ -~]*\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 0,
          maxLength = 255, // Reasonable limit for environment variable value
          lexicalValidator = RegexValidator(REGEXP)
@@ -28,7 +28,7 @@ value class EnvVarValue(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.value)
    }
 
    override fun unwrap(): String {

@@ -12,10 +12,12 @@ import no.acntech.easycontainers.util.platform.PlatformUtils
 import no.acntech.easycontainers.util.text.CRLF
 import no.acntech.easycontainers.util.text.NEW_LINE
 import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.Test
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.lang.management.ManagementFactory
 import java.nio.file.Path
+import java.util.*
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
@@ -182,6 +184,18 @@ object TestSupport {
          printNonSystemNonDaemonThreads()
       }
       scheduledExecutorService.scheduleAtFixedRate(deadlockMonitor, 0, 3, TimeUnit.SECONDS)
+   }
+
+   fun waitForUserInput() {
+      // Your test code here...
+
+      println("Press SPACE to continue...")
+      val scanner = Scanner(System.`in`)
+      var input = scanner.nextLine()
+      while (input != " ") {
+         println("Please press SPACE to continue...")
+         input = scanner.nextLine()
+      }
    }
 
    fun printNonSystemNonDaemonThreads() {

@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Value object representing a host.
@@ -23,7 +23,7 @@ value class Host(val value: String) : SimpleValueObject<String> {
       // The IPv6 address part is made of hexadecimal characters (a-f, A-F, 0-9) and colons (:)
       private val REGEXP: Regex = "^(?:[a-zA-Z0-9.-]+|\\[[a-fA-F0-9:]+])\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = MIN_LENGTH,
          maxLength = MAX_LENGTH,
          lexicalValidator = RegexValidator(REGEXP)
@@ -35,7 +35,7 @@ value class Host(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.value)
    }
 
    override fun unwrap(): String {

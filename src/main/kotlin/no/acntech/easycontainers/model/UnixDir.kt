@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Represents a complete (starting with root '/') Unix directory path as a value object.
@@ -20,7 +20,7 @@ value class UnixDir(val value: String) : SimpleValueObject<String> {
       // The pattern doesn't accept paths that have consecutive '/' (bad format) or end with '/'
       private val REGEXP: Regex = "^/([^/]+(/[^/]*)*)?$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 1,
          maxLength = 1024, // Reasonable limit for unix path
          lexicalValidator = RegexValidator(REGEXP)
@@ -38,7 +38,7 @@ value class UnixDir(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.unwrap())
    }
 
    override fun unwrap(): String {

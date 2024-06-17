@@ -1,8 +1,7 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.SimpleValueObjectValidator
-import no.acntech.easycontainers.model.base.ValidationRange
+import no.acntech.easycontainers.util.lang.RangeValidator
 
 /**
  * Value object representing a network port - range 1-65535.
@@ -20,11 +19,9 @@ value class NetworkPort(val value: Int) : SimpleValueObject<Int> {
          return NetworkPort(value.toInt())
       }
 
-      private val VALIDATOR = SimpleValueObjectValidator(
-         range = ValidationRange(
-            inclusiveMin = 1,
-            inclusiveMax = 65535
-         )
+      private val VALIDATOR = RangeValidator(
+         inclusiveMin = 1,
+         inclusiveMax = 65535
       )
 
       val HTTP = NetworkPort(80)
@@ -34,7 +31,7 @@ value class NetworkPort(val value: Int) : SimpleValueObject<Int> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.unwrap())
    }
 
    override fun unwrap(): Int {

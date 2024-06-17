@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Represents a volume name.
@@ -23,7 +23,7 @@ import no.acntech.easycontainers.util.lang.RegexValidator
  * @property value The underlying string value of the volume name.
  *
  * @see SimpleValueObject
- * @see StringValueObjectValidator
+ * @see StringValidator
  */
 @JvmInline
 value class VolumeName(val value: String) : SimpleValueObject<String> {
@@ -32,7 +32,7 @@ value class VolumeName(val value: String) : SimpleValueObject<String> {
 
       private val REGEXP: Regex = "^[a-zA-Z0-9_-]+$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 1,
          maxLength = 63,
          lexicalValidator = RegexValidator(REGEXP)
@@ -45,7 +45,7 @@ value class VolumeName(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.unwrap())
    }
 
    override fun unwrap(): String {

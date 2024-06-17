@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Value object representing a kubernetes namespace.
@@ -18,7 +18,7 @@ value class Namespace(val value: String) : SimpleValueObject<String> {
       // characters must be present.
       private val REGEXP: Regex = "^[a-z0-9]([-a-z0-9]*[a-z0-9])?\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 1,
          maxLength = 63, // Kubernetes Namespace names are limited to 63 characters.
          lexicalValidator = RegexValidator(REGEXP)
@@ -34,7 +34,7 @@ value class Namespace(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.unwrap())
    }
 
    override fun unwrap(): String {

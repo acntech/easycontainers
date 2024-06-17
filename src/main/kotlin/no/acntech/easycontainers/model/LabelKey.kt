@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Value object representing a docker/kubernetes label key.
@@ -16,7 +16,7 @@ value class LabelKey(val value: String) : SimpleValueObject<String> {
       // value (a-z, A-Z, 0-9), an underscore (_), or a hyphen (-).
       private val REGEXP: Regex = "^[a-zA-Z0-9_-]\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 1,
          maxLength = 63,
          lexicalValidator = RegexValidator(REGEXP)
@@ -28,7 +28,7 @@ value class LabelKey(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.unwrap())
    }
 
    override fun unwrap(): String {

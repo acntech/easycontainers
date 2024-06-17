@@ -1,8 +1,8 @@
 package no.acntech.easycontainers.model
 
 import no.acntech.easycontainers.model.base.SimpleValueObject
-import no.acntech.easycontainers.model.base.StringValueObjectValidator
-import no.acntech.easycontainers.util.lang.RegexValidator
+import no.acntech.easycontainers.util.text.RegexValidator
+import no.acntech.easycontainers.util.text.StringValidator
 
 /**
  * Value object representing the common rules for Docker and Kubernetes container names. Note that both container platforms
@@ -19,7 +19,7 @@ value class ContainerName(val value: String) : SimpleValueObject<String> {
       // and if there are such, end with a lowercase letter or digit.
       private val REGEXP: Regex = "^[a-z0-9]([-a-z0-9]*[a-z0-9])?\$".toRegex()
 
-      private val VALIDATOR = StringValueObjectValidator(
+      private val VALIDATOR = StringValidator(
          minLength = 1,
          maxLength = 253,
          lexicalValidator = RegexValidator(REGEXP)
@@ -32,7 +32,7 @@ value class ContainerName(val value: String) : SimpleValueObject<String> {
    }
 
    init {
-      VALIDATOR.validate(this)
+      VALIDATOR.validate(this.value)
    }
 
    override fun unwrap(): String {
