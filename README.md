@@ -4,10 +4,11 @@
 
 1. [Introduction](#Introduction)
 2. [Getting Started](#Getting-Started)
-   1. [Starting a container](#Starting-a-container)
-   2. [Building and deploying a custom container](#Building-and-deploying-a-custom-container)
-   3. [Transferring files to and from a container](#Transferring-files-to-and-from-a-container)
-   4. [Executing commands in a running container](#Running-commands-in-a-running-container)
+   1. [Prerequisites](#Prerequisites) 
+   2. [Starting a container](#Starting-a-container)
+   3.  [Building and deploying a custom container](#Building-and-deploying-a-custom-container)
+   4. [Transferring files to and from a container](#Transferring-files-to-and-from-a-container)
+   5, [Executing commands in a running container](#Running-commands-in-a-running-container)
 3. [Requirements](#Requirements)
    1. [Docker](#Docker)
    2. [Kubernetes](#Kubernetes)
@@ -41,6 +42,29 @@ Born from the practical insights gained from the [Testcontainers](https://www.te
 With Easycontainers, developers gain a versatile tool that streamlines container management, freeing them to focus more on development and less on the operational intricacies of containers.
 
 ## Getting Started
+
+### Prerequisites
+
+#### Kubernetes
+For running Kubernetes containers,
+access to a Kubernetes cluster is required with a valid kubeconfig file located in the user's home directory.
+Make sure the kubeconfig file is correctly configured to access the desired cluster with the necessary permissions.
+For a KinD setup, see [kind-env](https://github.com/acntech/easycontainers/tree/main/src/test/resources/env/kind).
+
+#### Docker 
+For running Docker containers, access to a Docker daemon is required.
+Make sure the Docker daemon is running and accessible from the host machine,
+either on localhost or as dictated by the DOCKER_HOST environment variable.
+For an example setup, see [docker-env](https://github.com/acntech/easycontainers/tree/main/src/test/resources/env/docker).
+
+#### Development Environment
+- Java 21 or higher
+- Kotlin 1.9.0 or higher
+- Maven 3.8.4 or higher
+- KinD 0.22 or higher (for Kubernetes)
+- Docker 26.0 or higher (for Docker)
+- See example environment setup scripts in the [test-env](https://github.com/acntech/easycontainers/tree/main/src/test/resources/env) folder for running the tests.
+
 
 ### Starting a container
 
