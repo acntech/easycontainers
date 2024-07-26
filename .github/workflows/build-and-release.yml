@@ -1,0 +1,91 @@
+name: Generate and Publish Documentation
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build-application:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'adopt'
+
+      - name: get versions and build
+        run: |
+          git fetch --tags
+          MAJOR_MINOR=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed -E 's/([0-9]+\.[0-9]+).*/\1/')
+          echo "Extracted [major.minor] version: $MAJOR_MINOR"
+          LATEST_TAG=$(git tag -l "v*" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -rV | head -n 1)
+          echo "Latest tag: $LATEST_TAG"
+          if [ -z "$LATEST_TAG" ]; then
+              PATCH=0
+          else
+              TAG_MAJOR_MINOR=$(echo $LATEST_TAG | sed -E 's/v([0-9]+\.[0-9]+)\.[0-9]+/\1/')
+              TAG_PATCH=$(echo $LATEST_TAG | sed -E 's/v[0-9]+\.[0-9]+\.([0-9]+)/\1/')
+              if [ "$(printf '%s\n' "$TAG_MAJOR_MINOR" "$MAJOR_MINOR" | sort -rV | head -n 1)" != "$MAJOR_MINOR" ]; then
+                  echo "Current version is less than the last tag. Aborting."
+                  exit 1
+              elif [ "$MAJOR_MINOR" = "$TAG_MAJOR_MINOR" ]; then
+                  PATCH=$(($TAG_PATCH + 1))
+                  echo "Incremented patch version: $PATCH"
+              else
+                  PATCH=0
+                  echo "Patch version reset to 0"
+              fi
+          fi
+          APP_VERSION="$MAJOR_MINOR.$PATCH"
+          echo "New application version: $APP_VERSION"
+          echo "-----> Packaging"
+          mvn --quiet package -Drevision=$PATCH -DskipTests=true -Dmaven.javadoc.skip=true
+          echo "Packaging completed"
+          NEW_TAG=v$APP_VERSION
+          git tag "$NEW_TAG"
+          git push origin "$NEW_TAG"
+          echo -n "$APP_VERSION,latest" > .tags 
+
+  publish-docs:
+    needs: build-application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'adopt'
+
+      - name: Generate Javadoc
+        run: mvn dokka:javadoc -Ddokka.goal=javadoc -Ddokka.dir=./target/site/apidocs/javadoc
+
+      - name: Generate KDoc
+        run: mvn dokka:dokka -Ddokka.goal=dokka -Ddokka.dir=./target/site/apidocs/kdoc
+
+      - name: Prepare gh-pages content
+        run: |
+          cp -r ./src/main/resources/site/* .        
+          mkdir -p ./apidocs
+          cp -r ./target/site/apidocs/* ./apidocs/      
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          keep_files: false
+          allow_empty_commit: false
+          force_orphan: true
