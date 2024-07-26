@@ -284,7 +284,7 @@ interface Container {
    }
 
    /**
-    * Uploads a directory to the container. Note that the uploaded files and directoroes include the
+    * Uploads a directory to the container. Note that the uploaded files and directories include the
     * the directory itself and all its contents.
     *
     * @param localDir the path of the directory to upload

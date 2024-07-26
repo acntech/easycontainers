@@ -228,10 +228,12 @@ abstract class BaseContainerBuilder<SELF : BaseContainerBuilder<SELF>> : Contain
       return this as SELF
    }
 
+   protected fun setBuilt() {
+      isBuilt.set(true)
+   }
+
    protected fun checkBuildAllowed() {
-      if (!isBuilt.compareAndSet(false, true)) {
-         throw ContainerException("Container has already been built")
-      }
+      require(!isBuilt.get()) { "Container has already been built" }
    }
 
    override fun toString(): String {

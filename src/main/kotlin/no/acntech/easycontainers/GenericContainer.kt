@@ -37,6 +37,7 @@ open class GenericContainer(
 
       override fun build(): Container {
          checkBuildAllowed()
+         setBuilt()
          return GenericContainer(this)
       }
 
