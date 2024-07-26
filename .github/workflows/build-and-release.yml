@@ -131,7 +131,36 @@ jobs:
             ```sh
             mvn install:install-file -Dfile=<path-to-jar-file> -DgroupId=no.acntech.easycontainers -DartifactId=easycontainers -Dversion=${{ needs.build-application.outputs.PROJECT_VERSION }} -Dpackaging=jar
             ```
-            Ensure to replace the placeholders with the actual path to the JAR file, group ID, artifact ID, version, and packaging type.
+            Ensure to replace the placeholder with the actual path to the downloaded JAR file.
+            
+            For Gradle, add this to your `build.gradle` file's dependencies block: 
+            ```groovy
+            implementation 'no.acntech.easycontainers:easycontainers:${{ needs.build-application.outputs.PROJECT_VERSION }}'
+            ```
+            
+            For Maven, add this to your `pom.xml` file's dependencies block:
+            ```xml
+            <dependency>
+              <groupId>no.acntech.easycontainers</groupId>
+              <artifactId>easycontainers</artifactId>
+              <version>${{ needs.build-application.outputs.PROJECT_VERSION }}</version>
+            </dependency>
+            ```
+            
+            Also make sure the following necessary dependencies are added to your project:
+            - kubernetes-client
+            - docker-java
+            - docker-java-transport-okhttp
+            - awaitility
+            - khttp
+            - commons-io
+            - commons-lang3
+            - commons-compress
+            - slf4j-api
+            - logback-classic
+            
+            See the [project pom](https://github.com/acntech/easycontainers/blob/main/pom.xml) for more information and exact versions.
+
           draft: false
           prerelease: true
 

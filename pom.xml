@@ -23,7 +23,6 @@
     <revision>SNAPSHOT</revision>
 
     <!-- Library versions -->
-    <spring-boot.version>3.2.2</spring-boot.version>
     <kubernetes-client.version>6.13.1</kubernetes-client.version>
     <docker-java.version>3.4.0</docker-java.version>
     <awaitility.version>4.2.1</awaitility.version>
