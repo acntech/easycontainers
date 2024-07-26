@@ -1,9 +1,9 @@
-name: Generate and Publish Documentation
+name: Build and Release
 
 on:
   push:
     branches:
-      - dev
+      - main
 
 jobs:
 
