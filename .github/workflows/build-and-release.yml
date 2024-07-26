@@ -14,7 +14,6 @@ jobs:
       VERSION_TAG: ${{ steps.version_info.outputs.VERSION_TAG }}
       PROJECT_VERSION: ${{ steps.version_info.outputs.PROJECT_VERSION }}
 
-
     steps:
       - uses: actions/checkout@v3
         with:
@@ -51,7 +50,7 @@ jobs:
               fi
           fi
           PROJECT_VERSION="$MAJOR_MINOR.$PATCH"
-          echo "New application version: $PROJECT_VERSION"
+          echo "New project version: $PROJECT_VERSION"
           echo "-----> Packaging"
           mvn --quiet package -Drevision=$PATCH -DskipTests=true -Dmaven.javadoc.skip=true
           echo "Packaging completed"
@@ -115,7 +114,7 @@ jobs:
       - name: Debug Output
         run: |
           echo "Version Tag from build-application job: ${{ needs.build-application.outputs.VERSION_TAG }}"
-          echo "Project version from build-application job: ${{ needs.build-application.outputs.PROJECT_VERSION }}"
+          echo "Project Version from build-application job: ${{ needs.build-application.outputs.PROJECT_VERSION }}"
 
       - name: Create Release
         id: create_release
@@ -123,8 +122,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          echo "Version Tag from build-application job: ${{ needs.build-application.outputs.VERSION_TAG }}"
-          echo "Project version from build-application job: ${{ needs.build-application.outputs.PROJECT_VERSION }}"
+          tag_name: ${{ needs.build-application.outputs.VERSION_TAG }}
+          release_name: Release ${{ needs.build-application.outputs.PROJECT_VERSION }}
           body: |
             Test release
           draft: false
