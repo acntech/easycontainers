@@ -3,7 +3,7 @@ name: Generate and Publish Documentation
 on:
   push:
     branches:
-      - main
+      - dev
 
 jobs:
 
@@ -21,7 +21,7 @@ jobs:
           java-version: '21'
           distribution: 'adopt'
 
-      - name: get versions and build
+      - name: Figure out version and build
         run: |
           git fetch --tags
           MAJOR_MINOR=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed -E 's/([0-9]+\.[0-9]+).*/\1/')
@@ -49,10 +49,20 @@ jobs:
           echo "-----> Packaging"
           mvn --quiet package -Drevision=$PATCH -DskipTests=true -Dmaven.javadoc.skip=true
           echo "Packaging completed"
-          NEW_TAG=v$APP_VERSION
-          git tag "$NEW_TAG"
-          git push origin "$NEW_TAG"
-          echo -n "$APP_VERSION,latest" > .tags 
+          VERSION_TAG=v$APP_VERSION
+          git tag "$VERSION_TAG"
+          git push origin "$VERSION_TAG"
+          echo -n "$APP_VERSION" > .version
+
+      - name: Get the version
+        id: get_version
+        run: echo ::set-output name=PROJECT_VERSION::$(cat .version)
+
+      - name: Upload JAR file
+        uses: actions/upload-artifact@v2
+        with:
+          name: app-jar
+          path: target/*.jar
 
   publish-docs:
     needs: build-application
@@ -89,3 +99,36 @@ jobs:
           keep_files: false
           allow_empty_commit: false
           force_orphan: true
+
+  create-release:
+    needs: [build-application]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download JAR file
+        uses: actions/download-artifact@v2
+        with:
+          name: app-jar
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.build-application.outputs.PROJECT_VERSION }}
+          release_name: Release ${{ needs.build-application.outputs.PROJECT_VERSION }}
+          body: |
+            Test release
+          draft: false
+          prerelease: true
+
+      - name: Upload Release Asset
+        id: upload_release_asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./app-jar/*.jar
+          asset_name: '*.jar'
+          asset_content_type: application/java-archive
