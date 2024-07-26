@@ -22,6 +22,7 @@ jobs:
           distribution: 'adopt'
 
       - name: Generate version tag and build
+        id: version_info
         run: |
           git fetch --tags
           MAJOR_MINOR=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed -E 's/([0-9]+\.[0-9]+).*/\1/')
@@ -112,8 +113,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ needs.build-application.outputs.VERSION_TAG }}
-          release_name: Release ${{ needs.build-application.outputs.PROJECT_VERSION }}
+          tag_name: ${{ needs.build-application.outputs.version_info.outputs.VERSION_TAG }}
+          release_name: Release ${{ needs.build-application.outputs.version_info.outputs.PROJECT_VERSION }}
           body: |
             Test release
           draft: false
