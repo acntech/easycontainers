@@ -107,14 +107,19 @@ jobs:
         with:
           name: app-jar
 
+      - name: Debug Output
+        run: |
+          echo "Version Tag from build-application job: ${{needs.build-application.outputs.VERSION_TAG}}"
+          echo "Project version from build-application job: ${{needs.build-application.outputs.PROJECT_VERSION}}"    
+
       - name: Create Release
         id: create_release
         uses: actions/create-release@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ needs.build-application.outputs.version_info.outputs.VERSION_TAG }}
-          release_name: Release ${{ needs.build-application.outputs.version_info.outputs.PROJECT_VERSION }}
+          tag_name: ${{ needs.build-application.outputs.VERSION_TAG }}
+          release_name: Release ${{ needs.build-application.outputs.PROJECT_VERSION }}
           body: |
             Test release
           draft: false
