@@ -21,7 +21,7 @@ jobs:
           java-version: '21'
           distribution: 'adopt'
 
-      - name: Figure out version and build
+      - name: Generate version tag and build
         run: |
           git fetch --tags
           MAJOR_MINOR=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed -E 's/([0-9]+\.[0-9]+).*/\1/')
@@ -44,19 +44,16 @@ jobs:
                   echo "Patch version reset to 0"
               fi
           fi
-          APP_VERSION="$MAJOR_MINOR.$PATCH"
-          echo "New application version: $APP_VERSION"
+          PROJECT_VERSION="$MAJOR_MINOR.$PATCH"
+          echo "New application version: $PROJECT_VERSION"
           echo "-----> Packaging"
           mvn --quiet package -Drevision=$PATCH -DskipTests=true -Dmaven.javadoc.skip=true
           echo "Packaging completed"
-          VERSION_TAG=v$APP_VERSION
+          VERSION_TAG=v$PROJECT_VERSION
           git tag "$VERSION_TAG"
           git push origin "$VERSION_TAG"
-          echo -n "$APP_VERSION" > .version
-
-      - name: Get the version
-        id: get_version
-        run: echo ::set-output name=PROJECT_VERSION::$(cat .version)
+          echo "::set-output name=VERSION_TAG::$VERSION_TAG"
+          echo "::set-output name=PROJECT_VERSION::$PROJECT_VERSION"
 
       - name: Upload JAR file
         uses: actions/upload-artifact@v2
@@ -115,7 +112,7 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ needs.build-application.outputs.PROJECT_VERSION }}
+          tag_name: ${{ needs.build-application.outputs.VERSION_TAG }}
           release_name: Release ${{ needs.build-application.outputs.PROJECT_VERSION }}
           body: |
             Test release
