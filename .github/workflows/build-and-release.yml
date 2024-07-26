@@ -1,0 +1,176 @@
+name: Build and Release
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build-application:
+    runs-on: ubuntu-latest
+
+    outputs:
+      VERSION_TAG: ${{ steps.version_info.outputs.VERSION_TAG }}
+      PROJECT_VERSION: ${{ steps.version_info.outputs.PROJECT_VERSION }}
+
+    steps:
+      - uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set Up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'adopt'
+
+      - name: Generate version tag and build
+        id: version_info
+        run: |
+          git fetch --tags
+          MAJOR_MINOR=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout | sed -E 's/([0-9]+\.[0-9]+).*/\1/')
+          echo "Extracted [major.minor] version: $MAJOR_MINOR"
+          LATEST_TAG=$(git tag -l "v*" | grep -E '^v[0-9]+\.[0-9]+\.[0-9]+$' | sort -rV | head -n 1)
+          echo "Latest tag: $LATEST_TAG"
+          if [ -z "$LATEST_TAG" ]; then
+              PATCH=0
+          else
+              TAG_MAJOR_MINOR=$(echo $LATEST_TAG | sed -E 's/v([0-9]+\.[0-9]+)\.[0-9]+/\1/')
+              TAG_PATCH=$(echo $LATEST_TAG | sed -E 's/v[0-9]+\.[0-9]+\.([0-9]+)/\1/')
+              if [ "$(printf '%s\n' "$TAG_MAJOR_MINOR" "$MAJOR_MINOR" | sort -rV | head -n 1)" != "$MAJOR_MINOR" ]; then
+                  echo "Current version is less than the last tag. Aborting."
+                  exit 1
+              elif [ "$MAJOR_MINOR" = "$TAG_MAJOR_MINOR" ]; then
+                  PATCH=$(($TAG_PATCH + 1))
+                  echo "Incremented patch version: $PATCH"
+              else
+                  PATCH=0
+                  echo "Patch version reset to 0"
+              fi
+          fi
+          PROJECT_VERSION="$MAJOR_MINOR.$PATCH"
+          echo "New project version: $PROJECT_VERSION"
+          echo "-----> Packaging"
+          mvn --quiet package -Drevision=$PATCH -DskipTests=true -Dmaven.javadoc.skip=true
+          echo "Packaging completed"
+          VERSION_TAG=v$PROJECT_VERSION
+          git tag "$VERSION_TAG"
+          git push origin "$VERSION_TAG"
+          echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_OUTPUT
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_OUTPUT
+
+      - name: Upload JAR file
+        uses: actions/upload-artifact@v2
+        with:
+          name: app-jar
+          path: target/*.jar
+          if-no-files-found: error
+
+  publish-docs:
+    needs: build-application
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          fetch-depth: 0
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: '21'
+          distribution: 'adopt'
+
+      - name: Generate Javadoc
+        run: mvn dokka:javadoc -Ddokka.goal=javadoc -Ddokka.dir=./target/site/apidocs/javadoc
+
+      - name: Generate KDoc
+        run: mvn dokka:dokka -Ddokka.goal=dokka -Ddokka.dir=./target/site/apidocs/kdoc
+
+      - name: Prepare gh-pages content
+        run: |
+          cp -r ./src/main/resources/site/* .        
+          mkdir -p ./apidocs
+          cp -r ./target/site/apidocs/* ./apidocs/      
+
+      - name: Deploy to gh-pages
+        uses: peaceiris/actions-gh-pages@v3
+        with:
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          publish_dir: ./
+          keep_files: false
+          allow_empty_commit: false
+          force_orphan: true
+
+  create-release:
+    needs: [build-application]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download JAR file
+        uses: actions/download-artifact@v2
+        with:
+          name: app-jar
+          path: ./
+
+      - name: Debug Output
+        run: |
+          echo "Version Tag from build-application job: ${{ needs.build-application.outputs.VERSION_TAG }}"
+          echo "Project Version from build-application job: ${{ needs.build-application.outputs.PROJECT_VERSION }}"
+
+      - name: Create Release
+        id: create_release
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          tag_name: ${{ needs.build-application.outputs.VERSION_TAG }}
+          release_name: Release ${{ needs.build-application.outputs.PROJECT_VERSION }}
+          body: |
+            To manually install the JAR file included in this release, use the following Maven command:
+            ```sh
+            mvn install:install-file -Dfile=<path-to-jar-file> -DgroupId=no.acntech.easycontainers -DartifactId=easycontainers -Dversion=${{ needs.build-application.outputs.PROJECT_VERSION }} -Dpackaging=jar
+            ```
+            Ensure to replace the placeholder with the actual path to the downloaded JAR file.
+            
+            For Gradle, add this to your `build.gradle` file's dependencies block: 
+            ```groovy
+            implementation 'no.acntech.easycontainers:easycontainers:${{ needs.build-application.outputs.PROJECT_VERSION }}'
+            ```
+            
+            For Maven, add this to your `pom.xml` file's dependencies block:
+            ```xml
+            <dependency>
+              <groupId>no.acntech.easycontainers</groupId>
+              <artifactId>easycontainers</artifactId>
+              <version>${{ needs.build-application.outputs.PROJECT_VERSION }}</version>
+            </dependency>
+            ```
+            
+            Also make sure the following necessary dependencies are added to your project:
+            - kubernetes-client
+            - docker-java
+            - docker-java-transport-okhttp
+            - awaitility
+            - khttp
+            - commons-io
+            - commons-lang3
+            - commons-compress
+            - slf4j-api
+            - logback-classic
+            
+            See the [project pom](https://github.com/acntech/easycontainers/blob/main/pom.xml) for more information and exact versions.
+
+          draft: false
+          prerelease: true
+
+      - name: Upload Release Asset
+        id: upload_release_asset
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./easycontainers-${{ needs.build-application.outputs.PROJECT_VERSION }}.jar
+          asset_name: easycontainers-${{ needs.build-application.outputs.PROJECT_VERSION }}.jar
+          asset_content_type: application/java-archive
