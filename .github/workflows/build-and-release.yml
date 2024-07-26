@@ -127,7 +127,11 @@ jobs:
           tag_name: ${{ needs.build-application.outputs.VERSION_TAG }}
           release_name: Release ${{ needs.build-application.outputs.PROJECT_VERSION }}
           body: |
-            Test release
+            To manually install the JAR file included in this release, use the following Maven command:
+            ```sh
+            mvn install:install-file -Dfile=<path-to-jar-file> -DgroupId=no.acntech.easycontainers -DartifactId=easycontainers -Dversion=${{ needs.build-application.outputs.PROJECT_VERSION }} -Dpackaging=jar
+            ```
+            Ensure to replace the placeholders with the actual path to the JAR file, group ID, artifact ID, version, and packaging type.
           draft: false
           prerelease: true
 
