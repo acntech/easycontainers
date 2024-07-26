@@ -53,8 +53,10 @@ jobs:
           VERSION_TAG=v$PROJECT_VERSION
           git tag "$VERSION_TAG"
           git push origin "$VERSION_TAG"
-          echo "::set-output name=VERSION_TAG::$VERSION_TAG"
-          echo "::set-output name=PROJECT_VERSION::$PROJECT_VERSION"
+#          echo "::set-output name=VERSION_TAG::$VERSION_TAG"
+#          echo "::set-output name=PROJECT_VERSION::$PROJECT_VERSION"
+          echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_ENV
+          echo "PROJECT_VERSION=$PROJECT_VERSION" >> $GITHUB_ENV
 
       - name: Upload JAR file
         uses: actions/upload-artifact@v2
@@ -109,8 +111,8 @@ jobs:
 
       - name: Debug Output
         run: |
-          echo "Version Tag from build-application job: ${{needs.build-application.outputs.VERSION_TAG}}"
-          echo "Project version from build-application job: ${{needs.build-application.outputs.PROJECT_VERSION}}"    
+          echo "Version Tag from build-application job: ${{ env.VERSION_TAG }}"
+          echo "Project version from build-application job: ${{ env.PROJECT_VERSION }}"
 
       - name: Create Release
         id: create_release
@@ -118,8 +120,8 @@ jobs:
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
-          tag_name: ${{ needs.build-application.outputs.VERSION_TAG }}
-          release_name: Release ${{ needs.build-application.outputs.PROJECT_VERSION }}
+          tag_name: ${{ env.VERSION_TAG }}
+          release_name: Release ${{ env.PROJECT_VERSION }}
           body: |
             Test release
           draft: false
