@@ -142,7 +142,7 @@ jobs:
           tag_name: ${{ needs.build-application.outputs.VERSION_TAG }}
           release_name: Release ${{ needs.build-application.outputs.PROJECT_VERSION }}
           body: |
-            # Installation
+            ## Installation
             To manually install the JAR file included in this release, use the following Maven command:            
             ```sh
             mvn install:install-file \
@@ -189,7 +189,7 @@ jobs:
             rm -r $TEMP_DIR
             ```
             
-            # Gradle/Maven Dependency
+            ## Gradle/Maven Dependency
             For Gradle, add this to your `build.gradle` file's dependencies block: 
             ```groovy
             implementation 'no.acntech.easycontainers:easycontainers:${{ needs.build-application.outputs.PROJECT_VERSION }}'
