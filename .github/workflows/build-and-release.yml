@@ -142,8 +142,8 @@ jobs:
           tag_name: ${{ needs.build-application.outputs.VERSION_TAG }}
           release_name: Release ${{ needs.build-application.outputs.PROJECT_VERSION }}
           body: |
-            To manually install the JAR file included in this release, use the following Maven command:
-            
+            # Installation
+            To manually install the JAR file included in this release, use the following Maven command:            
             ```sh
             mvn install:install-file \
               -Dfile=<path-to-jar-file> \
@@ -155,6 +155,41 @@ jobs:
             ```
             Ensure to replace the placeholders with the actual path to the downloaded JAR file and the release pom file.
             
+            Alternatively, run the following bash script to download and install the JAR file:            
+            ```sh
+            #!/bin/bash
+
+            # URLs for jar and pom files
+            JAR_URL=https://github.com/acntech/easycontainers/releases/download/${{ needs.build-application.outputs.VERSION_TAG }}/easycontainers-${{ needs.build-application.outputs.PROJECT_VERSION }}.jar
+            POM_URL=https://github.com/acntech/easycontainers/releases/download/${{ needs.build-application.outputs.VERSION_TAG }}/pom.xml
+            
+            # Create a temporary directory
+            TEMP_DIR=$(mktemp -d -t ci-XXXXXXXXXX)
+            
+            # File paths
+            JAR_FILE_PATH=$TEMP_DIR/easycontainers-${{ needs.build-application.outputs.PROJECT_VERSION }}.jar
+            POM_FILE_PATH=$TEMP_DIR/pom.xml
+            
+            # Download jar and pom files
+            curl -L -o $JAR_FILE_PATH $JAR_URL
+            curl -L -o $POM_FILE_PATH $POM_URL
+            
+            echo "Jar and POM files downloaded to $TEMP_DIR"
+            
+            # Maven install command
+            mvn install:install-file \
+            -Dfile=$JAR_FILE_PATH \
+            -DgroupId=no.acntech.easycontainers \
+            -DartifactId=easycontainers \
+            -Dversion=0.1.3 \
+            -Dpackaging=jar \
+            -DpomFile=$POM_FILE_PATH
+            
+            # Delete the temporary directory 
+            rm -r $TEMP_DIR
+            ```
+            
+            # Gradle/Maven Dependency
             For Gradle, add this to your `build.gradle` file's dependencies block: 
             ```groovy
             implementation 'no.acntech.easycontainers:easycontainers:${{ needs.build-application.outputs.PROJECT_VERSION }}'
