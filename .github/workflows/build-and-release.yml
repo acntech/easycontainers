@@ -181,7 +181,7 @@ jobs:
             -Dfile=$JAR_FILE_PATH \
             -DgroupId=no.acntech.easycontainers \
             -DartifactId=easycontainers \
-            -Dversion=0.1.3 \
+            -Dversion=${{ needs.build-application.outputs.PROJECT_VERSION }} \
             -Dpackaging=jar \
             -DpomFile=$POM_FILE_PATH
             
