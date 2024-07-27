@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - main
+      - test-devops
 
 jobs:
 
@@ -53,6 +54,7 @@ jobs:
           echo "New project version: $PROJECT_VERSION"
           echo "-----> Packaging"
           mvn --quiet package -Drevision=$PATCH -DskipTests=true -Dmaven.javadoc.skip=true
+          mvn --quiet -Drevision=$PATCH gplus:execute
           echo "Packaging completed"
           VERSION_TAG=v$PROJECT_VERSION
           git tag "$VERSION_TAG"
@@ -65,6 +67,13 @@ jobs:
         with:
           name: app-jar
           path: target/*.jar
+          if-no-files-found: error
+
+      - name: Upload pom-release file
+        uses: actions/upload-artifact@v2
+        with:
+          name: release-pom
+          path: target/pom.xml
           if-no-files-found: error
 
   publish-docs:
@@ -113,10 +122,16 @@ jobs:
           name: app-jar
           path: ./
 
+      - name: Download release POM
+        uses: actions/download-artifact@v2
+        with:
+          name: release-pom
+          path: ./
+
       - name: Debug Output
         run: |
-          echo "Version Tag from build-application job: ${{ needs.build-application.outputs.VERSION_TAG }}"
-          echo "Project Version from build-application job: ${{ needs.build-application.outputs.PROJECT_VERSION }}"
+          echo "VERSION_TAG from build-application job: ${{ needs.build-application.outputs.VERSION_TAG }}"
+          echo "PROJECT_VERSION from build-application job: ${{ needs.build-application.outputs.PROJECT_VERSION }}"
 
       - name: Create Release
         id: create_release
@@ -128,10 +143,17 @@ jobs:
           release_name: Release ${{ needs.build-application.outputs.PROJECT_VERSION }}
           body: |
             To manually install the JAR file included in this release, use the following Maven command:
+            
             ```sh
-            mvn install:install-file -Dfile=<path-to-jar-file> -DgroupId=no.acntech.easycontainers -DartifactId=easycontainers -Dversion=${{ needs.build-application.outputs.PROJECT_VERSION }} -Dpackaging=jar
+            mvn install:install-file \
+              -Dfile=<path-to-jar-file> \
+              -DgroupId=no.acntech.easycontainers \
+              -DartifactId=easycontainers \
+              -Dversion=${{ needs.build-application.outputs.PROJECT_VERSION }} \
+              -Dpackaging=jar \
+              -DpomFile=<path-to-pom-file>
             ```
-            Ensure to replace the placeholder with the actual path to the downloaded JAR file.
+            Ensure to replace the placeholders with the actual path to the downloaded JAR file and the release pom file.
             
             For Gradle, add this to your `build.gradle` file's dependencies block: 
             ```groovy
@@ -146,26 +168,12 @@ jobs:
               <version>${{ needs.build-application.outputs.PROJECT_VERSION }}</version>
             </dependency>
             ```
-            
-            Also make sure the following necessary dependencies are added to your project:
-            - kubernetes-client
-            - docker-java
-            - docker-java-transport-okhttp
-            - awaitility
-            - khttp
-            - commons-io
-            - commons-lang3
-            - commons-compress
-            - slf4j-api
-            - logback-classic
-            
-            See the [project pom](https://github.com/acntech/easycontainers/blob/main/pom.xml) for more information and exact versions.
 
           draft: false
           prerelease: true
 
-      - name: Upload Release Asset
-        id: upload_release_asset
+      - name: Upload Jar
+        id: upload_release_jar
         uses: actions/upload-release-asset@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
@@ -174,3 +182,14 @@ jobs:
           asset_path: ./easycontainers-${{ needs.build-application.outputs.PROJECT_VERSION }}.jar
           asset_name: easycontainers-${{ needs.build-application.outputs.PROJECT_VERSION }}.jar
           asset_content_type: application/java-archive
+
+      - name: Upload Release POM
+        id: upload_release_pom
+        uses: actions/upload-release-asset@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          upload_url: ${{ steps.create_release.outputs.upload_url }}
+          asset_path: ./pom.xml
+          asset_name: pom.xml
+          asset_content_type: application/xml
