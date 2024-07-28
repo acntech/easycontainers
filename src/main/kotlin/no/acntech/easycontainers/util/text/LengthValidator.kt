@@ -12,10 +12,10 @@ import no.acntech.easycontainers.util.lang.Validator
 data class LengthValidator(val min: Int?, val max: Int?) : Validator<String> {
 
    override fun validate(t: String) {
-      if(min != null && t.length < min) {
+      if (min != null && t.length < min) {
          throw ValidationException("String '${t.truncate(32)}' is shorter at #${t.length} than the required minimum length of $min")
       }
-      if(max != null && t.length > max) {
+      if (max != null && t.length > max) {
          throw ValidationException("String '${t.truncate(32)}' is longer #${t.length} than the required maximum length of $max")
       }
    }
