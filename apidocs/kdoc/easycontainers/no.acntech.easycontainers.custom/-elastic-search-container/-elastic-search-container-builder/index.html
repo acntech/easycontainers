@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>ElasticSearchContainerBuilder</title>
+    <link href="../../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../../styles/style.css" rel="Stylesheet">
+<link href="../../../../styles/main.css" rel="Stylesheet">
+<link href="../../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+                    <a class="library-name--link" href="../../../../index.html">
+                            easycontainers
+                    </a>
+            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter="easycontainers/JVM">JVM</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="easycontainers::no.acntech.easycontainers.custom/ElasticSearchContainer.ElasticSearchContainerBuilder///PointingToDeclaration//1134874120">
+  <div class="breadcrumbs"><a href="../../../../index.html">easycontainers</a><span class="delimiter">/</span><a href="../../index.html">no.acntech.easycontainers.custom</a><span class="delimiter">/</span><a href="../index.html">ElasticSearchContainer</a><span class="delimiter">/</span><span class="current">ElasticSearchContainerBuilder</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>Elastic</span><wbr></wbr><span>Search</span><wbr></wbr><span>Container</span><wbr></wbr><span><span>Builder</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">class </span><a href="index.html">ElasticSearchContainerBuilder</a> : <a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a><span class="clearfix"><span class="floating-right">(<a href="https://github.com/acntech/easycontainers/tree/main/src/main/kotlin/no/acntech/easycontainers/custom/ElasticSearchContainer.kt#L13">source</a>)</span></span></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="CONSTRUCTOR">
+        <h2 class="">Constructors</h2>
+        <div class="table"><a data-name="964785643%2FConstructors%2F1134874120" anchor-label="ElasticSearchContainerBuilder" id="964785643%2FConstructors%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-togglable="CONSTRUCTOR" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-elastic-search-container-builder.html"><span>Elastic</span><wbr></wbr><span>Search</span><wbr></wbr><span>Container</span><wbr></wbr><span><span>Builder</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="964785643%2FConstructors%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">constructor</span><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="1885803145%2FClasslikes%2F1134874120" anchor-label="Companion" id="1885803145%2FClasslikes%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-companion/index.html"><span><span>Companion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1885803145%2FClasslikes%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">object </span><a href="-companion/index.html">Companion</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="-1805091564%2FFunctions%2F1134874120" anchor-label="build" id="-1805091564%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="build.html"><span><span>build</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1805091564%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="build.html"><span class="token function">build</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-container/index.html">Container</a></div><div class="brief "><p class="paragraph">This method is used to build a Container object.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1257057359%2FFunctions%2F1134874120" anchor-label="toString" id="1257057359%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/to-string.html"><span>to</span><wbr></wbr><span><span>String</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1257057359%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/to-string.html"><span class="token function">toString</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-257947009%2FFunctions%2F1134874120" anchor-label="withArgs" id="-257947009%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-args.html"><span>with</span><wbr></wbr><span><span>Args</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-257947009%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-args.html"><span class="token function">withArgs</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">args<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-args/index.html">Args</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the command arguments for the container.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-args.html"><span class="token function">withArgs</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">args<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the arguments for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1542796840%2FFunctions%2F1134874120" anchor-label="withCommand" id="-1542796840%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-command.html"><span>with</span><wbr></wbr><span><span>Command</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1542796840%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-command.html"><span class="token function">withCommand</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">command<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-executable/index.html">Executable</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-command.html"><span class="token function">withCommand</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">command<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the command for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="277355795%2FFunctions%2F1134874120" anchor-label="withContainerFile" id="277355795%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-container-file.html"><span>with</span><wbr></wbr><span>Container</span><wbr></wbr><span><span>File</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="277355795%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-container-file.html"><span class="token function">withContainerFile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">file<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-container-file/index.html">ContainerFile</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-container-file.html"><span class="token function">withContainerFile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">mountPath<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">content<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-container-file.html"><span class="token function">withContainerFile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">path<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">data<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">keyValSeparator<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">&quot;&quot;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><br><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-container-file.html"><span class="token function">withContainerFile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-container-file-name/index.html">ContainerFileName</a><span class="token punctuation">, </span></span><span class="parameter ">path<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-unix-dir/index.html">UnixDir</a><span class="token punctuation">, </span></span><span class="parameter ">content<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Adds a file to the container with the specified name, path, and content.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-container-file.html"><span class="token function">withContainerFile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-container-file-name/index.html">ContainerFileName</a><span class="token punctuation">, </span></span><span class="parameter ">path<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-unix-dir/index.html">UnixDir</a><span class="token punctuation">, </span></span><span class="parameter ">data<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">keyValSeparator<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator"> = </span><span class="token string">&quot;&quot;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Adds a container file to the builder.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1523313571%2FFunctions%2F1134874120" anchor-label="withContainerPlatformType" id="1523313571%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-container-platform-type.html"><span>with</span><wbr></wbr><span>Container</span><wbr></wbr><span>Platform</span><wbr></wbr><span><span>Type</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1523313571%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-container-platform-type.html"><span class="token function">withContainerPlatformType</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">type<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-container-platform-type/index.html">ContainerPlatformType</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1660145282%2FFunctions%2F1134874120" anchor-label="withCpuLimit" id="-1660145282%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-cpu-limit.html"><span>with</span><wbr></wbr><span>Cpu</span><wbr></wbr><span><span>Limit</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1660145282%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-cpu-limit.html"><span class="token function">withCpuLimit</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cpuLimit<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-c-p-u/index.html">CPU</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-cpu-limit.html"><span class="token function">withCpuLimit</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cpuLimit<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html">Double</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-cpu-limit.html"><span class="token function">withCpuLimit</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cpuLimit<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the CPU limit for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1257465938%2FFunctions%2F1134874120" anchor-label="withCpuRequest" id="1257465938%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-cpu-request.html"><span>with</span><wbr></wbr><span>Cpu</span><wbr></wbr><span><span>Request</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1257465938%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-cpu-request.html"><span class="token function">withCpuRequest</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cpuRequest<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-c-p-u/index.html">CPU</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-cpu-request.html"><span class="token function">withCpuRequest</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cpuRequest<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-double/index.html">Double</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-cpu-request.html"><span class="token function">withCpuRequest</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">cpuRequest<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the CPU request for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="375096491%2FFunctions%2F1134874120" anchor-label="withCustomProperty" id="375096491%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-custom-property.html"><span>with</span><wbr></wbr><span>Custom</span><wbr></wbr><span><span>Property</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="375096491%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-custom-property.html"><span class="token function">withCustomProperty</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">key<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-any/index.html">Any</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Adds a custom property to the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1254175298%2FFunctions%2F1134874120" anchor-label="withEnv" id="1254175298%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-env.html"><span>with</span><wbr></wbr><span><span>Env</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1254175298%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-env.html"><span class="token function">withEnv</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">env<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="../../../no.acntech.easycontainers.model/-env-var-key/index.html">EnvVarKey</a><span class="token punctuation">, </span><a href="../../../no.acntech.easycontainers.model/-env-var-value/index.html">EnvVarValue</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the environment variables for the container.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-env.html"><span class="token function">withEnv</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">key<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Adds an environment variable with the specified key and value.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-env.html"><span class="token function">withEnv</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">key<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-env-var-key/index.html">EnvVarKey</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-env-var-value/index.html">EnvVarValue</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets an environment variable with the given key and value.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1459327603%2FFunctions%2F1134874120" anchor-label="withEnvAsStringMap" id="1459327603%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers.model/-container-builder/with-env-as-string-map.html"><span>with</span><wbr></wbr><span>Env</span><wbr></wbr><span>As</span><wbr></wbr><span>String</span><wbr></wbr><span><span>Map</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1459327603%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-env-as-string-map.html"><span class="token function">withEnvAsStringMap</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">env<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the environment variables of the container using a map of string key-value pairs.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1159525565%2FFunctions%2F1134874120" anchor-label="withExecutionMode" id="-1159525565%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-execution-mode.html"><span>with</span><wbr></wbr><span>Execution</span><wbr></wbr><span><span>Mode</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1159525565%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-execution-mode.html"><span class="token function">withExecutionMode</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">executionMode<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-execution-mode/index.html">ExecutionMode</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the execution mode for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1145813987%2FFunctions%2F1134874120" anchor-label="withExposedPort" id="1145813987%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-exposed-port.html"><span>with</span><wbr></wbr><span>Exposed</span><wbr></wbr><span><span>Port</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1145813987%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-exposed-port.html"><span class="token function">withExposedPort</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-port-mapping-name/index.html">PortMappingName</a><span class="token punctuation">, </span></span><span class="parameter ">port<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-network-port/index.html">NetworkPort</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Adds an exposed port to the container configuration.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-exposed-port.html"><span class="token function">withExposedPort</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">port<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the exposed port for the container by specifying the name and port number.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="696225646%2FFunctions%2F1134874120" anchor-label="withImage" id="696225646%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-image.html"><span>with</span><wbr></wbr><span><span>Image</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="696225646%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-image.html"><span class="token function">withImage</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">image<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-image-u-r-l/index.html">ImageURL</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Set the image to use for the container.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-image.html"><span class="token function">withImage</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">image<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the image for the container using the given image URL.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1524347383%2FFunctions%2F1134874120" anchor-label="withIsEphemeral" id="1524347383%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-is-ephemeral.html"><span>with</span><wbr></wbr><span>Is</span><wbr></wbr><span><span>Ephemeral</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1524347383%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-is-ephemeral.html"><span class="token function">withIsEphemeral</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">ephemeral<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the ephemeral flag for the container. If the ephemeral flag is set to true, the container will be deleted after it has stopped.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-541665924%2FFunctions%2F1134874120" anchor-label="withLabel" id="-541665924%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-label.html"><span>with</span><wbr></wbr><span><span>Label</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-541665924%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-label.html"><span class="token function">withLabel</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">key<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-label-key/index.html">LabelKey</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-label-value/index.html">LabelValue</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Adds a label to the container with the given key and value.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-label.html"><span class="token function">withLabel</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">key<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Adds a label with the provided key-value pair to the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1469832517%2FFunctions%2F1134874120" anchor-label="withMaxLifeTime" id="1469832517%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-max-life-time.html"><span>with</span><wbr></wbr><span>Max</span><wbr></wbr><span>Life</span><wbr></wbr><span><span>Time</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1469832517%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-max-life-time.html"><span class="token function">withMaxLifeTime</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">maxLifeTime<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-max-life-time.html"><span class="token function">withMaxLifeTime</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter ">unit<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/temporal/ChronoUnit.html">ChronoUnit</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the maximum lifetime for the container.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-max-life-time.html"><span class="token function">withMaxLifeTime</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">value<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token punctuation">, </span></span><span class="parameter ">unit<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/TimeUnit.html">TimeUnit</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the maximum life time for the object.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="101478874%2FFunctions%2F1134874120" anchor-label="withMemoryLimit" id="101478874%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-memory-limit.html"><span>with</span><wbr></wbr><span>Memory</span><wbr></wbr><span><span>Limit</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="101478874%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-memory-limit.html"><span class="token function">withMemoryLimit</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">memoryLimit<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-memory/index.html">Memory</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the memory limit for the container.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-memory-limit.html"><span class="token function">withMemoryLimit</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">memoryLimit<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/math/BigInteger.html">BigInteger</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the memory limit for the container in bytes.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-memory-limit.html"><span class="token function">withMemoryLimit</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">memoryLimit<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the memory limit for the container in bytes given as a long, hence limited to the maximum value of a long.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-memory-limit.html"><span class="token function">withMemoryLimit</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">memoryLimit<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the memory limit for the current operation.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1814703652%2FFunctions%2F1134874120" anchor-label="withMemoryRequest" id="-1814703652%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-memory-request.html"><span>with</span><wbr></wbr><span>Memory</span><wbr></wbr><span><span>Request</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1814703652%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-memory-request.html"><span class="token function">withMemoryRequest</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">memoryRequest<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-memory/index.html">Memory</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><br><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-memory-request.html"><span class="token function">withMemoryRequest</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">memoryRequest<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/math/BigInteger.html">BigInteger</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the memory request for the container.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-memory-request.html"><span class="token function">withMemoryRequest</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">memoryRequest<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Performs the task with the given memory request.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="165370168%2FFunctions%2F1134874120" anchor-label="withName" id="165370168%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-name.html"><span>with</span><wbr></wbr><span><span>Name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="165370168%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-name.html"><span class="token function">withName</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-container-name/index.html">ContainerName</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Returns a new instance of the container object with the specified name.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-name.html"><span class="token function">withName</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the name of the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="961229701%2FFunctions%2F1134874120" anchor-label="withNamespace" id="961229701%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-namespace.html"><span>with</span><wbr></wbr><span><span>Namespace</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="961229701%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-namespace.html"><span class="token function">withNamespace</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">namespace<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-namespace/index.html">Namespace</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the namespace for the ContainerBuilder.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-namespace.html"><span class="token function">withNamespace</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">namespace<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the namespace for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1041816445%2FFunctions%2F1134874120" anchor-label="withNetworkName" id="-1041816445%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-network-name.html"><span>with</span><wbr></wbr><span>Network</span><wbr></wbr><span><span>Name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1041816445%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-network-name.html"><span class="token function">withNetworkName</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">networkName<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-network-name/index.html">NetworkName</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-network-name.html"><span class="token function">withNetworkName</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">networkName<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the network name for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1325695393%2FFunctions%2F1134874120" anchor-label="withOutputLineCallback" id="1325695393%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-output-line-callback.html"><span>with</span><wbr></wbr><span>Output</span><wbr></wbr><span>Line</span><wbr></wbr><span><span>Callback</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1325695393%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-output-line-callback.html"><span class="token function">withOutputLineCallback</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">outputLineCallback<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.output/-output-line-callback/index.html">OutputLineCallback</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the line callback for logging purposes.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="619782922%2FFunctions%2F1134874120" anchor-label="withPortMapping" id="619782922%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-port-mapping.html"><span>with</span><wbr></wbr><span>Port</span><wbr></wbr><span><span>Mapping</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="619782922%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-port-mapping.html"><span class="token function">withPortMapping</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">port<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-network-port/index.html">NetworkPort</a><span class="token punctuation">, </span></span><span class="parameter ">mappedPort<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-network-port/index.html">NetworkPort</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Maps a container exposed network port to another network port.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-port-mapping.html"><span class="token function">withPortMapping</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">port<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token punctuation">, </span></span><span class="parameter ">mappedPort<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the port mapping for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1800004326%2FFunctions%2F1134874120" anchor-label="withVersion" id="1800004326%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="with-version.html"><span>with</span><wbr></wbr><span><span>Version</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1800004326%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">fun </span><a href="with-version.html"><span class="token function">withVersion</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">version<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-semantic-version/index.html">SemanticVersion</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">ElasticSearchContainer.ElasticSearchContainerBuilder</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1454064911%2FFunctions%2F1134874120" anchor-label="withVolume" id="-1454064911%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="../../../no.acntech.easycontainers/-base-container-builder/with-volume.html"><span>with</span><wbr></wbr><span><span>Volume</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1454064911%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-volume.html"><span class="token function">withVolume</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">volume<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-volume/index.html">Volume</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the volume for the container.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">override </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers/-base-container-builder/with-volume.html"><span class="token function">withVolume</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-volume-name/index.html">VolumeName</a><span class="token punctuation">, </span></span><span class="parameter ">mountPath<span class="token operator">: </span><a href="../../../no.acntech.easycontainers.model/-unix-dir/index.html">UnixDir</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div><div class="brief "><p class="paragraph">Sets the volume name and mount path for the current instance of the object.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="../../../no.acntech.easycontainers.model/-container-builder/with-volume.html"><span class="token function">withVolume</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">mountPath<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../../no.acntech.easycontainers/-generic-container/-generic-container-builder/index.html">GenericContainer.GenericContainerBuilder</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2024 Copyright</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

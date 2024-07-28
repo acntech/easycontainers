@@ -1,0 +1,573 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>Container</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+                    <a class="library-name--link" href="../../../index.html">
+                            easycontainers
+                    </a>
+            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter="easycontainers/JVM">JVM</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="classlike" id="content" pageIds="easycontainers::no.acntech.easycontainers.model/Container///PointingToDeclaration//1134874120">
+  <div class="breadcrumbs"><a href="../../../index.html">easycontainers</a><span class="delimiter">/</span><a href="../index.html">no.acntech.easycontainers.model</a><span class="delimiter">/</span><span class="current">Container</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span><span>Container</span></span></h1>
+    <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">interface </span><a href="index.html">Container</a><span class="clearfix"><span class="floating-right">(<a href="https://github.com/acntech/easycontainers/tree/main/src/main/kotlin/no/acntech/easycontainers/model/Container.kt#L12">source</a>)</span></span></div><h4 class="">Inheritors</h4><div class="table"><div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><a href="../../no.acntech.easycontainers/-generic-container/index.html">GenericContainer</a></div></span></div><div></div></div></div></div></div></div>
+  </div>
+  <div class="tabbedcontent">
+    <div class="tabs-section" tabs-section="tabs-section"><button class="section-tab" data-active="" data-togglable="CONSTRUCTOR,TYPE,PROPERTY,FUNCTION">Members</button></div>
+    <div class="tabs-section-body">
+      <div data-togglable="TYPE">
+        <h2 class="">Types</h2>
+        <div class="table"><a data-name="1334692756%2FClasslikes%2F1134874120" anchor-label="State" id="1334692756%2FClasslikes%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="-state/index.html"><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1334692756%2FClasslikes%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">enum </span><a href="-state/index.html">State</a> : <a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-enum/index.html">Enum</a><span class="token operator">&lt;</span><a href="-state/index.html">Container.State</a><span class="token operator">&gt; </span></div><div class="brief "><p class="paragraph">Represents the state of a container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div data-togglable="FUNCTION">
+        <h2 class="">Functions</h2>
+        <div class="table"><a data-name="-1437193238%2FFunctions%2F1134874120" anchor-label="execute" id="-1437193238%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="execute.html"><span><span>execute</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1437193238%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="execute.html"><span class="token function">execute</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">command<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">&gt;</span><span class="token punctuation">, </span></span><span class="parameter ">useTty<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter ">workingDir<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">input<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html">InputStream</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">output<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/io/OutputStream.html">OutputStream</a><span class="token operator"> = </span>OutputStream.nullOutputStream()<span class="token punctuation">, </span></span><span class="parameter ">waitTimeValue<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">waitTimeUnit<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/TimeUnit.html">TimeUnit</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator">?</span><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator">&gt;</span></div><br><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="execute.html"><span class="token function">execute</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">executable<span class="token operator">: </span><a href="../-executable/index.html">Executable</a><span class="token punctuation">, </span></span><span class="parameter ">args<span class="token operator">: </span><a href="../-args/index.html">Args</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">useTty<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a><span class="token operator"> = </span><span class="token boolean">false</span><span class="token punctuation">, </span></span><span class="parameter ">workingDir<span class="token operator">: </span><a href="../-unix-dir/index.html">UnixDir</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">input<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/io/InputStream.html">InputStream</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">output<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/io/OutputStream.html">OutputStream</a><span class="token operator"> = </span>OutputStream.nullOutputStream()<span class="token punctuation">, </span></span><span class="parameter ">waitTimeValue<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token operator">?</span><span class="token operator"> = </span>null<span class="token punctuation">, </span></span><span class="parameter ">waitTimeUnit<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/TimeUnit.html">TimeUnit</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator">?</span><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Executes a command in the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2100163967%2FFunctions%2F1134874120" anchor-label="getArgs" id="2100163967%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-args.html"><span>get</span><wbr></wbr><span><span>Args</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2100163967%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-args.html"><span class="token function">getArgs</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-args/index.html">Args</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Retrieves the command arguments for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="447490675%2FFunctions%2F1134874120" anchor-label="getCommand" id="447490675%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-command.html"><span>get</span><wbr></wbr><span><span>Command</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="447490675%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-command.html"><span class="token function">getCommand</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-executable/index.html">Executable</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Retrieves the executable command for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1647963920%2FFunctions%2F1134874120" anchor-label="getDirectory" id="-1647963920%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-directory.html"><span>get</span><wbr></wbr><span><span>Directory</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1647963920%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="get-directory.html"><span class="token function">getDirectory</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">remoteDir<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">localDir<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-directory.html"><span class="token function">getDirectory</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">remoteDir<span class="token operator">: </span><a href="../-unix-dir/index.html">UnixDir</a><span class="token punctuation">, </span></span><span class="parameter ">localDir<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a><span class="token operator"> = </span>Files.createTempDirectory(&quot;container-download-tar&quot;).toAbsolutePath()</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-pair/index.html">Pair</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a><span class="token punctuation">, </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a><span class="token operator">&gt;</span><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Downloads a directory from the container. Note that the downloaded files and directories include the directory itself and all its contents.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1907838248%2FFunctions%2F1134874120" anchor-label="getDuration" id="1907838248%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-duration.html"><span>get</span><wbr></wbr><span><span>Duration</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1907838248%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-duration.html"><span class="token function">getDuration</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Retrieves the duration of the container execution (RUNNING state). If running, returns the time since the container was started, if stopped, returns the time the container was running.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-780651631%2FFunctions%2F1134874120" anchor-label="getEnv" id="-780651631%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-env.html"><span>get</span><wbr></wbr><span><span>Env</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-780651631%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-env.html"><span class="token function">getEnv</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="../-env-var-key/index.html">EnvVarKey</a><span class="token punctuation">, </span><a href="../-env-var-value/index.html">EnvVarValue</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Retrieves the environment variables associated with the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-886701533%2FFunctions%2F1134874120" anchor-label="getExecutionMode" id="-886701533%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-execution-mode.html"><span>get</span><wbr></wbr><span>Execution</span><wbr></wbr><span><span>Mode</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-886701533%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-execution-mode.html"><span class="token function">getExecutionMode</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-execution-mode/index.html">ExecutionMode</a></div><div class="brief "><p class="paragraph">Retrieves the execution mode of the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="238896753%2FFunctions%2F1134874120" anchor-label="getExitCode" id="238896753%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-exit-code.html"><span>get</span><wbr></wbr><span>Exit</span><wbr></wbr><span><span>Code</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="238896753%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-exit-code.html"><span class="token function">getExitCode</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-int/index.html">Int</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Retrieves the exit code of the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="323956266%2FFunctions%2F1134874120" anchor-label="getExposedPorts" id="323956266%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-exposed-ports.html"><span>get</span><wbr></wbr><span>Exposed</span><wbr></wbr><span><span>Ports</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="323956266%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-exposed-ports.html"><span class="token function">getExposedPorts</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-network-port/index.html">NetworkPort</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Returns the list of network ports exposed by the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="126935220%2FFunctions%2F1134874120" anchor-label="getFile" id="126935220%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-file.html"><span>get</span><wbr></wbr><span><span>File</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="126935220%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="get-file.html"><span class="token function">getFile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">remoteDir<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">remoteFilename<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">localPath<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a></div><br><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-file.html"><span class="token function">getFile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">remoteDir<span class="token operator">: </span><a href="../-unix-dir/index.html">UnixDir</a><span class="token punctuation">, </span></span><span class="parameter ">remoteFilename<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">localPath<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a></div><div class="brief "><p class="paragraph">Downloads a file from the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2106604308%2FFunctions%2F1134874120" anchor-label="getHost" id="2106604308%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-host.html"><span>get</span><wbr></wbr><span><span>Host</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2106604308%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-host.html"><span class="token function">getHost</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-host/index.html">Host</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Retrieves the host of the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1311524515%2FFunctions%2F1134874120" anchor-label="getImage" id="1311524515%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-image.html"><span>get</span><wbr></wbr><span><span>Image</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1311524515%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-image.html"><span class="token function">getImage</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-image-u-r-l/index.html">ImageURL</a></div><div class="brief "><p class="paragraph">Retrieves the image for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="736304881%2FFunctions%2F1134874120" anchor-label="getIpAddress" id="736304881%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-ip-address.html"><span>get</span><wbr></wbr><span>Ip</span><wbr></wbr><span><span>Address</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="736304881%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-ip-address.html"><span class="token function">getIpAddress</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/net/InetAddress.html">InetAddress</a><span class="token operator">?</span></div><div class="brief "><p class="paragraph">Retrieves the IP address of the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-465613603%2FFunctions%2F1134874120" anchor-label="getLabels" id="-465613603%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-labels.html"><span>get</span><wbr></wbr><span><span>Labels</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-465613603%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-labels.html"><span class="token function">getLabels</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="../-label-key/index.html">LabelKey</a><span class="token punctuation">, </span><a href="../-label-value/index.html">LabelValue</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Retrieves the labels associated with the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="2029079697%2FFunctions%2F1134874120" anchor-label="getMappedPort" id="2029079697%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-mapped-port.html"><span>get</span><wbr></wbr><span>Mapped</span><wbr></wbr><span><span>Port</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="2029079697%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-mapped-port.html"><span class="token function">getMappedPort</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">port<span class="token operator">: </span><a href="../-network-port/index.html">NetworkPort</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-network-port/index.html">NetworkPort</a></div><div class="brief "><p class="paragraph">Returns the mapped port for the specified network port.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1581719057%2FFunctions%2F1134874120" anchor-label="getMaxLifeTime" id="1581719057%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-max-life-time.html"><span>get</span><wbr></wbr><span>Max</span><wbr></wbr><span>Life</span><wbr></wbr><span><span>Time</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1581719057%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-max-life-time.html"><span class="token function">getMaxLifeTime</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html">Duration</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-698422383%2FFunctions%2F1134874120" anchor-label="getName" id="-698422383%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-name.html"><span>get</span><wbr></wbr><span><span>Name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-698422383%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-name.html"><span class="token function">getName</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-container-name/index.html">ContainerName</a></div><div class="brief "><p class="paragraph">Returns the name of the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1067957725%2FFunctions%2F1134874120" anchor-label="getNamespace" id="-1067957725%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-namespace.html"><span>get</span><wbr></wbr><span><span>Namespace</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1067957725%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-namespace.html"><span class="token function">getNamespace</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-namespace/index.html">Namespace</a></div><div class="brief "><p class="paragraph">Returns the namespace of the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1314269989%2FFunctions%2F1134874120" anchor-label="getNetworkName" id="1314269989%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-network-name.html"><span>get</span><wbr></wbr><span>Network</span><wbr></wbr><span><span>Name</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1314269989%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-network-name.html"><span class="token function">getNetworkName</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-network-name/index.html">NetworkName</a><span class="token operator">?</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1607585086%2FFunctions%2F1134874120" anchor-label="getOutputLineCallback" id="-1607585086%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-output-line-callback.html"><span>get</span><wbr></wbr><span>Output</span><wbr></wbr><span>Line</span><wbr></wbr><span><span>Callback</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1607585086%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-output-line-callback.html"><span class="token function">getOutputLineCallback</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../../no.acntech.easycontainers.output/-output-line-callback/index.html">OutputLineCallback</a></div><div class="brief "><p class="paragraph">Retrieves the log output callback of the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1913862774%2FFunctions%2F1134874120" anchor-label="getPortMappings" id="1913862774%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-port-mappings.html"><span>get</span><wbr></wbr><span>Port</span><wbr></wbr><span><span>Mappings</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1913862774%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-port-mappings.html"><span class="token function">getPortMappings</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-map/index.html">Map</a><span class="token operator">&lt;</span><a href="../-network-port/index.html">NetworkPort</a><span class="token punctuation">, </span><a href="../-network-port/index.html">NetworkPort</a><span class="token operator">&gt;</span></div><div class="brief "><p class="paragraph">Retrieves the port mappings for the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="65077894%2FFunctions%2F1134874120" anchor-label="getRuntime" id="65077894%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-runtime.html"><span>get</span><wbr></wbr><span><span>Runtime</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="65077894%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-runtime.html"><span class="token function">getRuntime</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="../-container-runtime/index.html">ContainerRuntime</a></div><div class="brief "><p class="paragraph">Retrieves the (underlying) runtime of the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1597510701%2FFunctions%2F1134874120" anchor-label="getState" id="1597510701%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-state.html"><span>get</span><wbr></wbr><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1597510701%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-state.html"><span class="token function">getState</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="-state/index.html">Container.State</a></div><div class="brief "><p class="paragraph">Retrieves the state of the container.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-507379483%2FFunctions%2F1134874120" anchor-label="getVolumes" id="-507379483%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="get-volumes.html"><span>get</span><wbr></wbr><span><span>Volumes</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-507379483%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="get-volumes.html"><span class="token function">getVolumes</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin.collections/-list/index.html">List</a><span class="token operator">&lt;</span><a href="../-volume/index.html">Volume</a><span class="token operator">&gt;</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-822235036%2FFunctions%2F1134874120" anchor-label="hasPortMapping" id="-822235036%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="has-port-mapping.html"><span>has</span><wbr></wbr><span>Port</span><wbr></wbr><span><span>Mapping</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-822235036%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="has-port-mapping.html"><span class="token function">hasPortMapping</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">port<span class="token operator">: </span><a href="../-network-port/index.html">NetworkPort</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Checks if the given network port has a mapping defined in the container's port mappings.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="1437300927%2FFunctions%2F1134874120" anchor-label="isEphemeral" id="1437300927%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="is-ephemeral.html"><span>is</span><wbr></wbr><span><span>Ephemeral</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="1437300927%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="is-ephemeral.html"><span class="token function">isEphemeral</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Checks whether the container is ephemeral.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1326730882%2FFunctions%2F1134874120" anchor-label="onDelete" id="-1326730882%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="on-delete.html"><span>on</span><wbr></wbr><span><span>Delete</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1326730882%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="on-delete.html"><span class="token function">onDelete</span></a><span class="token punctuation">(</span><span class="token punctuation">)</span></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1141623184%2FFunctions%2F1134874120" anchor-label="putDirectory" id="-1141623184%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="put-directory.html"><span>put</span><wbr></wbr><span><span>Directory</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1141623184%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="put-directory.html"><span class="token function">putDirectory</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">localDir<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a><span class="token punctuation">, </span></span><span class="parameter ">remoteDir<span class="token operator">: </span><a href="../-unix-dir/index.html">UnixDir</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">Uploads a directory to the container. Note that the uploaded files and directoroes include the the directory itself and all its contents.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="put-directory.html"><span class="token function">putDirectory</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">localDir<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">remoteDir<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">Uploads a directory to the container. Note that the uploaded files and directories include the the directory itself and all its contents.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1660765932%2FFunctions%2F1134874120" anchor-label="putFile" id="-1660765932%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="put-file.html"><span>put</span><wbr></wbr><span><span>File</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1660765932%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="put-file.html"><span class="token function">putFile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">localFile<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/nio/file/Path.html">Path</a><span class="token punctuation">, </span></span><span class="parameter ">remoteDir<span class="token operator">: </span><a href="../-unix-dir/index.html">UnixDir</a><span class="token punctuation">, </span></span><span class="parameter ">remoteFilename<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></div><div class="brief "><p class="paragraph">Uploads a file to the container.</p></div><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="put-file.html"><span class="token function">putFile</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">localFile<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">remoteDir<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">remoteFilename<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token operator">?</span><span class="token operator"> = </span>null</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-57877710%2FFunctions%2F1134874120" anchor-label="waitForCompletion" id="-57877710%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="wait-for-completion.html"><span>wait</span><wbr></wbr><span>For</span><wbr></wbr><span><span>Completion</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-57877710%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="wait-for-completion.html"><span class="token function">waitForCompletion</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">timeout<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter ">unit<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/TimeUnit.html">TimeUnit</a><span class="token operator"> = </span>TimeUnit.SECONDS</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Wait for the container to stop. The default implementation waits indefinitely for the ContainerState.STOPPED state.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+<a data-name="-1256378098%2FFunctions%2F1134874120" anchor-label="waitForState" id="-1256378098%2FFunctions%2F1134874120" data-filterable-set="easycontainers/JVM"></a>
+          <div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM">
+            <div class="main-subrow keyValue ">
+              <div class=""><span class="inline-flex">
+                  <div><a href="wait-for-state.html"><span>wait</span><wbr></wbr><span>For</span><wbr></wbr><span><span>State</span></span></a></div>
+<span class="anchor-wrapper"><span class="anchor-icon" pointing-to="-1256378098%2FFunctions%2F1134874120"></span>
+                    <div class="copy-popup-wrapper "><span class="copy-popup-icon"></span><span>Link copied to clipboard</span></div>
+                  </span></span></div>
+              <div>
+                <div class="title">
+                  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="wait-for-state.html"><span class="token function">waitForState</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">state<span class="token operator">: </span><a href="-state/index.html">Container.State</a><span class="token punctuation">, </span></span><span class="parameter ">timeout<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-long/index.html">Long</a><span class="token operator"> = </span><span class="token constant">0</span><span class="token punctuation">, </span></span><span class="parameter ">unit<span class="token operator">: </span><a href="https://docs.oracle.com/javase/8/docs/api/java/util/concurrent/TimeUnit.html">TimeUnit</a><span class="token operator"> = </span>TimeUnit.SECONDS</span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-boolean/index.html">Boolean</a></div><div class="brief "><p class="paragraph">Wait for the container to reach the specified state.</p></div></div></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2024 Copyright</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

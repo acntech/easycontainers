@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html class="no-js">
+<head>
+    <meta name="viewport" content="width=device-width, initial-scale=1" charset="UTF-8">
+    <title>withVolume</title>
+    <link href="../../../images/logo-icon.svg" rel="icon" type="image/svg">
+    <script>var pathToRoot = "../../../";</script>
+    <script>document.documentElement.classList.replace("no-js","js");</script>
+    <script>const storage = localStorage.getItem("dokka-dark-mode")
+    if (storage == null) {
+        const osDarkSchemePreferred = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+        if (osDarkSchemePreferred === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    } else {
+        const savedDarkMode = JSON.parse(storage)
+        if(savedDarkMode === true) {
+            document.getElementsByTagName("html")[0].classList.add("theme-dark")
+        }
+    }
+    </script>
+<script type="text/javascript" src="https://unpkg.com/kotlin-playground@1/dist/playground.min.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/sourceset_dependencies.js" async="async"></script>
+<link href="../../../styles/style.css" rel="Stylesheet">
+<link href="../../../styles/main.css" rel="Stylesheet">
+<link href="../../../styles/prism.css" rel="Stylesheet">
+<link href="../../../styles/logo-styles.css" rel="Stylesheet">
+<link href="../../../styles/font-jb-sans-auto.css" rel="Stylesheet">
+<script type="text/javascript" src="../../../scripts/clipboard.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/navigation-loader.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/platform-content-handler.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/main.js" defer="defer"></script>
+<script type="text/javascript" src="../../../scripts/prism.js" async="async"></script>
+<script type="text/javascript" src="../../../scripts/symbol-parameters-wrapper_deferred.js" defer="defer"></script>
+</head>
+<body>
+    <div class="root">
+<nav class="navigation" id="navigation-wrapper">
+    <div class="navigation--inner">
+        <div class="navigation-title">
+            <button class="menu-toggle" id="menu-toggle" type="button">toggle menu</button>
+            <div class="library-name">
+                    <a class="library-name--link" href="../../../index.html">
+                            easycontainers
+                    </a>
+            </div>
+            <div class="library-version">
+            </div>
+        </div>
+        <div class="filter-section" id="filter-section">
+                <button class="platform-tag platform-selector jvm-like" data-active="" data-filter="easycontainers/JVM">JVM</button>
+        </div>
+    </div>
+    <div class="navigation-controls">
+        <button class="navigation-controls--btn navigation-controls--theme" id="theme-toggle-button" type="button">switch theme</button>
+        <div class="navigation-controls--btn navigation-controls--search" id="searchBar" role="button">search in API</div>
+    </div>
+</nav>
+        <div id="container">
+            <div class="sidebar" id="leftColumn">
+                <div class="sidebar--inner" id="sideMenu"></div>
+            </div>
+            <div id="main">
+<div class="main-content" data-page-type="member" id="content" pageIds="easycontainers::no.acntech.easycontainers.model/ContainerBuilder/withVolume/#kotlin.String#kotlin.String/PointingToDeclaration//1134874120">
+  <div class="breadcrumbs"><a href="../../../index.html">easycontainers</a><span class="delimiter">/</span><a href="../index.html">no.acntech.easycontainers.model</a><span class="delimiter">/</span><a href="index.html">ContainerBuilder</a><span class="delimiter">/</span><span class="current">withVolume</span></div>
+  <div class="cover ">
+    <h1 class="cover"><span>with</span><wbr></wbr><span><span>Volume</span></span></h1>
+  </div>
+  <div class="platform-hinted " data-platform-hinted="data-platform-hinted"><div class="content sourceset-dependent-content" data-active="" data-togglable="easycontainers/JVM"><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="with-volume.html"><span class="token function">withVolume</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a><span class="token punctuation">, </span></span><span class="parameter ">mountPath<span class="token operator">: </span><a href="https://kotlinlang.org/api/latest/jvm/stdlib/kotlin/-string/index.html">String</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">SELF</a><span class="clearfix"><span class="floating-right">(<a href="https://github.com/acntech/easycontainers/tree/main/src/main/kotlin/no/acntech/easycontainers/model/ContainerBuilder.kt#L418">source</a>)</span></span></div><br><hr><div class="symbol monospace"><span class="token keyword">open </span><span class="token keyword">fun </span><a href="with-volume.html"><span class="token function">withVolume</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">name<span class="token operator">: </span><a href="../-volume-name/index.html">VolumeName</a><span class="token punctuation">, </span></span><span class="parameter ">mountPath<span class="token operator">: </span><a href="../-unix-dir/index.html">UnixDir</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">SELF</a><span class="clearfix"><span class="floating-right">(<a href="https://github.com/acntech/easycontainers/tree/main/src/main/kotlin/no/acntech/easycontainers/model/ContainerBuilder.kt#L429">source</a>)</span></span></div><p class="paragraph">Sets the volume name and mount path for the current instance of the object.</p><span class="kdoc-tag"><h4 class="">Return</h4><p class="paragraph">An instance of the object with the volume name and mount path set.</p></span><h4 class="">Parameters</h4><div class="table"><div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span><span>name</span></span></u></div></span></div><div><div class="title"><p class="paragraph">The name of the volume to be set.</p></div></div></div></div><div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span>mount</span><wbr></wbr><span><span>Path</span></span></u></div></span></div><div><div class="title"><p class="paragraph">The mount path to be set as the mount point for the volume.</p></div></div></div></div></div><hr><div class="symbol monospace"><span class="token keyword">abstract </span><span class="token keyword">fun </span><a href="with-volume.html"><span class="token function">withVolume</span></a><span class="token punctuation">(</span><span class="parameters "><span class="parameter ">volume<span class="token operator">: </span><a href="../-volume/index.html">Volume</a></span></span><span class="token punctuation">)</span><span class="token operator">: </span><a href="index.html">SELF</a><span class="clearfix"><span class="floating-right">(<a href="https://github.com/acntech/easycontainers/tree/main/src/main/kotlin/no/acntech/easycontainers/model/ContainerBuilder.kt#L439">source</a>)</span></span></div><p class="paragraph">Sets the volume for the container.</p><span class="kdoc-tag"><h4 class="">Return</h4><p class="paragraph">The updated ContainerBuilder instance.</p></span><h4 class="">Parameters</h4><div class="table"><div class="table-row" data-filterable-current="easycontainers/JVM" data-filterable-set="easycontainers/JVM"><div class="main-subrow keyValue "><div class=""><span class="inline-flex"><div><u><span><span>volume</span></span></u></div></span></div><div><div class="title"><p class="paragraph">The volume to be added or mapped into the container.</p></div></div></div></div></div></div></div>
+</div>
+      <div class="footer">
+        <span class="go-to-top-icon"><a href="#content" id="go-to-top-link"></a></span><span>© 2024 Copyright</span><span
+                class="pull-right"><span>Generated by </span><a
+                href="https://github.com/Kotlin/dokka"><span>dokka</span><span class="padded-icon"></span></a></span>
+      </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

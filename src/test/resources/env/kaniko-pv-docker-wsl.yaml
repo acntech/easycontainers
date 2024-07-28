@@ -1,0 +1,30 @@
+# Works for Kind (also on WSL2) given that the cluster is created with a config like this:
+#
+#  kind: Cluster
+#  apiVersion: kind.x-k8s.io/v1alpha4
+#  nodes:
+#    - role: control-plane
+#      extraMounts:
+#          # Adjust this path according to your platform
+#        - hostPath: /home/[user-name]/kind/data/kaniko-data
+#          containerPath: /kaniko-data
+#
+# Start the cluster with:
+# > kind create cluster --config kind-config.yaml
+
+apiVersion: v1
+kind: PersistentVolume
+metadata:
+  name: kaniko-data-pv
+  labels:
+    type: local
+spec:
+  storageClassName: standard
+  capacity:
+    storage: 100Mi
+  volumeMode: Filesystem
+  accessModes:
+    - ReadWriteMany
+  persistentVolumeReclaimPolicy: Retain
+  hostPath:
+    path: /kaniko-data/
