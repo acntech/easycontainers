@@ -54,9 +54,11 @@ jobs:
           echo "New project version: $PROJECT_VERSION"
           echo "-----> Packaging"
           mvn --quiet package -Drevision=$PATCH -DskipTests=true -Dmaven.javadoc.skip=true
-          mvn --quiet -Drevision=$PATCH gplus:execute
           echo "Packaging completed"
+          echo "-----> Creating release pom"
+          mvn --quiet -Drevision=$PATCH gplus:execute
           VERSION_TAG=v$PROJECT_VERSION
+          echo "-----> Tagging version: $VERSION_TAG"
           git tag "$VERSION_TAG"
           git push origin "$VERSION_TAG"
           echo "VERSION_TAG=$VERSION_TAG" >> $GITHUB_OUTPUT
